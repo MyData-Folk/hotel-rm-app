@@ -10,7 +10,7 @@ DATA_DIR = "/app/data"
 
 engine = create_engine(DATABASE_URL, echo=False)
 
-app = FastAPI(title="Hotel RM API - Skeleton")
+app = FastAPI(title="Hotel RM API - v1.0")
 
 
 class HotelConfig(SQLModel, table=True):
