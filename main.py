@@ -8,7 +8,7 @@ from pydantic import BaseModel
 DATABASE_URL = os.getenv('DATABASE_URL', "postgresql://postgres:postgres@db:5432/hoteldb")
 DATA_DIR = "/app/data"
 
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
 
 app = FastAPI(title="Hotel RM API - v1.0")
 
