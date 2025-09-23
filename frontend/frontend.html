@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <title>Frontend - Hotel RM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-gray-50">
+  <h1 class="text-2xl font-bold">Frontend - Hotel RM (Demo)</h1>
+
+  <div class="mt-4 flex gap-2">
+    <input id="hotelId" placeholder="hotel_id (default)" class="border px-2 py-1 rounded" />
+    <button id="btnLoadData" class="px-3 py-2 bg-green-600 text-white rounded">Charger données</button>
+    <button id="btnLoadConfig" class="px-3 py-2 bg-indigo-600 text-white rounded">Charger config</button>
+  </div>
+
+  <div class="mt-4">
+    <h2 class="font-semibold">Simulation</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
+      <input id="simRoom" placeholder="Type chambre" class="border px-2 py-1 rounded" />
+      <input id="simPlan" placeholder="Plan tarifaire" class="border px-2 py-1 rounded" />
+      <input id="simStart" type="date" class="border px-2 py-1 rounded" />
+      <input id="simEnd" type="date" class="border px-2 py-1 rounded" />
+      <input id="simPartner" placeholder="Partenaire (facultatif)" class="border px-2 py-1 rounded col-span-2" />
+      <button id="btnSimulate" class="px-3 py-2 bg-purple-600 text-white rounded col-span-2">Simuler</button>
+    </div>
+  </div>
+
+  <pre id="out" class="mt-6 bg-white p-4 rounded max-h-96 overflow-auto"></pre>
+
+<script>
+const API_URL = 'http://dgkw8ogg08w8c8w88o0wsg4w.72.60.91.16.sslip.io';
+const OUT = document.getElementById('out');
+const hotelIdInput = document.getElementById('hotelId');
+
+document.getElementById('btnLoadData').addEventListener('click', async ()=>{
+  OUT.textContent = 'Chargement...';
+  const hid = hotelIdInput.value || 'default';
+  try {
+    const res = await fetch(`${API_URL}/data?hotel_id=${encodeURIComponent(hid)}`);
+    const json = await res.json();
+    OUT.textContent = JSON.stringify(json, null, 2);
+  } catch(e) {
+    OUT.textContent = `Erreur: ${e.message}`;
+  }
+});
+
+document.getElementById('btnLoadConfig').addEventListener('click', async ()=>{
+  OUT.textContent = 'Chargement...';
+  const hid = hotelIdInput.value || 'default';
+  try {
+    const res = await fetch(`${API_URL}/config?hotel_id=${encodeURIComponent(hid)}`);
+    const json = await res.json();
+    OUT.textContent = JSON.stringify(json, null, 2);
+  } catch(e) {
+    OUT.textContent = `Erreur: ${e.message}`;
+  }
+});
+
+document.getElementById('btnSimulate').addEventListener('click', async ()=>{
+  OUT.textContent = 'Simulation en cours...';
+  const payload = {
+    hotel_id: hotelIdInput.value || 'default',
+    room: document.getElementById('simRoom').value,
+    plan: document.getElementById('simPlan').value,
+    start: document.getElementById('simStart').value,
+    end: document.getElementById('simEnd').value,
+    partner: document.getElementById('simPartner').value || null
+  };
+  try {
+    const res = await fetch(`${API_URL}/simulate`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    OUT.textContent = JSON.stringify(json, null, 2);
+  } catch(e) {
+    OUT.textContent = `Erreur: ${e.message}`;
+  }
+});
+</script>
+</body>
+</html>
