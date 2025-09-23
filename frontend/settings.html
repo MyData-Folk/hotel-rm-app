@@ -26,7 +26,7 @@
   <pre id="out" class="mt-6 bg-white p-4 rounded max-h-72 overflow-auto"></pre>
 
 <script>
-const API_URL = 'http://dgkw8ogg08w8c8w88o0wsg4w.72.60.91.16.sslip.io';
+const API_URL = 'https://dgkw8ogg08w8c8w88o0wsg4w.72.60.91.16.sslip.io'; // ⚡ HTTPS obligatoire
 const OUT = document.getElementById('out');
 
 document.getElementById('uploadExcelBtn').addEventListener('click', async ()=>{
@@ -37,10 +37,11 @@ document.getElementById('uploadExcelBtn').addEventListener('click', async ()=>{
   const fd = new FormData(); fd.append('file', f);
   try {
     const res = await fetch(`${API_URL}/upload/excel?hotel_id=${encodeURIComponent(hid)}`, { method:'POST', body: fd });
+    if (!res.ok) throw new Error(`Erreur serveur (${res.status})`);
     const json = await res.json();
     OUT.textContent = JSON.stringify(json, null, 2);
   } catch(e) {
-    OUT.textContent = `Erreur de communication avec l'API: ${e.message}`;
+    OUT.textContent = `❌ Erreur API: ${e.message}`;
   }
 });
 
@@ -51,10 +52,11 @@ document.getElementById('uploadConfigBtn').addEventListener('click', async ()=>{
   const fd = new FormData(); fd.append('file', f);
   try {
     const res = await fetch(`${API_URL}/upload/config`, { method:'POST', body: fd });
+    if (!res.ok) throw new Error(`Erreur serveur (${res.status})`);
     const json = await res.json();
     OUT.textContent = JSON.stringify(json, null, 2);
   } catch(e) {
-    OUT.textContent = `Erreur de communication avec l'API: ${e.message}`;
+    OUT.textContent = `❌ Erreur API: ${e.message}`;
   }
 });
 </script>
