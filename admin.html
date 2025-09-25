@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Configuration Hôtel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/public/style.css">
+</head>
+<body class="bg-light-bg text-text-dark font-sans">
+
+    <!-- Header -->
+    <header class="bg-card-bg shadow-md">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fas fa-cogs text-primary-color text-2xl mr-3"></i>
+                <h1 class="text-xl font-bold">Panneau d'Administration</h1>
+            </div>
+            <a href="https://folkestone.e-hotelmanager.com" class="bg-primary-color text-white px-4 py-2 rounded-md hover:bg-primary-hover transition duration-300 flex items-center">
+                <i class="fas fa-chart-line mr-2"></i>
+                <span>Voir le Simulateur</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Carte d'upload du planning -->
+            <div class="bg-card-bg rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold border-b border-border-color pb-3 mb-4 flex items-center">
+                    <i class="fas fa-calendar-alt mr-3 text-secondary-color"></i>
+                    1. Charger le Planning (Tarifs & Stocks)
+                </h2>
+                <form id="excelUploadForm">
+                    <label for="hotelIdExcel" class="block text-sm font-medium text-text-medium mb-1">ID de l'hôtel</label>
+                    <input type="text" id="hotelIdExcel" value="folkestone" class="w-full px-3 py-2 border border-border-color rounded-md focus:outline-none focus:ring-2 focus:ring-primary-color" required>
+                    
+                    <label for="excelFile" class="block text-sm font-medium text-text-medium mt-4 mb-1">Fichier (.xlsx ou .csv)</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .csv" class="w-full text-sm text-text-medium file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-primary-color hover:file:bg-indigo-100" required>
+                    
+                    <button type="submit" class="w-full bg-primary-color text-white font-bold py-2 px-4 rounded-md hover:bg-primary-hover transition duration-300 mt-6 flex items-center justify-center">
+                        <i class="fas fa-upload mr-2"></i>
+                        <span>Envoyer le Planning</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Carte d'upload de la configuration -->
+            <div class="bg-card-bg rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold border-b border-border-color pb-3 mb-4 flex items-center">
+                    <i class="fas fa-users-cog mr-3 text-secondary-color"></i>
+                    2. Charger la Configuration (Partenaires)
+                </h2>
+                <form id="configUploadForm">
+                    <p class="text-sm text-text-medium mb-2">Le fichier JSON doit contenir un `hotel_id` correspondant à celui du planning.</p>
+                    <label for="configFile" class="block text-sm font-medium text-text-medium mb-1">Fichier de configuration (.json)</label>
+                    <input type="file" id="configFile" accept=".json" class="w-full text-sm text-text-medium file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-primary-color hover:file:bg-indigo-100" required>
+                    
+                    <button type="submit" class="w-full bg-primary-color text-white font-bold py-2 px-4 rounded-md hover:bg-primary-hover transition duration-300 mt-6 flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>
+                        <span>Envoyer la Configuration</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Zone de retour de l'API -->
+        <div id="apiResponse" class="mt-8 bg-card-bg rounded-lg shadow-lg p-6 hidden">
+            <h3 class="text-lg font-semibold mb-2">Réponse de l'API</h3>
+            <pre class="bg-light-bg p-4 rounded-md text-sm overflow-x-auto"></pre>
+        </div>
+    </main>
+
+    <!-- Spinner et Toast global -->
+    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="spinner"></div>
+    </div>
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
+
+    <script>
+        // Remplacer cette URL par celle de votre API, PAS celle du site admin.
+        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
+
+        // Elements
+        const excelForm = document.getElementById('excelUploadForm');
+        const configForm = document.getElementById('configUploadForm');
+        const apiResponseDiv = document.getElementById('apiResponse');
+        const apiResponsePre = apiResponseDiv.querySelector('pre');
+        const spinner = document.getElementById('spinner-overlay');
+        const toast = document.getElementById('toast');
+
+        // Fonctions Utilitaires
+        const showSpinner = () => spinner.classList.remove('hidden');
+        const hideSpinner = () => spinner.classList.add('hidden');
+
+        const showToast = (message, success = true) => {
+            toast.textContent = message;
+            toast.style.backgroundColor = success ? 'var(--success-color)' : 'var(--error-color)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        };
+        
+        const handleApiResponse = (data, success = true) => {
+            apiResponseDiv.classList.remove('hidden');
+            apiResponsePre.textContent = JSON.stringify(data, null, 2);
+            apiResponsePre.style.borderColor = success ? 'var(--success-color)' : 'var(--error-color)';
+            showToast(success ? 'Opération réussie !' : 'Une erreur est survenue.', success);
+        };
+
+        // Gestionnaires d'événements
+        excelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('excelFile');
+            const hotelId = document.getElementById('hotelIdExcel').value;
+            if (!fileInput.files.length || !hotelId) {
+                showToast('Veuillez fournir un ID d\'hôtel et un fichier.', false);
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            showSpinner();
+            try {
+                const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                handleApiResponse(result);
+            } catch (error) {
+                handleApiResponse({ error: error.message }, false);
+            } finally {
+                hideSpinner();
+            }
+        });
+
+        configForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('configFile');
+            if (!fileInput.files.length) {
+                showToast('Veuillez sélectionner un fichier.', false); return;
+            }
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            showSpinner();
+            try {
+                const response = await fetch(`${API_URL}/upload/config`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                handleApiResponse(result);
+            } catch (error) {
+                handleApiResponse({ error: error.message }, false);
+            } finally {
+                hideSpinner();
+            }
+        });
+    </script>
+</body>
+</html>
