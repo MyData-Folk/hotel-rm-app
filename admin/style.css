@@ -8,6 +8,8 @@
     --text-dark: #1f2937; /* Gray-800 */
     --text-medium: #4b5563; /* Gray-600 */
     --border-color: #e5e7eb; /* Gray-200 */
+    --success-color: #22c55e; /* Green-500 */
+    --error-color: #ef4444; /* Red-500 */
 }
 
 /* Spinner pour les temps de chargement */
@@ -30,8 +32,10 @@
     transition: all 0.5s ease-in-out;
     opacity: 0;
     transform: translateY(20px);
+    visibility: hidden;
 }
 .toast.show {
     opacity: 1;
     transform: translateY(0);
+    visibility: visible;
 }

@@ -81,7 +81,8 @@
     <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
 
     <script>
-        const API_URL = 'https://folkestone.e-hotelmanager.com'; // REMPLACEZ PAR VOTRE URL API
+        // Remplacer cette URL par celle de votre API, PAS celle du site admin.
+        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
 
         // Elements
         const excelForm = document.getElementById('excelUploadForm');
@@ -97,7 +98,7 @@
 
         const showToast = (message, success = true) => {
             toast.textContent = message;
-            toast.style.backgroundColor = success ? '#22c55e' : '#ef4444'; // Green or Red
+            toast.style.backgroundColor = success ? 'var(--success-color)' : 'var(--error-color)';
             toast.classList.add('show');
             setTimeout(() => toast.classList.remove('show'), 3000);
         };
@@ -105,7 +106,7 @@
         const handleApiResponse = (data, success = true) => {
             apiResponseDiv.classList.remove('hidden');
             apiResponsePre.textContent = JSON.stringify(data, null, 2);
-            apiResponsePre.style.borderColor = success ? '#22c55e' : '#ef4444';
+            apiResponsePre.style.borderColor = success ? 'var(--success-color)' : 'var(--error-color)';
             showToast(success ? 'Opération réussie !' : 'Une erreur est survenue.', success);
         };
 
@@ -118,10 +119,8 @@
                 showToast('Veuillez fournir un ID d\'hôtel et un fichier.', false);
                 return;
             }
-
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-
             showSpinner();
             try {
                 const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, {
@@ -142,13 +141,10 @@
             e.preventDefault();
             const fileInput = document.getElementById('configFile');
             if (!fileInput.files.length) {
-                showToast('Veuillez sélectionner un fichier.', false);
-                return;
+                showToast('Veuillez sélectionner un fichier.', false); return;
             }
-
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
-
             showSpinner();
             try {
                 const response = await fetch(`${API_URL}/upload/config`, {
