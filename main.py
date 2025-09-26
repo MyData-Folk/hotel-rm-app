@@ -5,10 +5,8 @@ import pandas as pd
 import traceback
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles # IMPORTANT
-from fastapi.responses import FileResponse    # IMPORTANT
 from sqlmodel import SQLModel, Field, create_engine, Session, select
-from typing import Optional, List, Dict, Any
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
@@ -16,12 +14,21 @@ from datetime import datetime, timedelta
 DATABASE_URL = os.getenv('DATABASE_URL', "postgresql://postgres:postgres@db:5432/hoteldb")
 DATA_DIR = "/app/data"
 
+# Utiliser l'URL modifiée pour assurer la compatibilité avec psycopg2
 engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
 
-app = FastAPI(title="Hotel RM API - v2.1 Final")
+app = FastAPI(
+    title="Hotel RM API - v3.1 (Final)",
+    description="API pure pour la gestion des données de Revenue Management hôtelier."
+)
 
 # --- Configuration CORS ---
-origins = ["*"] # On autorise tout pour la simplicité
+# On autorise explicitement les domaines de nos interfaces frontend.
+origins = [
+    "https://folkestone.e-hotelmanager.com",
+    "https://admin-folkestone.e-hotelmanager.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -36,14 +43,15 @@ class HotelConfig(SQLModel, table=True):
     hotel_id: str
     config_json: str
 
+# --- Événements de Démarrage de l'Application ---
 @app.on_event('startup')
 def on_startup():
+    """Initialise la base de données et les dossiers au démarrage."""
     SQLModel.metadata.create_all(engine)
     os.makedirs(DATA_DIR, exist_ok=True)
 
-# --- Fonction de Parsing (inchangée) ---
+# --- Fonction de Parsing de Fichier ---
 def parse_sheet_to_structure(df: pd.DataFrame) -> Dict[str, Any]:
-    # ... (la fonction de parsing reste identique à la précédente, pas besoin de la recopier)
     hotel_data = {}
     if df.shape[0] < 1: return hotel_data
     header_row = df.iloc[0].tolist()
@@ -94,10 +102,14 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> Dict[str, Any]:
             continue
     return hotel_data
 
-# --- Endpoints de l'API (inchangés) ---
-@app.post('/upload/excel', tags=["API"])
+# --- Endpoints de l'API ---
+
+@app.get("/", tags=["Status"])
+def read_root():
+    return {"status": "Hotel RM API is running"}
+
+@app.post('/upload/excel', tags=["Uploads"])
 async def upload_excel(hotel_id: str = Query('default'), file: UploadFile = File(...)):
-    # ... (code de la fonction identique)
     print(f"Début de l'upload de données pour l'hôtel: {hotel_id}, fichier: {file.filename}")
     try:
         content = await file.read(); filename = file.filename.lower()
@@ -107,22 +119,20 @@ async def upload_excel(hotel_id: str = Query('default'), file: UploadFile = File
         parsed = parse_sheet_to_structure(df)
         out_parsed = os.path.join(DATA_DIR, f'{hotel_id}_parsed.json')
         with open(out_parsed, 'w', encoding='utf-8') as f: json.dump(parsed, f, ensure_ascii=False, indent=2)
-        print(f"Upload de données terminé avec succès pour {hotel_id}.")
         return {'status': 'ok', 'hotel_id': hotel_id, 'rooms_found': len(parsed.keys())}
     except Exception as e:
         print(f"--- ERREUR CRITIQUE PENDANT L'UPLOAD DE DONNÉES ---\n{traceback.format_exc()}\n-----------------------------------------")
         raise HTTPException(status_code=500, detail=f"Une erreur interne est survenue: {str(e)}")
 
-@app.post('/upload/config', tags=["API"])
+@app.post('/upload/config', tags=["Uploads"])
 async def upload_config(file: UploadFile = File(...)):
-    # ... (code de la fonction identique)
     try:
         content = await file.read(); parsed = json.loads(content.decode('utf-8'))
         hotel_id = parsed.get('hotel_id')
         if not hotel_id: raise HTTPException(status_code=400, detail="Le fichier JSON doit contenir une clé 'hotel_id'.")
         cfg_str = json.dumps(parsed)
         with Session(engine) as session:
-            q = select(HotelConfig).where(HotelConfig.hotel_id == hotel_id) # <-- Ligne corrigée
+            q = select(HotelConfig).where(HotelConfig.hotel_id == hotel_id) # Correction de la faute de frappe
             existing = session.exec(q).first()
             if existing: existing.config_json = cfg_str; session.add(existing)
             else: session.add(HotelConfig(hotel_id=hotel_id, config_json=cfg_str))
@@ -132,17 +142,15 @@ async def upload_config(file: UploadFile = File(...)):
         print(f"--- ERREUR CRITIQUE PENDANT L'UPLOAD DE CONFIG ---\n{traceback.format_exc()}\n-----------------------------------------")
         raise HTTPException(status_code=500, detail=f"Une erreur interne est survenue: {str(e)}")
 
-@app.get('/data', tags=["API"])
+@app.get('/data', tags=["Data"])
 def get_data(hotel_id: str = Query('default')) -> Dict[str, Any]:
-    # ... (code de la fonction identique)
     path = os.path.join(DATA_DIR, f'{hotel_id}_parsed.json')
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f: return json.load(f)
     raise HTTPException(status_code=404, detail=f"Aucune donnée trouvée pour l'hôtel '{hotel_id}'")
 
-@app.get('/config', tags=["API"])
+@app.get('/config', tags=["Data"])
 def get_config(hotel_id: str = Query('default')) -> Dict[str, Any]:
-    # ... (code de la fonction identique)
     with Session(engine) as session:
         q = select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)
         cfg = session.exec(q).first()
@@ -152,9 +160,8 @@ def get_config(hotel_id: str = Query('default')) -> Dict[str, Any]:
 class SimulateIn(BaseModel):
     hotel_id: str; room: str; plan: str; start: str; end: str; partner_id: Optional[str] = None
 
-@app.post('/simulate', tags=["API"])
+@app.post('/simulate', tags=["Simulation"])
 def simulate(payload: SimulateIn) -> Dict[str, Any]:
-    # ... (code de la fonction identique)
     data = get_data(payload.hotel_id); config = get_config(payload.hotel_id)
     room_data = data.get(payload.room)
     if not room_data: raise HTTPException(status_code=404, detail=f"Type de chambre '{payload.room}' non trouvé")
@@ -176,16 +183,3 @@ def simulate(payload: SimulateIn) -> Dict[str, Any]:
     subtotal = sum(r['price'] for r in results if r.get('price') is not None)
     total_commission = sum(r['commission'] for r in results if r.get('commission') is not None)
     return {'results': results, 'summary': {'subtotal': round(subtotal, 2), 'total_commission': round(total_commission, 2), 'total_net': round(subtotal - total_commission, 2)}}
-
-# --- SECTION POUR SERVIR LE FRONTEND ---
-# La ligne suivante doit être la dernière configuration de l'app
-
-@app.get("/admin", response_class=FileResponse, tags=["Frontend"])
-async def read_admin_page():
-    return 'static/admin.html'
-
-@app.get("/frontend", response_class=FileResponse, tags=["Frontend"])
-async def read_frontend_page():
-    return 'static/frontend.html'
-
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
