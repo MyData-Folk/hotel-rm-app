@@ -122,7 +122,7 @@ async def upload_config(file: UploadFile = File(...)):
         if not hotel_id: raise HTTPException(status_code=400, detail="Le fichier JSON doit contenir une clé 'hotel_id'.")
         cfg_str = json.dumps(parsed)
         with Session(engine) as session:
-            q = select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)
+            q = select(HotelConfig).where(HotelConfig.hotel_id == hotel_id) # <-- Ligne corrigée
             existing = session.exec(q).first()
             if existing: existing.config_json = cfg_str; session.add(existing)
             else: session.add(HotelConfig(hotel_id=hotel_id, config_json=cfg_str))
