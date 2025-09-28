@@ -1,11 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // On dit à Tailwind de scanner TOUT le projet, y compris les sous-dossiers.
   content: [
-    "./*.{html,js}"
+    "./**/*.{html,js}"
   ],
   theme: {
     extend: {
-      // On étend la palette de couleurs existante de Tailwind
       colors: {
         'primary-color': '#4f46e5',
         'primary-hover': '#4338ca',
