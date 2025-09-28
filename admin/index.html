@@ -45,7 +45,96 @@
     <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
     <!-- Script JS (inchangé) -->
     <script>
-        // ... (votre script JS reste le même)
+            const API_URL = 'https://api-folkestone.e-hotelmanager.com';
+            const excelForm = document.getElementById('excelUploadForm');
+            const configForm = document.getElementById('configUploadForm');
+            const apiResponseDiv = document.getElementById('apiResponse');
+            const apiResponsePre = apiResponseDiv.querySelector('pre');
+            const spinner = document.getElementById('spinner-overlay');
+            const toast = document.getElementById('toast');
+
+            const showSpinner = () => spinner.classList.remove('hidden');
+            const hideSpinner = () => spinner.classList.add('hidden');
+
+            const showToast = (message, success = true) => {
+                toast.textContent = message;
+                toast.className = 'toast show'; // Reset classes
+                if (success) {
+                    toast.classList.add('bg-green-500', 'text-white');
+                } else {
+                    toast.classList.add('bg-red-500', 'text-white');
+                }
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            };
+
+            const handleApiResponse = (data, success = true) => {
+                apiResponseDiv.classList.remove('hidden');
+                apiResponsePre.textContent = JSON.stringify(data, null, 2);
+                showToast(success ? 'Opération réussie !' : 'Une erreur est survenue.', success);
+            };
+
+            excelForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('excelFile'); // On récupère l'élément input
+                const hotelId = document.getElementById('hotelIdExcel').value;
+                
+                // La vérification corrigée
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showToast('Veuillez sélectionner un fichier Excel.', false);
+                    return;
+                }
+                if (!hotelId) {
+                    showToast('Veuillez fournir un ID d\'hôtel.', false);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                showSpinner();
+
+                try {
+                    const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                    handleApiResponse(result);
+                } catch (error) {
+                    handleApiResponse({ error: error.message }, false);
+                } finally {
+                    hideSpinner();
+                }
+            });
+
+            configForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('configFile'); // On récupère l'élément input
+
+                // La vérification corrigée
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showToast('Veuillez sélectionner un fichier de configuration.', false);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                showSpinner();
+
+                try {
+                    const response = await fetch(`${API_URL}/upload/config`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                    handleApiResponse(result);
+                } catch (error) {
+                    handleApiResponse({ error: error.message }, false);
+                } finally {
+                    hideSpinner();
+                }
+            });
     </script>
 </body>
 </html>

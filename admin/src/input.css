@@ -6,7 +6,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border-left-color: #4f46e5; /* On met la couleur en dur pour l'instant */
+  border-left-color: #4f46e5; /* Couleur en dur */
   animation: spin 1s ease infinite;
 }
 
