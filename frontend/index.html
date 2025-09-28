@@ -55,6 +55,165 @@
     <!-- LE SCRIPT JS N'A PAS BESOIN DE CHANGER -->
     <script>
         // ... (votre script JS reste identique)
+        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
+        let hotelData = {};
+        let hotelConfig = {};
+
+        // On sélectionne tous les éléments du DOM une seule fois
+        const refreshDataBtn = document.getElementById('refreshDataBtn');
+        const hotelIdInput = document.getElementById('hotelId');
+        const statusMessage = document.getElementById('statusMessage');
+        const formSelects = document.querySelectorAll('#simulationForm select');
+        const simPartnerSelect = document.getElementById('simPartner');
+        const simRoomTypeSelect = document.getElementById('simRoomType');
+        const simRatePlanSelect = document.getElementById('simRatePlan');
+        const simulationForm = document.getElementById('simulationForm');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsTableBody = document.getElementById('resultsTableBody');
+        const resultsTableFoot = document.getElementById('resultsTableFoot');
+        const spinner = document.getElementById('spinner-overlay');
+        const toast = document.getElementById('toast');
+
+        // Fonctions utilitaires
+        const showSpinner = () => spinner.classList.remove('hidden');
+        const hideSpinner = () => spinner.classList.add('hidden');
+
+        const showToast = (message, success = true) => {
+            toast.textContent = message;
+            toast.className = 'toast show'; // Reset classes
+            if (success) {
+                toast.classList.add('bg-green-500', 'text-white');
+            } else {
+                toast.classList.add('bg-red-500', 'text-white');
+            }
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        };
+
+        // Fonctions métier
+        const loadData = async () => {
+            const hotelId = hotelIdInput.value;
+            if (!hotelId) {
+                showToast("Veuillez entrer un ID d'hôtel.", false);
+                return;
+            }
+            showSpinner();
+            statusMessage.textContent = 'Chargement des données...';
+            resultsContainer.classList.add('hidden');
+            formSelects.forEach(sel => sel.disabled = true);
+            try {
+                const [dataRes, configRes] = await Promise.all([
+                    fetch(`${API_URL}/data?hotel_id=${hotelId}`),
+                    fetch(`${API_URL}/config?hotel_id=${hotelId}`)
+                ]);
+                if (!dataRes.ok) throw new Error(`Données du planning introuvables (Erreur: ${dataRes.status})`);
+                if (!configRes.ok) throw new Error(`Données de configuration introuvables (Erreur: ${configRes.status})`);
+                
+                hotelData = await dataRes.json();
+                hotelConfig = await configRes.json();
+                
+                populateSelectors();
+                statusMessage.textContent = `Données pour '${hotelId}' chargées. Prêt à simuler.`;
+                showToast('Données actualisées avec succès !');
+                formSelects.forEach(sel => sel.disabled = false);
+            } catch (error) {
+                statusMessage.innerHTML = `Erreur critique: ${error.message}.`;
+                showToast(error.message, false);
+            } finally {
+                hideSpinner();
+            }
+        };
+
+        const populateSelectors = () => {
+            // Vider les listes
+            simPartnerSelect.innerHTML = '<option value="">En Direct (0%)</option>';
+            simRoomTypeSelect.innerHTML = '';
+
+            // Remplir les partenaires depuis la config
+            if (hotelConfig.partners) {
+                Object.entries(hotelConfig.partners).forEach(([partnerName, partnerDetails]) => {
+                    simPartnerSelect.innerHTML += `<option value="${partnerName}">${partnerName} (${partnerDetails.commission}%)</option>`;
+                });
+            }
+            
+            // Remplir les types de chambres depuis les données
+            if (hotelData) {
+                 Object.keys(hotelData).forEach(room => {
+                    simRoomTypeSelect.innerHTML += `<option value="${room}">${room}</option>`;
+                });
+            }
+
+            updateRatePlans(); // Appel initial
+        };
+
+        const updateRatePlans = () => {
+            simRatePlanSelect.innerHTML = '';
+            const selectedRoom = simRoomTypeSelect.value;
+            if (hotelData && hotelData[selectedRoom] && hotelData[selectedRoom].plans) {
+                Object.keys(hotelData[selectedRoom].plans).forEach(plan => {
+                    simRatePlanSelect.innerHTML += `<option value="${plan}">${plan}</option>`;
+                });
+            }
+        };
+
+        const handleSimulation = async (e) => {
+            e.preventDefault();
+            const payload = {
+                hotel_id: hotelIdInput.value,
+                room: simRoomTypeSelect.value,
+                plan: simRatePlanSelect.value,
+                start: document.getElementById('simStartDate').value,
+                end: document.getElementById('simEndDate').value,
+                partner_name: simPartnerSelect.value
+            };
+            if (!payload.start || !payload.end) {
+                showToast("Veuillez sélectionner une date de début et de fin.", false);
+                return;
+            }
+            showSpinner();
+            try {
+                const response = await fetch(`${API_URL}/simulate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Erreur lors de la simulation');
+                displayResults(result);
+            } catch (error) {
+                showToast(error.message, false);
+            } finally {
+                hideSpinner();
+            }
+        };
+
+        const displayResults = (data) => {
+            resultsTableBody.innerHTML = '';
+            if (!data.results || data.results.length === 0) {
+                resultsTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-500">Aucune donnée disponible pour cette sélection.</td></tr>';
+                resultsTableFoot.innerHTML = '';
+                resultsContainer.classList.remove('hidden');
+                return;
+            }
+
+            data.results.forEach(day => {
+                const stockColor = (day.stock ?? 0) > 5 ? 'text-green-600' : ((day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500');
+                const formatCurrency = (val) => val?.toFixed(2).replace('.', ',') ?? 'N/A';
+                resultsTableBody.innerHTML += `<tr class="hover:bg-gray-50"><td class="px-6 py-4">${day.date}</td><td class="px-6 py-4 text-right font-medium ${stockColor}">${day.stock ?? 'N/A'}</td><td class="px-6 py-4 text-right">${formatCurrency(day.price)} €</td><td class="px-6 py-4 text-right">${formatCurrency(day.commission)} €</td><td class="px-6 py-4 text-right font-bold text-indigo-600">${formatCurrency(day.net_price)} €</td></tr>`;
+            });
+
+            const formatTotal = (val) => val.toFixed(2).replace('.', ',');
+            resultsTableFoot.innerHTML = `<tr><td class="px-6 py-4">Total</td><td></td><td class="px-6 py-4 text-right">${formatTotal(data.summary.subtotal)} €</td><td class="px-6 py-4 text-right">${formatTotal(data.summary.total_commission)} €</td><td class="px-6 py-4 text-right text-indigo-600">${formatTotal(data.summary.total_net)} €</td></tr>`;
+            resultsContainer.classList.remove('hidden');
+        };
+
+        // --- C'EST LA PARTIE QUI MANQUAIT ---
+        // On attache les fonctions aux événements
+        refreshDataBtn.addEventListener('click', loadData);
+        simRoomTypeSelect.addEventListener('change', updateRatePlans);
+        simulationForm.addEventListener('submit', handleSimulation);
+
+        // On charge les données automatiquement au démarrage de la page
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
