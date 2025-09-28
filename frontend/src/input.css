@@ -4,16 +4,18 @@
 
 /* 2. On définit nos couleurs personnalisées avec la nouvelle directive @theme */
 @theme {
-  --colors-primary-color: #4f46e5;
-  --colors-primary-hover: #4338ca;
-  --colors-secondary-color: #7c3aed;
-  --colors-light-bg: #f9fafb;
-  --colors-card-bg: #ffffff;
-  --colors-text-dark: #1f2937;
-  --colors-text-medium: #4b5563;
-  --colors-border-color: #e5e7eb;
-  --colors-success-color: #22c55e;
-  --colors-error-color: #ef4444;
+  colors: {
+    'primary-color': '#4f46e5',
+    'primary-hover': '#4338ca',
+    'secondary-color': '#7c3aed',
+    'light-bg': '#f9fafb',
+    'card-bg': '#ffffff',
+    'text-dark': '#1f2937',
+    'text-medium': '#4b5563',
+    'border-color': '#e5e7eb',
+    'success-color': '#22c55e',
+    'error-color': '#ef4444',
+  }
 }
 
 /* 3. On garde nos styles personnalisés pour spinner et toast */
