@@ -1,5 +1,6 @@
 /* 1. On importe tous les styles de base de Tailwind v4 */
-@import "tailwindcss";
+@import "tailwindcss/preflight"; /* Les styles de base (reset) */
+@import "tailwindcss/theme";    /* Toutes les classes utilitaires (padding, margin, etc.) */
 
 /* 2. On définit nos couleurs personnalisées avec la nouvelle directive @theme */
 @theme {
