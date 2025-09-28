@@ -3,138 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Configuration Hôtel</title>
+    <title>Admin - Configuration</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
-<!-- On utilise les classes par défaut de Tailwind -->
-<body class="bg-gray-100 text-gray-800 font-sans">
-    <header class="bg-white shadow-md">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center"><i class="fas fa-cogs text-indigo-600 text-2xl mr-3"></i><h1 class="text-xl font-bold">Panneau d'Administration</h1></div>
-            <a href="https://folkestone.e-hotelmanager.com" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300 flex items-center"><i class="fas fa-chart-line mr-2"></i><span>Voir le Simulateur</span></a>
+<body class="bg-gray-100">
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <h1 class="text-3xl font-bold">Panneau de Configuration</h1>
+            <p class="mt-1 text-blue-100">Gérez les paramètres de l'application</p>
         </div>
     </header>
-    <main class="container mx-auto px-6 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-lg font-semibold border-b border-gray-200 pb-3 mb-4 flex items-center"><i class="fas fa-calendar-alt mr-3 text-purple-600"></i>1. Charger le Planning</h2>
-                <form id="excelUploadForm">
-                    <label for="hotelIdExcel" class="block text-sm font-medium text-gray-600 mb-1">ID de l'hôtel</label>
-                    <input type="text" id="hotelIdExcel" value="folkestone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
-                    <label for="excelFile" class="block text-sm font-medium text-gray-600 mt-4 mb-1">Fichier (.xlsx ou .csv)</label>
-                    <input type="file" id="excelFile" accept=".xlsx, .csv" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" required>
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6 flex items-center justify-center"><i class="fas fa-upload mr-2"></i><span>Envoyer le Planning</span></button>
-                </form>
+
+    <main class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="bg-white rounded-xl shadow-lg">
+            <!-- Onglets de la modale -->
+            <div class="flex border-b border-gray-200">
+                <button class="tab-btn active flex-1" data-tab="partners"><i class="fas fa-handshake mr-2"></i>Partenaires OTA</button>
+                <button class="tab-btn flex-1" data-tab="displayOrder"><i class="fas fa-sort-alpha-down mr-2"></i>Ordre d'Affichage</button>
+                <button class="tab-btn flex-1" data-tab="dataUpload"><i class="fas fa-database mr-2"></i>Chargement des Données</button>
             </div>
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-lg font-semibold border-b border-gray-200 pb-3 mb-4 flex items-center"><i class="fas fa-users-cog mr-3 text-purple-600"></i>2. Charger la Configuration</h2>
-                <form id="configUploadForm">
-                    <p class="text-sm text-gray-600 mb-2">Le fichier JSON doit contenir un `hotel_id`.</p>
-                    <label for="configFile" class="block text-sm font-medium text-gray-600 mb-1">Fichier (.json)</label>
-                    <input type="file" id="configFile" accept=".json" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" required>
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6 flex items-center justify-center"><i class="fas fa-save mr-2"></i><span>Envoyer la Configuration</span></button>
-                </form>
+
+            <div class="p-6">
+                <!-- Contenu de l'onglet Partenaires -->
+                <div id="tab-content-partners" class="tab-content">
+                    <div class="grid lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2">
+                            <h3 class="font-semibold text-gray-700 mb-2">Partenaires configurés</h3>
+                            <div id="partnerListContainer" class="max-h-[50vh] overflow-y-auto border rounded-lg p-2 bg-gray-50"></div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border">
+                            <h3 id="partnerFormTitle" class="font-semibold text-gray-700 mb-3">Ajouter un partenaire</h3>
+                            <form id="partnerForm" class="space-y-4"></form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contenu de l'onglet Ordre d'affichage -->
+                <div id="tab-content-displayOrder" class="tab-content hidden">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">Ordre des types de chambres</h3>
+                            <div id="roomOrderList" class="sortable-list"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">Ordre des plans tarifaires</h3>
+                            <div id="planOrderList" class="sortable-list"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contenu de l'onglet Chargement de données -->
+                <div id="tab-content-dataUpload" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">1. Charger le Planning</h3>
+                            <form id="excelUploadForm">
+                                <label for="excelFile" class="block text-sm font-medium text-gray-600 mt-4 mb-1">Fichier (.xlsx ou .csv)</label>
+                                <input type="file" id="excelFile" accept=".xlsx, .csv" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" required>
+                                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6"><i class="fas fa-upload mr-2"></i>Envoyer le Planning</button>
+                            </form>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-700 mb-2">2. Récupérer la configuration</h3>
+                            <p class="text-sm text-gray-600 mb-2">La configuration actuelle est gérée dans les autres onglets. Ce bouton sauvegarde l'état actuel et l'envoie à l'API.</p>
+                             <button id="saveAndUploadConfigBtn" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 transition mt-6"><i class="fas fa-save mr-2"></i>Sauvegarder et Envoyer la Configuration</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="p-4 bg-gray-50 border-t rounded-b-xl flex justify-between items-center">
+                <div>
+                    <input type="file" id="importSettingsInput" class="hidden" accept=".json">
+                    <button id="importSettingsBtn" class="px-3 py-2 text-sm bg-white border rounded-md hover:bg-gray-100"><i class="fas fa-folder-open mr-2"></i>Importer Config</button>
+                    <button id="exportSettingsBtn" class="px-3 py-2 text-sm bg-white border rounded-md hover:bg-gray-100"><i class="fas fa-download mr-2"></i>Exporter Config</button>
+                </div>
+                <a href="https://folkestone.e-hotelmanager.com" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition"><i class="fas fa-chart-line mr-2"></i>Aller au Simulateur</a>
             </div>
         </div>
-        <div id="apiResponse" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
-            <h3 class="text-lg font-semibold mb-2">Réponse de l'API</h3><pre class="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto"></pre>
-        </div>
+        <div id="apiResponse" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden"></div>
     </main>
     <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner"></div></div>
-    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
-    <!-- Script JS (inchangé) -->
-    <script>
-            const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-            const excelForm = document.getElementById('excelUploadForm');
-            const configForm = document.getElementById('configUploadForm');
-            const apiResponseDiv = document.getElementById('apiResponse');
-            const apiResponsePre = apiResponseDiv.querySelector('pre');
-            const spinner = document.getElementById('spinner-overlay');
-            const toast = document.getElementById('toast');
+    <div id="toast"></div>
 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'https://api-folkestone.e-hotelmanager.com';
+            const HOTEL_ID = 'folkestone'; // L'ID est maintenant fixe côté client admin
+
+            let appConfig = { partners: {}, displayOrder: { rooms: [], plans: [] } };
+
+            // --- Éléments du DOM ---
+            const partnerListContainer = document.getElementById('partnerListContainer');
+            const partnerForm = document.getElementById('partnerForm');
+            const partnerFormTitle = document.getElementById('partnerFormTitle');
+            const roomOrderList = document.getElementById('roomOrderList');
+            const planOrderList = document.getElementById('planOrderList');
+            const saveAndUploadConfigBtn = document.getElementById('saveAndUploadConfigBtn');
+            const importSettingsBtn = document.getElementById('importSettingsBtn');
+            const importSettingsInput = document.getElementById('importSettingsInput');
+            const exportSettingsBtn = document.getElementById('exportSettingsBtn');
+            const excelUploadForm = document.getElementById('excelUploadForm');
+            const apiResponseDiv = document.getElementById('apiResponse');
+            const spinner = document.getElementById('spinner-overlay');
+            const toastContainer = document.getElementById('toast');
+
+            // --- Fonctions Utilitaires ---
             const showSpinner = () => spinner.classList.remove('hidden');
             const hideSpinner = () => spinner.classList.add('hidden');
+            const showToast = (message, isError = false) => {
+                toastContainer.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
+                toastContainer.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${message}`;
+                setTimeout(() => toastContainer.classList.remove('show'), 3000);
+            };
 
-            const showToast = (message, success = true) => {
-                toast.textContent = message;
-                toast.className = 'toast show'; // Reset classes
-                if (success) {
-                    toast.classList.add('bg-green-500', 'text-white');
-                } else {
-                    toast.classList.add('bg-red-500', 'text-white');
+            // --- Fonctions de l'interface ---
+            const switchTab = (tabId) => {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`.tab-btn[data-tab='${tabId}']`).classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+            };
+
+            const renderPartnerList = () => {
+                partnerListContainer.innerHTML = '';
+                if (!appConfig.partners || Object.keys(appConfig.partners).length === 0) {
+                    partnerListContainer.innerHTML = `<p class="text-center text-gray-500 p-8">Aucun partenaire.</p>`; return;
                 }
-                setTimeout(() => toast.classList.remove('show'), 3000);
+                Object.entries(appConfig.partners).sort((a, b) => a[0].localeCompare(b[0])).forEach(([name, data]) => {
+                    const el = document.createElement('div');
+                    el.className = 'p-3 border rounded-md bg-white flex justify-between items-center';
+                    el.innerHTML = `<div><h4 class="font-semibold">${name}</h4><p class="text-sm text-gray-500">Commission: ${data.commission || 0}%</p></div><div><button class="edit-btn p-2 text-gray-500 hover:text-indigo-600"><i class="fas fa-pen"></i></button><button class="delete-btn p-2 text-gray-500 hover:text-red-600"><i class="fas fa-trash"></i></button></div>`;
+                    el.querySelector('.edit-btn').onclick = () => editPartner(name);
+                    el.querySelector('.delete-btn').onclick = () => deletePartner(name);
+                    partnerListContainer.appendChild(el);
+                });
             };
 
-            const handleApiResponse = (data, success = true) => {
-                apiResponseDiv.classList.remove('hidden');
-                apiResponsePre.textContent = JSON.stringify(data, null, 2);
-                showToast(success ? 'Opération réussie !' : 'Une erreur est survenue.', success);
+            const renderDisplayOrderLists = () => {
+                const createItem = (text) => `<div class="draggable-item">${text}</div>`;
+                roomOrderList.innerHTML = (appConfig.displayOrder.rooms || []).map(createItem).join('');
+                planOrderList.innerHTML = (appConfig.displayOrder.plans || []).map(createItem).join('');
+                new Sortable(roomOrderList, { animation: 150, ghostClass: 'sortable-ghost' });
+                new Sortable(planOrderList, { animation: 150, ghostClass: 'sortable-ghost' });
             };
 
-            excelForm.addEventListener('submit', async (e) => {
+            const loadConfigFromApi = async () => {
+                showSpinner();
+                try {
+                    const response = await fetch(`${API_URL}/config?hotel_id=${HOTEL_ID}`);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            showToast("Aucune config trouvée, chargement des valeurs par défaut.", false);
+                        } else {
+                            throw new Error(`Erreur serveur: ${response.status}`);
+                        }
+                    } else {
+                        appConfig = await response.json();
+                        showToast("Configuration chargée depuis le serveur.");
+                    }
+                } catch (error) {
+                    console.error("Erreur de chargement de la config:", error);
+                    showToast("Impossible de charger la config. Utilisation des valeurs par défaut.", false);
+                } finally {
+                    renderPartnerList();
+                    renderDisplayOrderLists();
+                    hideSpinner();
+                }
+            };
+            
+            // --- Logique des formulaires ---
+            partnerForm.innerHTML = `<input type="hidden" id="originalPartnerName"><div><label for="partnerName" class="block text-sm font-medium text-gray-600">Nom</label><input type="text" id="partnerName" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></div><div><label for="partnerCommission" class="block text-sm font-medium text-gray-600">Commission (%)</label><input type="number" id="partnerCommission" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" min="0" max="100" step="0.1"></div><div><label for="partnerCodes" class="block text-sm font-medium text-gray-600">Codes (séparés par ,)</label><textarea id="partnerCodes" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm"></textarea></div><div class="flex items-center gap-4 pt-2"><button type="submit" id="savePartnerBtn" class="w-full bg-indigo-600 text-white py-2 rounded-md">Ajouter</button><button type="button" id="clearPartnerFormBtn" class="w-full bg-gray-200 py-2 rounded-md">Annuler</button></div>`;
+            const clearPartnerForm = () => { partnerForm.reset(); document.getElementById('originalPartnerName').value = ''; partnerFormTitle.textContent = "Ajouter un partenaire"; document.getElementById('savePartnerBtn').textContent = "Ajouter"; };
+            
+            // --- Événements ---
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+            partnerForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const fileInput = document.getElementById('excelFile'); // On récupère l'élément input
-                const hotelId = document.getElementById('hotelIdExcel').value;
+                const originalName = document.getElementById('originalPartnerName').value;
+                const newName = document.getElementById('partnerName').value.trim();
+                const commission = document.getElementById('partnerCommission').value;
+                const codes = document.getElementById('partnerCodes').value.split(',').map(c => c.trim()).filter(c => c);
+                if (!newName) return showToast("Le nom est obligatoire.", true);
+                if (originalName && originalName !== newName) delete appConfig.partners[originalName];
+                appConfig.partners[newName] = { commission: commission ? parseFloat(commission) : 0, codes };
+                renderPartnerList();
+                clearPartnerForm();
+            });
+            document.getElementById('clearPartnerFormBtn').addEventListener('click', clearPartnerForm);
+            
+            const editPartner = (name) => {
+                const data = appConfig.partners[name];
+                document.getElementById('originalPartnerName').value = name;
+                document.getElementById('partnerName').value = name;
+                document.getElementById('partnerCommission').value = data.commission;
+                document.getElementById('partnerCodes').value = (data.codes || []).join(', ');
+                partnerFormTitle.textContent = "Modifier un partenaire";
+                document.getElementById('savePartnerBtn').textContent = "Modifier";
+            };
+
+            const deletePartner = (name) => {
+                if (confirm(`Supprimer le partenaire "${name}" ?`)) {
+                    delete appConfig.partners[name];
+                    renderPartnerList();
+                }
+            };
+
+            excelUploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('excelFile');
+                if (!fileInput.files.length) return showToast('Veuillez sélectionner un fichier.', true);
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                showSpinner();
+                try {
+                    const response = await fetch(`${API_URL}/upload/excel?hotel_id=${HOTEL_ID}`, { method: 'POST', body: formData });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Erreur serveur');
+                    apiResponseDiv.innerHTML = `<h3 class="font-semibold mb-2">Réponse :</h3><pre class="bg-gray-100 p-3 rounded-md text-sm">${JSON.stringify(result, null, 2)}</pre>`;
+                    apiResponseDiv.classList.remove('hidden');
+                } catch (error) { showToast(error.message, true); } 
+                finally { hideSpinner(); }
+            });
+
+            saveAndUploadConfigBtn.addEventListener('click', async () => {
+                appConfig.hotel_id = HOTEL_ID;
+                appConfig.displayOrder.rooms = Array.from(roomOrderList.children).map(item => item.textContent.trim());
+                appConfig.displayOrder.plans = Array.from(planOrderList.children).map(item => item.textContent.trim());
                 
-                // La vérification corrigée
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    showToast('Veuillez sélectionner un fichier Excel.', false);
-                    return;
-                }
-                if (!hotelId) {
-                    showToast('Veuillez fournir un ID d\'hôtel.', false);
-                    return;
-                }
-
+                const configBlob = new Blob([JSON.stringify(appConfig, null, 2)], { type: 'application/json' });
                 const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
+                formData.append('file', configBlob, 'config.json');
                 showSpinner();
-
                 try {
-                    const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, {
-                        method: 'POST',
-                        body: formData
-                    });
+                    const response = await fetch(`${API_URL}/upload/config`, { method: 'POST', body: formData });
                     const result = await response.json();
-                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
-                    handleApiResponse(result);
-                } catch (error) {
-                    handleApiResponse({ error: error.message }, false);
-                } finally {
-                    hideSpinner();
-                }
+                    if (!response.ok) throw new Error(result.detail || 'Erreur serveur');
+                    showToast("Configuration envoyée avec succès !");
+                } catch (error) { showToast(error.message, true); } 
+                finally { hideSpinner(); }
             });
 
-            configForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const fileInput = document.getElementById('configFile'); // On récupère l'élément input
-
-                // La vérification corrigée
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    showToast('Veuillez sélectionner un fichier de configuration.', false);
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('file', fileInput.files[0]);
-                showSpinner();
-
-                try {
-                    const response = await fetch(`${API_URL}/upload/config`, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const result = await response.json();
-                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
-                    handleApiResponse(result);
-                } catch (error) {
-                    handleApiResponse({ error: error.message }, false);
-                } finally {
-                    hideSpinner();
-                }
+            importSettingsBtn.addEventListener('click', () => importSettingsInput.click());
+            importSettingsInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        appConfig = imported;
+                        renderPartnerList();
+                        renderDisplayOrderLists();
+                        showToast("Configuration importée.");
+                    } catch (err) { showToast("Fichier JSON invalide.", true); }
+                };
+                reader.readAsText(file);
             });
+
+            exportSettingsBtn.addEventListener('click', () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appConfig, null, 2));
+                const dl = document.createElement('a');
+                dl.setAttribute("href", dataStr);
+                dl.setAttribute("download", "config_simulateur_hotel.json");
+                dl.click();
+            });
+
+            // --- Initialisation ---
+            switchTab('partners');
+            loadConfigFromApi();
+        });
     </script>
 </body>
 </html>
