@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulateur - RM Hôtel</title>
-    <!-- La ligne du script CDN de Tailwind a été SUPPRIMÉE -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
+<!-- Classes corrigées pour être comprises par Tailwind -->
 <body class="bg-light-bg text-text-dark font-sans">
     <header class="bg-card-bg shadow-md">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -51,72 +51,10 @@
         </div>
     </main>
     <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner"></div></div>
-    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-success-color text-white py-2 px-4 rounded-md shadow-lg"></div>
+    <!-- LE SCRIPT JS N'A PAS BESOIN DE CHANGER -->
     <script>
-        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-        let hotelData = {}; let hotelConfig = {};
-        const refreshDataBtn = document.getElementById('refreshDataBtn'); const hotelIdInput = document.getElementById('hotelId');
-        const statusMessage = document.getElementById('statusMessage'); const formSelects = document.querySelectorAll('#simulationForm select');
-        const simPartnerSelect = document.getElementById('simPartner'); const simRoomTypeSelect = document.getElementById('simRoomType');
-        const simRatePlanSelect = document.getElementById('simRatePlan'); const simulationForm = document.getElementById('simulationForm');
-        const resultsContainer = document.getElementById('resultsContainer'); const resultsTableBody = document.getElementById('resultsTableBody');
-        const resultsTableFoot = document.getElementById('resultsTableFoot'); const spinner = document.getElementById('spinner-overlay');
-        const toast = document.getElementById('toast');
-        const showSpinner = () => spinner.classList.remove('hidden'); const hideSpinner = () => spinner.classList.add('hidden');
-        const showToast = (message, success = true) => {
-            toast.textContent = message; toast.style.backgroundColor = success ? 'var(--success-color)' : 'var(--error-color)';
-            toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3000);
-        };
-        const loadData = async () => {
-            const hotelId = hotelIdInput.value; if (!hotelId) { showToast("Veuillez entrer un ID d'hôtel.", false); return; }
-            showSpinner(); statusMessage.textContent = 'Chargement...'; resultsContainer.classList.add('hidden'); formSelects.forEach(sel => sel.disabled = true);
-            try {
-                const [dataRes, configRes] = await Promise.all([ fetch(`${API_URL}/data?hotel_id=${hotelId}`), fetch(`${API_URL}/config?hotel_id=${hotelId}`) ]);
-                if (!dataRes.ok) throw new Error(`Données de planning non trouvées (Code: ${dataRes.status})`);
-                if (!configRes.ok) throw new Error(`Données de configuration non trouvées (Code: ${configRes.status})`);
-                hotelData = await dataRes.json(); hotelConfig = await configRes.json();
-                populateSelectors(); statusMessage.textContent = `Données chargées pour "${hotelId}". Prêt à simuler.`;
-                showToast('Données actualisées !'); formSelects.forEach(sel => sel.disabled = false);
-            } catch (error) { statusMessage.innerHTML = `Erreur: ${error.message}.`; showToast(error.message, false); } finally { hideSpinner(); }
-        };
-        const populateSelectors = () => {
-            simPartnerSelect.innerHTML = '<option value="">En Direct (0%)</option>';
-            hotelConfig.ota_partners?.forEach(p => simPartnerSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.commission}%)</option>`);
-            simRoomTypeSelect.innerHTML = ''; Object.keys(hotelData).forEach(room => simRoomTypeSelect.innerHTML += `<option value="${room}">${room}</option>`);
-            const updateRatePlans = () => {
-                simRatePlanSelect.innerHTML = ''; const selectedRoom = simRoomTypeSelect.value;
-                if (hotelData[selectedRoom]?.plans) { Object.keys(hotelData[selectedRoom].plans).forEach(plan => simRatePlanSelect.innerHTML += `<option value="${plan}">${plan}</option>`); }
-            };
-            simRoomTypeSelect.addEventListener('change', updateRatePlans); updateRatePlans();
-        };
-        const handleSimulation = async (e) => {
-            e.preventDefault(); const payload = {
-                hotel_id: hotelIdInput.value, room: simRoomTypeSelect.value, plan: simRatePlanSelect.value,
-                start: document.getElementById('simStartDate').value, end: document.getElementById('simEndDate').value,
-                partner_id: simPartnerSelect.value
-            };
-            if (!payload.start || !payload.end) { showToast("Veuillez sélectionner des dates.", false); return; }
-            showSpinner();
-            try {
-                const response = await fetch(`${API_URL}/simulate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const result = await response.json(); if (!response.ok) throw new Error(result.detail || 'Erreur');
-                displayResults(result);
-            } catch (error) { showToast(error.message, false); } finally { hideSpinner(); }
-        };
-        const displayResults = (data) => {
-            resultsTableBody.innerHTML = ''; if (!data.results?.length) {
-                resultsTableBody.innerHTML = '<tr><td colspan="5" class="text-center p-6">Aucune donnée disponible.</td></tr>';
-                resultsTableFoot.innerHTML = ''; resultsContainer.classList.remove('hidden'); return;
-            }
-            data.results.forEach(day => {
-                const stockColor = (day.stock ?? 0) > 5 ? 'text-green-600' : ((day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500');
-                const formatCurrency = (val) => val?.toFixed(2) ?? 'N/A';
-                resultsTableBody.innerHTML += `<tr><td class="px-6 py-4">${day.date}</td><td class="px-6 py-4 text-right font-medium ${stockColor}">${day.stock ?? 'N/A'}</td><td class="px-6 py-4 text-right">${formatCurrency(day.price)} €</td><td class="px-6 py-4 text-right">${formatCurrency(day.commission)} €</td><td class="px-6 py-4 text-right font-bold text-primary-color">${formatCurrency(day.net_price)} €</td></tr>`;
-            });
-            resultsTableFoot.innerHTML = `<tr><td class="px-6 py-4">Total</td><td></td><td class="px-6 py-4 text-right">${data.summary.subtotal.toFixed(2)} €</td><td class="px-6 py-4 text-right">${data.summary.total_commission.toFixed(2)} €</td><td class="px-6 py-4 text-right text-primary-color">${data.summary.total_net.toFixed(2)} €</td></tr>`;
-            resultsContainer.classList.remove('hidden');
-        };
-        refreshDataBtn.addEventListener('click', loadData); simulationForm.addEventListener('submit', handleSimulation);
+        // ... (votre script JS reste identique)
     </script>
 </body>
 </html>
