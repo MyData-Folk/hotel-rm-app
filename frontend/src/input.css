@@ -1,20 +1,45 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1. On importe tous les styles de base de Tailwind v4 */
+@import "tailwindcss";
 
-/* VOS STYLES PERSONNALISÉS */
-:root {
-    --primary-color: #4f46e5; --primary-hover: #4338ca; --secondary-color: #7c3aed;
-    --light-bg: #f9fafb; --card-bg: #ffffff; --text-dark: #1f2937; --text-medium: #4b5563;
-    --border-color: #e5e7eb; --success-color: #22c55e; --error-color: #ef4444;
+/* 2. On définit nos couleurs personnalisées avec la nouvelle directive @theme */
+@theme {
+  --colors-primary-color: #4f46e5;
+  --colors-primary-hover: #4338ca;
+  --colors-secondary-color: #7c3aed;
+  --colors-light-bg: #f9fafb;
+  --colors-card-bg: #ffffff;
+  --colors-text-dark: #1f2937;
+  --colors-text-medium: #4b5563;
+  --colors-border-color: #e5e7eb;
+  --colors-success-color: #22c55e;
+  --colors-error-color: #ef4444;
 }
+
+/* 3. On garde nos styles personnalisés pour spinner et toast */
 .spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px;
-    border-radius: 50%; border-left-color: var(--primary-color);
-    animation: spin 1s ease infinite;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  /* On utilise la variable CSS directement */
+  border-left-color: var(--colors-primary-color);
+  animation: spin 1s ease infinite;
 }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .toast {
-    transition: all 0.5s ease-in-out; opacity: 0; transform: translateY(20px); visibility: hidden;
+  transition: all 0.5s ease-in-out;
+  opacity: 0;
+  transform: translateY(20px);
+  visibility: hidden;
 }
-.toast.show { opacity: 1; transform: translateY(0); visibility: visible; }
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
