@@ -1,226 +1,140 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Outil RM</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Configuration Hôtel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 p-4 sm:p-6 md:p-8">
-    <div class="max-w-6xl mx-auto">
-        <header class="text-center mb-8"><h1 class="text-3xl font-bold text-indigo-700">Panneau d'Administration</h1></header>
-        
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <!-- Colonne de gauche: Upload du Planning -->
-            <div class="lg:col-span-2">
-                <div class="bg-white p-6 rounded-lg shadow-md h-full">
-                    <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-calendar-alt text-indigo-500 mr-3"></i>Charger un Planning</h2>
-                     <form id="excelUploadForm">
-                        <label for="hotelIdExcel" class="block font-semibold mb-2">ID de l'Hôtel</label>
-                        <input type="text" id="hotelIdExcel" class="w-full p-2 border rounded-md mb-4" value="folkestone" required>
-                        <label class="block font-semibold mb-2">Fichier Excel (.xlsx)</label>
-                        <input type="file" id="excelFile" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept=".xlsx" required>
-                        <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6">Envoyer le Planning</button>
-                    </form>
-                    <div id="excel-response" class="mt-4 p-3 bg-green-50 rounded-md text-sm hidden"></div>
-                </div>
+<!-- On utilise les classes par défaut de Tailwind -->
+<body class="bg-gray-100 text-gray-800 font-sans">
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center"><i class="fas fa-cogs text-indigo-600 text-2xl mr-3"></i><h1 class="text-xl font-bold">Panneau d'Administration</h1></div>
+            <a href="https://folkestone.e-hotelmanager.com" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300 flex items-center"><i class="fas fa-chart-line mr-2"></i><span>Voir le Simulateur</span></a>
+        </div>
+    </header>
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold border-b border-gray-200 pb-3 mb-4 flex items-center"><i class="fas fa-calendar-alt mr-3 text-purple-600"></i>1. Charger le Planning</h2>
+                <form id="excelUploadForm">
+                    <label for="hotelIdExcel" class="block text-sm font-medium text-gray-600 mb-1">ID de l'hôtel</label>
+                    <input type="text" id="hotelIdExcel" value="folkestone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    <label for="excelFile" class="block text-sm font-medium text-gray-600 mt-4 mb-1">Fichier (.xlsx ou .csv)</label>
+                    <input type="file" id="excelFile" accept=".xlsx, .csv" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" required>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6 flex items-center justify-center"><i class="fas fa-upload mr-2"></i><span>Envoyer le Planning</span></button>
+                </form>
             </div>
-
-            <!-- Colonne de droite: Générateur de Configuration -->
-            <div class="lg:col-span-3">
-                <div id="generator-wizard" class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-magic-wand-sparkles text-purple-500 mr-3"></i>Générateur de Configuration</h2>
-                    <div id="step1-content">
-                        <label class="block font-semibold mb-2">Fichier CSV (Partenaire;Plan;Chambre)</label>
-                        <input type="file" id="csv-file" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0" accept=".csv">
-                        <div id="file-info" class="hidden mt-4 p-3 bg-indigo-50 rounded-md text-sm"></div>
-                    </div>
-                    <div id="step2-content" class="hidden">
-                        <h3 class="font-bold mb-2">Commissions & Remises</h3>
-                        <div class="overflow-x-auto"><table class="w-full text-sm">
-                            <thead class="bg-gray-50"><tr><th class="p-2 text-left">Partenaire</th><th class="p-2">Comm(%)</th><th class="p-2">Remise?</th><th class="p-2">Rem(%)</th><th class="p-2 text-left">Exclusions</th></tr></thead>
-                            <tbody id="commission-table-body"></tbody></table>
-                        </div>
-                    </div>
-                     <div id="step3-content" class="hidden">
-                        <h3 class="font-bold mb-2">Ordre d'Affichage</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><h4 class="font-semibold mb-1">Chambres</h4><div id="room-list" class="min-h-[150px] p-2 bg-gray-100 rounded border space-y-2"></div></div>
-                            <div><h4 class="font-semibold mb-1">Plans</h4><div id="plan-list" class="min-h-[150px] p-2 bg-gray-100 rounded border space-y-2"></div></div>
-                        </div>
-                    </div>
-                    <div id="step4-content" class="hidden">
-                         <h3 class="font-bold mb-2">Aperçu & Envoi</h3>
-                         <pre id="json-preview" class="bg-gray-800 text-white text-xs p-4 rounded-md max-h-64 overflow-auto"></pre>
-                    </div>
-                    <div class="flex justify-between mt-6">
-                        <button id="prev-step" class="bg-gray-200 px-4 py-2 rounded-md hidden">Précédent</button>
-                        <button id="next-step" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:opacity-50" disabled>Suivant</button>
-                        <div id="final-buttons" class="hidden flex gap-4">
-                             <button id="download-json" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Télécharger</button>
-                             <button id="upload-json-api" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Envoyer à l'API</button>
-                        </div>
-                    </div>
-                </div>
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold border-b border-gray-200 pb-3 mb-4 flex items-center"><i class="fas fa-users-cog mr-3 text-purple-600"></i>2. Charger la Configuration</h2>
+                <form id="configUploadForm">
+                    <p class="text-sm text-gray-600 mb-2">Le fichier JSON doit contenir un `hotel_id`.</p>
+                    <label for="configFile" class="block text-sm font-medium text-gray-600 mb-1">Fichier (.json)</label>
+                    <input type="file" id="configFile" accept=".json" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100" required>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 transition mt-6 flex items-center justify-center"><i class="fas fa-save mr-2"></i><span>Envoyer la Configuration</span></button>
+                </form>
             </div>
         </div>
-    </div>
+        <div id="apiResponse" class="mt-8 bg-white rounded-lg shadow-lg p-6 hidden">
+            <h3 class="text-lg font-semibold mb-2">Réponse de l'API</h3><pre class="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto"></pre>
+        </div>
+    </main>
     <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner"></div></div>
-    <div id="toast" class="toast"></div>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-md shadow-lg"></div>
+    <!-- Script JS (inchangé) -->
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-        let currentStep = 1;
-        let partnersData = [], roomCategories = new Set(), planCategories = new Set();
-        let commissionRates = {}, discountSettings = {};
+            const API_URL = 'https://api-folkestone.e-hotelmanager.com';
+            const excelForm = document.getElementById('excelUploadForm');
+            const configForm = document.getElementById('configUploadForm');
+            const apiResponseDiv = document.getElementById('apiResponse');
+            const apiResponsePre = apiResponseDiv.querySelector('pre');
+            const spinner = document.getElementById('spinner-overlay');
+            const toast = document.getElementById('toast');
 
-        const steps = { 1: 'step1-content', 2: 'step2-content', 3: 'step3-content', 4: 'step4-content' };
-        
-        // --- DOM Elements ---
-        const csvFileInput = document.getElementById('csv-file'), fileInfo = document.getElementById('file-info');
-        const commissionTableBody = document.getElementById('commission-table-body');
-        const roomList = document.getElementById('room-list'), planList = document.getElementById('plan-list');
-        const jsonPreview = document.getElementById('json-preview');
-        const prevBtn = document.getElementById('prev-step'), nextBtn = document.getElementById('next-step'), finalButtons = document.getElementById('final-buttons');
-        const excelForm = document.getElementById('excelUploadForm'), excelResponseDiv = document.getElementById('excel-response');
-        const spinner = document.getElementById('spinner-overlay'), toastContainer = document.getElementById('toast');
-        
-        const showToast = (message, isError = false) => {
-            toastContainer.className = `toast show ${isError ? 'bg-red-500 text-white p-3 rounded-lg shadow-lg' : 'bg-green-500 text-white p-3 rounded-lg'}`;
-            toastContainer.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${message}`;
-            setTimeout(() => toastContainer.classList.remove('show'), 3000);
-        };
-        const updateWizardUI = () => {
-            Object.values(steps).forEach(id => document.getElementById(id).classList.add('hidden'));
-            document.getElementById(steps[currentStep]).classList.remove('hidden');
-            prevBtn.classList.toggle('hidden', currentStep === 1);
-            nextBtn.classList.toggle('hidden', currentStep === 4);
-            finalButtons.classList.toggle('hidden', currentStep !== 4);
-            nextBtn.disabled = (currentStep === 1 && csvFileInput.files.length === 0);
-        };
+            const showSpinner = () => spinner.classList.remove('hidden');
+            const hideSpinner = () => spinner.classList.add('hidden');
 
-        // --- Wizard Logic ---
-        csvFileInput.addEventListener('change', e => {
-            if (!e.target.files.length) return;
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = ev => {
-                partnersData = []; roomCategories.clear(); planCategories.clear();
-                const lines = ev.target.result.split('\n').map(l => l.trim()).filter(Boolean);
-                lines.slice(1).forEach(line => {
-                    const [partner, plan, room] = line.split(';').map(s => (s || '').trim());
-                    if (!partner) return;
-                    let pObj = partnersData.find(p => p.name === partner);
-                    if (!pObj) { pObj = { name: partner, plans: [] }; partnersData.push(pObj); }
-                    if (plan && !pObj.plans.includes(plan)) pObj.plans.push(plan);
-                    if (room) roomCategories.add(room);
-                    if (plan) planCategories.add(plan);
-                });
-                fileInfo.innerHTML = `Partenaires: <b>${partnersData.length}</b> | Chambres: <b>${roomCategories.size}</b> | Plans: <b>${planCategories.size}</b>`;
-                fileInfo.classList.remove('hidden');
-                partnersData.forEach(p => {
-                    commissionRates[p.name] = 0;
-                    discountSettings[p.name] = { enabled: false, percentage: 0, excludePlansContaining: [] };
-                });
-                updateWizardUI();
-            };
-            reader.readAsText(file, 'UTF-8');
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            if (currentStep < 4) {
-                currentStep++;
-                if (currentStep === 2) populateCommissionTable();
-                if (currentStep === 3) setupSortableLists();
-                if (currentStep === 4) generateJsonPreview();
-                updateWizardUI();
-            }
-        });
-        prevBtn.addEventListener('click', () => { if (currentStep > 1) { currentStep--; updateWizardUI(); } });
-        
-        function populateCommissionTable() {
-            commissionTableBody.innerHTML = '';
-            partnersData.forEach(p => {
-                const row = commissionTableBody.insertRow();
-                row.innerHTML = `<td class="p-2 font-medium">${p.name}</td>
-                    <td class="p-2"><input type="number" class="w-20 p-1 border rounded" value="${commissionRates[p.name] || 0}" data-partner="${p.name}" data-field="commission"></td>
-                    <td class="p-2 text-center"><input type="checkbox" class="h-5 w-5" ${discountSettings[p.name]?.enabled ? 'checked' : ''} data-partner="${p.name}" data-field="enabled"></td>
-                    <td class="p-2"><input type="number" class="w-20 p-1 border rounded" value="${discountSettings[p.name]?.percentage || 0}" data-partner="${p.name}" data-field="percentage"></td>
-                    <td class="p-2"><input type="text" class="w-full p-1 border rounded" placeholder="NET,BRUT" value="${(discountSettings[p.name]?.excludePlansContaining || []).join(',')}" data-partner="${p.name}" data-field="exclusions"></td>`;
-            });
-        }
-        commissionTableBody.addEventListener('change', e => {
-            const { partner, field } = e.target.dataset; if (!partner) return;
-            if (field === 'commission') commissionRates[partner] = parseFloat(e.target.value) || 0;
-            if (field === 'enabled') discountSettings[partner].enabled = e.target.checked;
-            if (field === 'percentage') discountSettings[partner].percentage = parseFloat(e.target.value) || 0;
-            if (field === 'exclusions') discountSettings[partner].excludePlansContaining = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-        });
-        
-        function setupSortableLists() {
-            const createSortable = (el) => new Sortable(el, { animation: 150, ghostClass: 'bg-indigo-100' });
-            roomList.innerHTML = Array.from(roomCategories).sort().map(r => `<div class="p-2 bg-white border rounded cursor-move">${r}</div>`).join('');
-            planList.innerHTML = Array.from(planCategories).sort().map(p => `<div class="p-2 bg-white border rounded cursor-move">${p}</div>`).join('');
-            createSortable(roomList); createSortable(planList);
-        }
-        
-        const buildFinalConfigObject = () => ({
-            hotel_id: document.getElementById('hotelIdExcel').value.trim(),
-            partners: Object.fromEntries(partnersData.map(p => {
-                const discount = discountSettings[p.name];
-                const partnerConf = { commission: commissionRates[p.name] || 0, codes: p.plans };
-                if (discount && discount.enabled && discount.percentage > 0) {
-                    partnerConf.defaultDiscount = { percentage: discount.percentage, excludePlansContaining: discount.excludePlansContaining };
+            const showToast = (message, success = true) => {
+                toast.textContent = message;
+                toast.className = 'toast show'; // Reset classes
+                if (success) {
+                    toast.classList.add('bg-green-500', 'text-white');
+                } else {
+                    toast.classList.add('bg-red-500', 'text-white');
                 }
-                return [p.name, partnerConf];
-            })),
-            displayOrder: {
-                rooms: Array.from(roomList.children).map(el => el.textContent),
-                plans: Array.from(planList.children).map(el => el.textContent)
-            }
-        });
-        const generateJsonPreview = () => jsonPreview.textContent = JSON.stringify(buildFinalConfigObject(), null, 2);
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            };
 
-        document.getElementById('download-json').addEventListener('click', () => {
-            const config = buildFinalConfigObject();
-            if(!config.hotel_id) return showToast('L\'ID de l\'hôtel est requis dans le formulaire de gauche.', true);
-            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `config_${config.hotel_id}.json`; a.click(); URL.revokeObjectURL(a.href);
-        });
-        
-        document.getElementById('upload-json-api').addEventListener('click', async () => {
-            const config = buildFinalConfigObject();
-            if(!config.hotel_id) return showToast('L\'ID de l\'hôtel est requis dans le formulaire de gauche.', true);
-            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-            const formData = new FormData(); formData.append('file', blob, `config.json`);
-            spinner.classList.remove('hidden');
-            try {
-                const response = await fetch(`${API_URL}/upload/config`, { method: 'POST', body: formData });
-                const result = await response.json(); if (!response.ok) throw new Error(result.detail || 'Erreur API');
-                showToast(`Configuration pour '${config.hotel_id}' envoyée !`);
-            } catch (error) { showToast(error.message, true); } finally { spinner.classList.add('hidden'); }
-        });
+            const handleApiResponse = (data, success = true) => {
+                apiResponseDiv.classList.remove('hidden');
+                apiResponsePre.textContent = JSON.stringify(data, null, 2);
+                showToast(success ? 'Opération réussie !' : 'Une erreur est survenue.', success);
+            };
 
-        // --- Excel Upload Logic ---
-        excelForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const hotelId = document.getElementById('hotelIdExcel').value;
-            const fileInput = document.getElementById('excelFile');
-            if (!fileInput.files.length || !hotelId) return showToast('ID Hôtel et fichier Excel requis.', true);
-            const formData = new FormData(); formData.append('file', fileInput.files[0]);
-            spinner.classList.remove('hidden');
-            try {
-                const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, { method: 'POST', body: formData });
-                const result = await response.json(); if (!response.ok) throw new Error(result.detail || 'Erreur serveur');
-                excelResponseDiv.textContent = `Planning pour '${result.hotel_id}' chargé (${result.rooms_found} chambres trouvées).`;
-                excelResponseDiv.classList.remove('hidden');
-            } catch(error) { showToast(error.message, true); }
-            finally { spinner.classList.add('hidden'); }
-        });
+            excelForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('excelFile'); // On récupère l'élément input
+                const hotelId = document.getElementById('hotelIdExcel').value;
+                
+                // La vérification corrigée
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showToast('Veuillez sélectionner un fichier Excel.', false);
+                    return;
+                }
+                if (!hotelId) {
+                    showToast('Veuillez fournir un ID d\'hôtel.', false);
+                    return;
+                }
 
-        updateWizardUI();
-    });
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                showSpinner();
+
+                try {
+                    const response = await fetch(`${API_URL}/upload/excel?hotel_id=${hotelId}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                    handleApiResponse(result);
+                } catch (error) {
+                    handleApiResponse({ error: error.message }, false);
+                } finally {
+                    hideSpinner();
+                }
+            });
+
+            configForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fileInput = document.getElementById('configFile'); // On récupère l'élément input
+
+                // La vérification corrigée
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    showToast('Veuillez sélectionner un fichier de configuration.', false);
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                showSpinner();
+
+                try {
+                    const response = await fetch(`${API_URL}/upload/config`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Erreur du serveur');
+                    handleApiResponse(result);
+                } catch (error) {
+                    handleApiResponse({ error: error.message }, false);
+                } finally {
+                    hideSpinner();
+                }
+            });
     </script>
 </body>
 </html>
