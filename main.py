@@ -17,9 +17,24 @@ DATA_DIR = os.getenv("DATA_DIR", "/app/data")
 engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
 app = FastAPI(title="Hotel RM API - v6.0 (Integrated)")
 
-# --- CORS ---
-origins = [ "https://folkestone.e-hotelmanager.com", "https://admin-folkestone.e-hotelmanager.com" ]
-app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+# --- Configuration CORS ---
+# On définit explicitement les domaines autorisés
+origins = [
+    "https://folkestone.e-hotelmanager.com",
+    "https://admin-folkestone.e-hotelmanager.com",
+    # On ajoute aussi les versions localhost pour le développement local
+    "http://localhost",
+    "http://localhost:3000",
+    "http://127.0.0.1:5500"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # On autorise les origines de la liste
+    allow_credentials=True,      # On autorise les cookies/credentials
+    allow_methods=["*"],         # On autorise toutes les méthodes (GET, POST, etc.)
+    allow_headers=["*"],         # On autorise tous les en-têtes
+)
 
 # --- Modèles de Données ---
 class Hotel(SQLModel, table=True):
