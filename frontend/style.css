@@ -490,9 +490,10 @@
 body {
   font-family: 'Poppins', sans-serif;
   background-color: #f3f4f6;
+  color: #1f2937;
 }
 .gradient-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
 }
 .btn-gradient-primary {
   background: linear-gradient(to right, #6366f1, #8b5cf6);
@@ -504,7 +505,7 @@ body {
 .card {
   background-color: white;
   border-radius: 0.75rem;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.07);
   overflow: hidden;
 }
 .btn {
@@ -519,30 +520,30 @@ body {
   cursor: pointer;
 }
 .btn-secondary {
-  background-color: #1f2937;
+  background-color: #374151;
   color: white;
 }
 .btn-secondary:hover {
-  background-color: #111827;
+  background-color: #1f2937;
 }
 .btn-tertiary {
-  background-color: #4b5563;
-  color: white;
+  background-color: #e5e7eb;
+  color: #374151;
 }
 .btn-tertiary:hover {
-  background-color: #374151;
+  background-color: #d1d5db;
 }
 .form-input {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.75rem;
   border: 1px solid #d1d5db;
   background-color: white;
   border-radius: 0.5rem;
-  box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+  box-shadow: inset 0 1px 2px 0 rgba(0,0,0,0.05);
+  color: #1f2937;
 }
 .form-input:focus {
-  outline: 2px solid transparent;
-  outline-offset: 2px;
+  outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 2px #c7d2fe;
 }
@@ -550,22 +551,24 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.75rem;
   background-color: #f9fafb;
-  border: 1px solid #d1d5db;
+  border: 1px dashed #d1d5db;
   border-radius: 0.5rem;
   cursor: pointer;
   color: #4b5563;
+  transition: all 0.2s;
 }
 .file-input-label:hover {
-  background-color: #f3f4f6;
+  border-color: #4f46e5;
+  background-color: #eef2ff;
 }
 .tab-link {
   flex: 1;
   padding: 1rem 0.5rem;
   text-align: center;
   font-weight: 600;
-  color: #4b5563;
+  color: #6b7280;
   border-bottom: 2px solid transparent;
   background-color: transparent;
 }
@@ -573,40 +576,6 @@ body {
   color: #4f46e5;
   border-bottom-color: #4f46e5;
   background-color: white;
-}
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border-left-color: #4f46e5;
-  animation: spin 1s ease infinite;
-}
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-.toast {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  z-index: 100;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-  color: white;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  transition: transform 0.3s ease-in-out;
-  transform: translateX(120%);
-}
-.toast.show {
-  transform: translateX(0);
 }
 @property --tw-divide-y-reverse {
   syntax: "*";
@@ -690,11 +659,6 @@ body {
   syntax: "*";
   inherits: false;
   initial-value: 0 0 #0000;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {

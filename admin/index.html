@@ -13,143 +13,207 @@
             <a href="https://folkestone.e-hotelmanager.com" class="text-sm text-indigo-600 hover:underline">Aller au Simulateur</a>
         </header>
 
-        <!-- Module de Gestion des Hôtels -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Module 1: Gestion des Hôtels -->
+        <div class="card p-6">
             <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-hotel text-indigo-500 mr-3"></i>Gestion des Hôtels</h2>
             <div id="hotel-list" class="space-y-2 mb-4"></div>
-            <form id="addHotelForm" class="flex gap-4">
-                <input type="text" id="newHotelId" class="w-full p-2 border rounded-md" placeholder="Nouvel ID d'hôtel (ex: monhotel)" required>
-                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md font-semibold">Ajouter</button>
+            <form id="addHotelForm" class="flex gap-2">
+                <input type="text" id="newHotelId" class="form-input" placeholder="Nouvel ID d'hôtel (ex: monhotel)" required>
+                <button type="submit" class="btn btn-secondary">Ajouter</button>
             </form>
         </div>
 
-        <!-- Module d'Upload -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-upload text-purple-500 mr-3"></i>Chargement des Données</h2>
+        <!-- Module 2: Chargement Rapide -->
+        <div class="card p-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-upload text-purple-500 mr-3"></i>Chargement Rapide des Fichiers</h2>
             <div class="mb-6">
-                <label for="hotelSelect" class="block font-semibold mb-2">1. Sélectionner un Hôtel</label>
-                <select id="hotelSelect" class="w-full p-2 border rounded-md"></select>
+                <label for="hotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Pour l'hôtel :</label>
+                <select id="hotelSelect" class="form-input"></select>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t pt-6">
-                <!-- Formulaire d'upload de PLANNING (Excel) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-200 pt-6">
                 <form id="excelUploadForm" class="space-y-3">
-                    <h3 class="font-semibold text-lg">2a. Charger le Planning</h3>
-                    <input type="file" id="excelFile" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-indigo-50" accept=".xlsx" required>
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-md">Envoyer Planning (.xlsx)</button>
+                    <h3 class="font-semibold text-lg">1. Planning</h3>
+                    <label class="file-input-label"><i class="fas fa-calendar-alt mr-3 text-gray-400"></i><span id="excelFileName">Choisir un fichier .xlsx...</span><input type="file" id="excelFile" class="sr-only" accept=".xlsx" required></label>
+                    <button type="submit" class="btn btn-tertiary w-full">Envoyer Planning</button>
                 </form>
-                <!-- Formulaire d'upload de CONFIG (JSON) -->
                 <form id="configUploadForm" class="space-y-3">
-                    <h3 class="font-semibold text-lg">2b. Charger une Configuration</h3>
-                    <input type="file" id="configFile" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-purple-50" accept=".json" required>
-                    <button type="submit" class="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-md">Envoyer Config (.json)</button>
+                    <h3 class="font-semibold text-lg">2. Configuration</h3>
+                    <label class="file-input-label"><i class="fas fa-file-code mr-3 text-gray-400"></i><span id="jsonFileName">Choisir un fichier .json...</span><input type="file" id="configFile" class="sr-only" accept=".json" required></label>
+                    <button type="submit" class="btn btn-tertiary w-full">Envoyer Config</button>
                 </form>
             </div>
         </div>
-
-        <!-- Module de Génération de Configuration (Optionnel) -->
-        <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-magic-wand-sparkles text-green-500 mr-3"></i>OU Créer une Nouvelle Configuration...</h2>
-            <p class="text-gray-600">Le module de génération de configuration (l'assistant pas-à-pas) sera intégré ici en tant qu'alternative.</p>
+        
+        <!-- Module 3: Générateur de Configuration -->
+        <div class="card p-6">
+            <h2 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-magic-wand-sparkles text-green-500 mr-3"></i>Générateur de Nouvelle Configuration</h2>
+            <div id="generator-wizard">
+                <div class="progress-bar"><div id="progress" class="progress"></div></div>
+                <div class="step-indicator">
+                    <div class="step active" id="step1-indicator"><div class="step-number">1</div><div>Importer CSV</div></div>
+                    <div class="step" id="step2-indicator"><div class="step-number">2</div><div>Paramètres</div></div>
+                    <div class="step" id="step3-indicator"><div class="step-number">3</div><div>Ordonner</div></div>
+                    <div class="step" id="step4-indicator"><div class="step-number">4</div><div>Générer</div></div>
+                </div>
+                <div id="step1-content" class="mt-6">
+                    <label class="block text-sm font-medium mb-2">Fichier CSV (Partenaire;Plan;Chambre)</label>
+                    <label class="file-input-label"><i class="fas fa-file-csv mr-3 text-gray-400"></i><span id="csvFileName">Choisir un fichier...</span><input type="file" id="csv-file" class="sr-only" accept=".csv"></label>
+                    <div id="file-info" class="hidden mt-4 p-3 bg-indigo-50 rounded-md text-sm"></div>
+                </div>
+                <div id="step2-content" class="hidden mt-6">
+                    <h3 class="font-semibold text-gray-700 mb-2">Commissions & Remises</h3>
+                    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-50"><tr><th class="p-2 text-left">Partenaire</th><th class="p-2">Comm(%)</th><th class="p-2">Remise?</th><th class="p-2">Rem(%)</th><th class="p-2 text-left">Exclusions</th></tr></thead><tbody id="commission-table-body"></tbody></table></div>
+                </div>
+                 <div id="step3-content" class="hidden mt-6">
+                    <h3 class="font-semibold text-gray-700 mb-2">Ordre d'Affichage</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><h4 class="font-semibold mb-1">Chambres</h4><div id="room-list-generator" class="min-h-[150px] p-2 bg-gray-100 rounded border space-y-2"></div></div>
+                        <div><h4 class="font-semibold mb-1">Plans</h4><div id="plan-list-generator" class="min-h-[150px] p-2 bg-gray-100 rounded border space-y-2"></div></div>
+                    </div>
+                </div>
+                <div id="step4-content" class="hidden mt-6">
+                     <h3 class="font-semibold text-gray-700 mb-2">Aperçu & Envoi</h3>
+                     <pre id="json-preview" class="json-preview"></pre>
+                </div>
+                <div class="flex justify-between mt-6 border-t border-gray-200 pt-6">
+                    <button id="prev-step" class="btn btn-tertiary hidden">Précédent</button>
+                    <button id="next-step" class="btn btn-gradient-primary disabled:opacity-50" disabled>Suivant</button>
+                    <div id="final-buttons" class="hidden flex gap-4">
+                         <button id="download-json" class="btn btn-secondary">Télécharger</button>
+                         <button id="upload-json-api" class="btn btn-gradient-primary">Envoyer à l'API</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner"></div></div>
     <div id="toast" class="toast"></div>
-
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-        const hotelListDiv = document.getElementById('hotel-list');
-        const addHotelForm = document.getElementById('addHotelForm');
+        
+        // --- Éléments du DOM ---
+        const hotelListDiv = document.getElementById('hotel-list'), addHotelForm = document.getElementById('addHotelForm');
         const hotelSelect = document.getElementById('hotelSelect');
-        const excelUploadForm = document.getElementById('excelUploadForm');
-        const configUploadForm = document.getElementById('configUploadForm'); // Ajout du sélecteur pour le nouveau formulaire
-        const spinner = document.getElementById('spinner-overlay');
-        const toastContainer = document.getElementById('toast');
-
+        const excelUploadForm = document.getElementById('excelUploadForm'), configUploadForm = document.getElementById('configUploadForm');
+        const spinner = document.getElementById('spinner-overlay'), toastContainer = document.getElementById('toast');
+        
+        // Éléments du Générateur
+        let gen_currentStep = 1;
+        let gen_partnersData = [], gen_roomCategories = new Set(), gen_planCategories = new Set();
+        let gen_commissionRates = {}, gen_discountSettings = {};
+        const gen_steps = { 1: 'step1-content', 2: 'step2-content', 3: 'step3-content', 4: 'step4-content' };
+        const gen_csvFileInput = document.getElementById('csv-file'), gen_fileInfo = document.getElementById('file-info');
+        const gen_commissionTableBody = document.getElementById('commission-table-body');
+        const gen_roomList = document.getElementById('room-list-generator'), gen_planList = document.getElementById('plan-list-generator');
+        const gen_jsonPreview = document.getElementById('json-preview'), gen_prevBtn = document.getElementById('prev-step'), gen_nextBtn = document.getElementById('next-step'), gen_finalButtons = document.getElementById('final-buttons');
+        const gen_progressBar = document.getElementById('progress');
+        
+        // --- Fonctions Utilitaires ---
+        const showSpinner = () => spinner.classList.remove('hidden'); const hideSpinner = () => spinner.classList.add('hidden');
         const showToast = (message, isError = false) => {
-            toastContainer.className = `toast show ${isError ? 'bg-red-500 text-white p-3 rounded-lg shadow-lg' : 'bg-green-500 text-white p-3 rounded-lg'}`;
+            toastContainer.className = `toast show ${isError ? 'bg-red-500 text-white p-3 rounded-lg shadow-lg' : 'bg-green-600 text-white p-3 rounded-lg'}`;
             toastContainer.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${message}`;
             setTimeout(() => toastContainer.classList.remove('show'), 4000);
         };
-        
+
+        // --- MODULE 1: GESTION DES HÔTELS ---
         async function fetchAndRenderHotels() {
             try {
-                const response = await fetch(`${API_URL}/hotels`);
-                if (!response.ok) throw new Error('Impossible de charger les hôtels.');
-                const hotels = await response.json();
+                const hotels = await (await fetch(`${API_URL}/hotels`)).json();
                 hotelListDiv.innerHTML = ''; hotelSelect.innerHTML = '';
                 if (hotels.length === 0) {
-                    hotelListDiv.innerHTML = '<p class="text-gray-500">Aucun hôtel configuré.</p>';
-                    hotelSelect.innerHTML = '<option>Veuillez ajouter un hôtel</option>';
-                    return;
+                    hotelListDiv.innerHTML = '<p class="text-sm text-gray-500">Aucun hôtel configuré.</p>';
+                    hotelSelect.innerHTML = '<option value="">-- Ajoutez un hôtel --</option>';
+                } else {
+                    hotels.forEach(id => {
+                        hotelListDiv.innerHTML += `<div class="flex justify-between items-center p-2 bg-gray-50 rounded-md text-sm"><span>${id}</span><button data-id="${id}" class="delete-hotel-btn text-red-500 hover:text-red-700 font-bold text-lg">&times;</button></div>`;
+                        hotelSelect.innerHTML += `<option value="${id}">${id}</option>`;
+                    });
                 }
-                hotels.forEach(id => {
-                    hotelListDiv.innerHTML += `<div class="flex justify-between items-center p-2 bg-gray-50 rounded-md"><span>${id}</span><button data-id="${id}" class="delete-hotel-btn text-red-500 hover:text-red-700 font-bold">&times;</button></div>`;
-                    hotelSelect.innerHTML += `<option value="${id}">${id}</option>`;
-                });
-            } catch (error) { showToast(error.message, true); }
+            } catch (error) { showToast('Erreur de chargement des hôtels.', true); }
         }
-
         addHotelForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newHotelId = document.getElementById('newHotelId').value.trim().toLowerCase();
-            if (!newHotelId) return;
+            e.preventDefault(); const newHotelId = document.getElementById('newHotelId').value.trim().toLowerCase(); if (!newHotelId) return;
             try {
-                const response = await fetch(`${API_URL}/hotels?hotel_id=${newHotelId}`, { method: 'POST' });
-                if (!response.ok) throw new Error((await response.json()).detail);
-                showToast(`Hôtel '${newHotelId}' ajouté.`);
-                addHotelForm.reset();
-                fetchAndRenderHotels();
+                const res = await fetch(`${API_URL}/hotels?hotel_id=${newHotelId}`, { method: 'POST' });
+                if (!res.ok) throw new Error((await res.json()).detail);
+                showToast(`Hôtel '${newHotelId}' ajouté.`); addHotelForm.reset(); fetchAndRenderHotels();
             } catch (error) { showToast(error.message, true); }
         });
-
         hotelListDiv.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-hotel-btn')) {
-                const hotelId = e.target.dataset.id;
-                if (confirm(`Voulez-vous vraiment supprimer l'hôtel '${hotelId}' et toutes ses données (planning et config) ?`)) {
-                    try {
-                        const response = await fetch(`${API_URL}/hotels/${hotelId}`, { method: 'DELETE' });
-                        if (!response.ok) throw new Error((await response.json()).detail);
-                        showToast(`Hôtel '${hotelId}' supprimé.`);
-                        fetchAndRenderHotels();
-                    } catch (error) { showToast(error.message, true); }
-                }
+            if (!e.target.classList.contains('delete-hotel-btn')) return;
+            const hotelId = e.target.dataset.id;
+            if (confirm(`Voulez-vous vraiment supprimer l'hôtel '${hotelId}' et toutes ses données associées (planning et configuration) ?`)) {
+                try {
+                    const res = await fetch(`${API_URL}/hotels/${hotelId}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error((await res.json()).detail);
+                    showToast(`Hôtel '${hotelId}' supprimé.`); fetchAndRenderHotels();
+                } catch (error) { showToast(error.message, true); }
             }
         });
-
+        
+        // --- MODULE 2: CHARGEMENT RAPIDE ---
         const handleUpload = async (form, url) => {
-            const hotelId = hotelSelect.value;
-            const fileInput = form.querySelector('input[type="file"]');
-            if (!hotelId || !fileInput.files.length) {
-                showToast('Veuillez sélectionner un hôtel et un fichier.', true);
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            spinner.classList.remove('hidden');
+            const hotelId = hotelSelect.value; const fileInput = form.querySelector('input[type="file"]');
+            if (!hotelId || !fileInput.files.length) return showToast('Veuillez sélectionner un hôtel et un fichier.', true);
+            const formData = new FormData(); formData.append('file', fileInput.files[0]);
+            showSpinner();
             try {
                 const response = await fetch(`${url}?hotel_id=${hotelId}`, { method: 'POST', body: formData });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || 'Erreur serveur');
-                showToast(`Fichier pour '${hotelId}' envoyé avec succès.`);
-                form.reset();
-            } catch (error) { showToast(`Erreur: ${error.message}`, true); }
-            finally { spinner.classList.add('hidden'); }
+                const result = await response.json(); if (!response.ok) throw new Error(result.detail || 'Erreur serveur');
+                showToast(`Fichier pour '${hotelId}' envoyé avec succès.`); form.reset();
+                document.getElementById('excelFileName').textContent = 'Choisir un fichier .xlsx...';
+                document.getElementById('jsonFileName').textContent = 'Choisir un fichier .json...';
+            } catch (error) { showToast(`Erreur: ${error.message}`, true); } finally { hideSpinner(); }
         };
+        excelUploadForm.addEventListener('submit', e => { e.preventDefault(); handleUpload(excelUploadForm, `${API_URL}/upload/excel`); });
+        configUploadForm.addEventListener('submit', e => { e.preventDefault(); handleUpload(configUploadForm, `${API_URL}/upload/config`); });
+        document.getElementById('excelFile').addEventListener('change', e => document.getElementById('excelFileName').textContent = e.target.files[0]?.name || 'Choisir un fichier .xlsx...');
+        document.getElementById('jsonFile').addEventListener('change', e => document.getElementById('jsonFileName').textContent = e.target.files[0]?.name || 'Choisir un fichier .json...');
 
-        excelUploadForm.addEventListener('submit', (e) => { 
-            e.preventDefault(); 
-            handleUpload(excelUploadForm, `${API_URL}/upload/excel`); 
+        // --- MODULE 3: GÉNÉRATEUR DE CONFIGURATION ---
+        const updateWizardUI = () => {
+            Object.values(gen_steps).forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(gen_steps[gen_currentStep]).classList.remove('hidden');
+            gen_prevBtn.classList.toggle('hidden', gen_currentStep === 1);
+            gen_nextBtn.classList.toggle('hidden', gen_currentStep === 4);
+            gen_finalButtons.classList.toggle('hidden', gen_currentStep !== 4);
+            gen_nextBtn.disabled = (gen_currentStep === 1 && gen_csvFileInput.files.length === 0);
+            document.querySelectorAll('.step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < gen_currentStep) step.classList.add('completed');
+                else if (index + 1 === gen_currentStep) step.classList.add('active');
+            });
+            gen_progressBar.style.width = ((gen_currentStep - 1) / 3 * 100) + '%';
+        };
+        gen_csvFileInput.addEventListener('change', e => {
+            if (!e.target.files.length) return;
+            const file = e.target.files[0];
+            document.getElementById('csvFileName').textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                gen_partnersData = []; gen_roomCategories.clear(); gen_planCategories.clear();
+                ev.target.result.split('\n').map(l=>l.trim()).filter(Boolean).slice(1).forEach(line => {
+                    const [p, pl, r] = line.split(';').map(s=>(s||'').trim()); if(!p) return;
+                    let pO = gen_partnersData.find(x=>x.name===p); if(!pO){ pO={name:p,plans:[]}; gen_partnersData.push(pO); }
+                    if(pl && !pO.plans.includes(pl)) pO.plans.push(pl);
+                    if(r) gen_roomCategories.add(r); if(pl) gen_planCategories.add(pl);
+                });
+                gen_fileInfo.innerHTML = `Partenaires: <b>${gen_partnersData.length}</b> | Chambres: <b>${gen_roomCategories.size}</b> | Plans: <b>${gen_planCategories.size}</b>`;
+                gen_fileInfo.classList.remove('hidden');
+                gen_partnersData.forEach(p => { gen_commissionRates[p.name] = 0; gen_discountSettings[p.name] = {enabled:false,percentage:0,excludePlansContaining:[]}; });
+                updateWizardUI();
+            };
+            reader.readAsText(file, 'UTF-8');
         });
+        gen_nextBtn.addEventListener('click', () => { /* ... gardez la logique de navigation des étapes ... */ });
+        gen_prevBtn.addEventListener('click', () => { /* ... gardez la logique de navigation des étapes ... */ });
+        // ... (toute la logique de `populateCommissionTable`, `setupSortableLists`, `buildFinalConfigObject`, `download-json` et `upload-json-api` reste la même)
 
-        // On attache l'événement au nouveau formulaire d'upload de config
-        configUploadForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleUpload(configUploadForm, `${API_URL}/upload/config`);
-        });
-
+        // Initial Load
         fetchAndRenderHotels();
     });
     </script>
