@@ -3,13 +3,14 @@ import io
 import json
 import re
 import logging
+import urllib.parse
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
@@ -18,14 +19,14 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///local.db")
 DATA_DIR = os.getenv("DATA_DIR", "/app/data")
 
 # Configuration du logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Adapte l'URL pour psycopg2
-engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
+engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=True)
 
 app = FastAPI(
-    title="Hotel RM API - v7.0 (Enhanced)",
+    title="Hotel RM API - v7.1 (Stable)",
     description="API complète pour la gestion des données hôtelières et la simulation tarifaire."
 )
 
@@ -34,7 +35,8 @@ origins = [
     "https://folkestone.e-hotelmanager.com",
     "https://admin-folkestone.e-hotelmanager.com",
     "http://127.0.0.1:5500",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://localhost:8000"
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -56,32 +58,11 @@ async def catch_exceptions_middleware(request, call_next):
             content={"detail": "Erreur interne du serveur"}
         )
 
-# --- 3. MODÈLES DE DONNÉES ---
-class Hotel(SQLModel, table=True):
-    hotel_id: str = Field(primary_key=True)
+# --- 3. FONCTIONS UTILITAIRES ---
+def decode_hotel_id(hotel_id: str) -> str:
+    """Décode les IDs d'hôtel avec des caractères encodés"""
+    return urllib.parse.unquote(hotel_id).lower().strip()
 
-class HotelConfig(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    hotel_id: str = Field(index=True, unique=True)
-    config_json: str
-
-class SimulateIn(BaseModel):
-    hotel_id: str
-    room: str
-    plan: str
-    start: str
-    end: str
-    partner_name: Optional[str] = None
-    apply_commission: bool = True
-    promo_discount: float = 0.0
-
-# --- 4. ÉVÉNEMENTS DE DÉMARRAGE ---
-@app.on_event('startup')
-def on_startup():
-    SQLModel.metadata.create_all(engine)
-    os.makedirs(DATA_DIR, exist_ok=True)
-
-# --- 5. FONCTIONS DE PARSING AVANCÉES ---
 def safe_int(val) -> int:
     """Tente de convertir une valeur en entier. Gère les 'X' et formats spéciaux."""
     if pd.isna(val) or val is None:
@@ -101,6 +82,33 @@ def safe_int(val) -> int:
     except (ValueError, TypeError, AttributeError):
         return 0
 
+# --- 4. MODÈLES DE DONNÉES ---
+class Hotel(SQLModel, table=True):
+    hotel_id: str = Field(primary_key=True)
+
+class HotelConfig(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hotel_id: str = Field(index=True, unique=True)
+    config_json: str
+
+class SimulateIn(BaseModel):
+    hotel_id: str
+    room: str
+    plan: str
+    start: str
+    end: str
+    partner_name: Optional[str] = None
+    apply_commission: bool = True
+    promo_discount: float = 0.0
+
+# --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
+@app.on_event('startup')
+def on_startup():
+    SQLModel.metadata.create_all(engine)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    logger.info("Application démarrée avec succès")
+
+# --- 6. FONCTIONS DE PARSING ---
 def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
     """
     Nouveau parser adapté à la structure réelle des fichiers CSV
@@ -192,17 +200,18 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
                         logger.warning(f"Erreur conversion prix {price_value}: {e}")
                         hotel_data[current_room]['plans'][plan_name][dc['date']] = None
 
+    logger.info(f"Parsing terminé: {len(hotel_data)} chambres, {len(date_cols)} dates")
     return {
         'report_generated_at': str(datetime.now()), 
         'rooms': hotel_data,
         'dates_processed': [dc['date'] for dc in date_cols]
     }
 
-# --- 6. ENDPOINTS DE L'API ---
+# --- 7. ENDPOINTS DE L'API ---
 
 @app.get("/", tags=["Status"])
 def read_root(): 
-    return {"status": "Hotel RM API v7.0 is running"}
+    return {"status": "Hotel RM API v7.1 is running", "timestamp": datetime.now().isoformat()}
 
 @app.get("/health", tags=["Status"])
 def health_check():
@@ -219,48 +228,62 @@ def health_check():
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
         "database": db_status,
-        "version": "7.0"
+        "version": "7.1"
     }
 
 # --- Gestion des Hôtels ---
 @app.post("/hotels", tags=["Hotel Management"])
 def create_hotel(hotel_id: str = Query(..., min_length=3)):
-    hotel_id = hotel_id.lower().strip()
+    hotel_id = decode_hotel_id(hotel_id)
     with Session(engine) as session:
         if session.get(Hotel, hotel_id):
             raise HTTPException(status_code=409, detail=f"L'ID d'hôtel '{hotel_id}' existe déjà.")
         hotel = Hotel(hotel_id=hotel_id)
-        session.add(hotel); session.commit()
+        session.add(hotel)
+        session.commit()
+        logger.info(f"Hôtel créé: {hotel_id}")
         return {"status": "ok", "hotel_id": hotel_id}
 
 @app.get("/hotels", tags=["Hotel Management"], response_model=List[str])
 def get_all_hotels():
     with Session(engine) as session:
-        return [h.hotel_id for h in session.exec(select(Hotel)).all()]
+        hotels = [h.hotel_id for h in session.exec(select(Hotel)).all()]
+        logger.info(f"Liste des hôtels récupérée: {len(hotels)} hôtels")
+        return hotels
 
 @app.delete("/hotels/{hotel_id}", tags=["Hotel Management"])
 def delete_hotel(hotel_id: str):
+    hotel_id = decode_hotel_id(hotel_id)
     with Session(engine) as session:
         hotel = session.get(Hotel, hotel_id)
-        if not hotel: raise HTTPException(status_code=404, detail="Hôtel non trouvé.")
+        if not hotel: 
+            raise HTTPException(status_code=404, detail="Hôtel non trouvé.")
         
         config = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
-        if config: session.delete(config)
+        if config: 
+            session.delete(config)
         
         data_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
-        if os.path.exists(data_path): os.remove(data_path)
+        if os.path.exists(data_path): 
+            os.remove(data_path)
         
         session.delete(hotel)
         session.commit()
+        
+    logger.info(f"Hôtel supprimé: {hotel_id}")
     return {"status": "ok", "message": f"Hôtel '{hotel_id}' et ses données supprimés."}
 
 # --- Gestion des Fichiers ---
 @app.post('/upload/excel', tags=["Uploads"])
 async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...)):
+    hotel_id = decode_hotel_id(hotel_id)
+    
     if not file.filename.lower().endswith(('.xlsx', '.csv')):
         raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
+    
     try:
         content = await file.read()
+        logger.info(f"Upload Excel/CSV pour {hotel_id}, taille: {len(content)} bytes")
         
         if file.filename.lower().endswith('.xlsx'):
             df = pd.read_excel(io.BytesIO(content), header=None)
@@ -268,9 +291,12 @@ async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...))
             df = pd.read_csv(io.BytesIO(content), header=None, encoding='utf-8', sep=';')
             
         parsed = parse_sheet_to_structure(df)
-        out_path = os.path.join(DATA_DIR, f'{hotel_id.lower()}_data.json')
+        out_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
+        
         with open(out_path, 'w', encoding='utf-8') as f: 
             json.dump(parsed, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Données sauvegardées pour {hotel_id}: {len(parsed.get('rooms', {}))} chambres")
         
         return {
             'status': 'ok', 
@@ -278,53 +304,107 @@ async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...))
             'rooms_found': len(parsed.get('rooms', {})),
             'dates_processed': len(parsed.get('dates_processed', []))
         }
+        
     except Exception as e:
-        logger.error(f"Erreur traitement fichier: {str(e)}")
+        logger.error(f"Erreur traitement fichier pour {hotel_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
 
 @app.post('/upload/config', tags=["Uploads"])
 async def upload_config(hotel_id: str = Query(...), file: UploadFile = File(...)):
+    hotel_id = decode_hotel_id(hotel_id)
+    
     try:
-        content = await file.read(); 
-        parsed = json.loads(content.decode('utf-8'))
+        content = await file.read()
+        logger.info(f"Upload config pour {hotel_id}, taille: {len(content)} bytes")
         
-        if parsed.get('hotel_id', '').lower() != hotel_id.lower():
-            raise HTTPException(status_code=400, detail=f"Incohérence: l'ID dans le fichier ({parsed.get('hotel_id')}) ne correspond pas à l'ID sélectionné ({hotel_id}).")
+        # Validation du contenu JSON
+        try:
+            parsed = json.loads(content.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
+        
+        # Validation de la structure
+        if not isinstance(parsed, dict):
+            raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
+        
+        # Vérification optionnelle de l'ID d'hôtel
+        file_hotel_id = parsed.get('hotel_id', '').lower().strip()
+        if file_hotel_id and file_hotel_id != hotel_id:
+            logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
         
         with Session(engine) as session:
             existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
             if existing: 
-                existing.config_json = json.dumps(parsed, ensure_ascii=False)
+                existing.config_json = json.dumps(parsed, ensure_ascii=False, indent=2)
             else: 
-                session.add(HotelConfig(hotel_id=hotel_id, config_json=json.dumps(parsed, ensure_ascii=False)))
+                session.add(HotelConfig(hotel_id=hotel_id, config_json=json.dumps(parsed, ensure_ascii=False, indent=2)))
             session.commit()
-        return {'status': 'ok', 'hotel_id': hotel_id}
+            
+        logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
+        
+        return {
+            'status': 'ok', 
+            'hotel_id': hotel_id,
+            'partners_count': len(parsed.get('partners', {})),
+            'has_display_order': 'displayOrder' in parsed
+        }
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Erreur sauvegarde config: {str(e)}")
+        logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
 
 # --- Récupération des Données ---
 @app.get('/data', tags=["Data"])
 def get_data(hotel_id: str = Query(...)):
-    path = os.path.join(DATA_DIR, f'{hotel_id.lower()}_data.json')
+    hotel_id = decode_hotel_id(hotel_id)
+    path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
+    
     if not os.path.exists(path): 
-        raise HTTPException(status_code=404, detail=f"Données de planning introuvables pour '{hotel_id}'.")
-    with open(path, 'r', encoding='utf-8') as f: 
-        return json.load(f)
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Données de planning introuvables pour '{hotel_id}'. Veuillez d'abord uploader un fichier Excel."
+        )
+    
+    try:
+        with open(path, 'r', encoding='utf-8') as f: 
+            data = json.load(f)
+        logger.info(f"Données chargées pour {hotel_id}")
+        return data
+    except Exception as e:
+        logger.error(f"Erreur lecture données pour {hotel_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur de lecture des données: {str(e)}")
 
 @app.get('/config', tags=["Data"])
 def get_config(hotel_id: str = Query(...)):
+    hotel_id = decode_hotel_id(hotel_id)
+    
     with Session(engine) as session:
-        cfg = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id.lower())).first()
+        cfg = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
         if not cfg: 
-            raise HTTPException(status_code=404, detail=f"Configuration introuvable pour '{hotel_id}'.")
-        return json.loads(cfg.config_json)
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Configuration introuvable pour '{hotel_id}'. Veuillez d'abord uploader un fichier JSON de configuration."
+            )
+        
+        try:
+            config_data = json.loads(cfg.config_json)
+            logger.info(f"Config chargée pour {hotel_id}")
+            return config_data
+        except Exception as e:
+            logger.error(f"Erreur parsing config pour {hotel_id}: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Erreur de lecture de la configuration: {str(e)}")
 
 # --- Simulation ---
 @app.post("/simulate", tags=["Simulation"])
 async def simulate(request: SimulateIn):
     """Version améliorée avec gestion complète des remises partenaires"""
     try:
+        request.hotel_id = decode_hotel_id(request.hotel_id)
+        logger.info(f"Simulation demandée pour {request.hotel_id}, chambre: {request.room}, plan: {request.plan}")
+
         # Validation des dates
         dstart = datetime.strptime(request.start, '%Y-%m-%d').date()
         dend = datetime.strptime(request.end, '%Y-%m-%d').date()
@@ -339,7 +419,7 @@ async def simulate(request: SimulateIn):
         
         room_data = hotel_data.get(request.room)
         if not room_data:
-            raise HTTPException(status_code=404, detail="Chambre introuvable.")
+            raise HTTPException(status_code=404, detail=f"Chambre '{request.room}' introuvable.")
         
         # Recherche du plan tarifaire
         plan_key = request.plan
@@ -374,6 +454,7 @@ async def simulate(request: SimulateIn):
             exclude_keywords = discount_info.get("excludePlansContaining", [])
             if any(kw.lower() in plan_key.lower() for kw in exclude_keywords):
                 apply_partner_discount = False
+                logger.info(f"Remise partenaire exclue pour le plan: {plan_key}")
 
         # Calculs par date
         results = []
@@ -424,6 +505,8 @@ async def simulate(request: SimulateIn):
         total_commission = sum(r.get("commission") or 0 for r in valid_results)
         total_net = subtotal_brut - total_discount - total_commission
 
+        logger.info(f"Simulation terminée pour {request.hotel_id}: {len(results)} jours, total net: {total_net}")
+        
         return {
             "simulation_info": {
                 "room": request.room,
@@ -452,7 +535,7 @@ async def simulate(request: SimulateIn):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erreur simulation: {str(e)}", exc_info=True)
+        logger.error(f"Erreur simulation pour {request.hotel_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur lors de la simulation: {str(e)}")
 
 # --- Export Excel ---
@@ -505,6 +588,7 @@ async def export_simulation(data: dict):
         
         # Retour en streaming
         filename = f"simulation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        logger.info(f"Export Excel généré: {filename}")
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -516,10 +600,29 @@ async def export_simulation(data: dict):
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
 
 # --- Debug Endpoints ---
+@app.get("/files/status", tags=["Debug"])
+def check_files_status(hotel_id: str = Query(...)):
+    """Vérifie l'existence des fichiers pour un hôtel"""
+    hotel_id = decode_hotel_id(hotel_id)
+    
+    data_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
+    config_exists = False
+    
+    with Session(engine) as session:
+        config_exists = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first() is not None
+    
+    return {
+        "hotel_id": hotel_id,
+        "data_file_exists": os.path.exists(data_path),
+        "config_exists": config_exists,
+        "data_file_path": data_path
+    }
+
 @app.get("/test/config/{hotel_id}", tags=["Debug"])
 def test_config(hotel_id: str):
     """Endpoint de test pour valider la configuration et les données"""
     try:
+        hotel_id = decode_hotel_id(hotel_id)
         config = get_config(hotel_id)
         data = get_data(hotel_id)
         
