@@ -3,68 +3,287 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin - Folkestone RM (minimal)</title>
+  <title>Admin - Folkestone RM (Enhanced)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Minimal styling inline pour tester rapidement */
-    :root{font-family:Inter,system-ui,Arial;font-size:14px}
-    body{background:#f3f4f6;color:#111;margin:0;padding:20px}
-    .container{max-width:980px;margin:0 auto}
-    .card{background:#fff;padding:18px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.05);margin-bottom:18px}
-    input,select,button{font:inherit;padding:8px;border-radius:6px;border:1px solid #d1d5db}
-    button{cursor:pointer}
-    .btn-primary{background:#4f46e5;color:#fff;border:none}
-    .btn-danger{background:#dc2626;color:#fff;border:none}
-    .flex{display:flex;gap:8px;align-items:center}
-    .small{font-size:13px;color:#6b7280}
-    .toast{position:fixed;right:16px;bottom:16px;padding:12px;border-radius:8px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.12)}
-    .toast.show{display:block}
-    .spinner{width:48px;height:48px;border:6px solid rgba(0,0,0,.08);border-top-color:#4f46e5;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .list-item{display:flex;justify-content:space-between;padding:8px;border-radius:6px;background:#f8fafc;margin-bottom:6px}
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --secondary: #6b7280;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --info: #3b82f6;
+    }
+    
+    body {
+      font-family: 'Inter', system-ui, Arial, sans-serif;
+      font-size: 14px;
+      background: #f3f4f6;
+      color: #111;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: #fff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.05);
+      margin-bottom: 24px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #1f2937;
+    }
+    
+    h1 {
+      font-size: 1.875rem;
+      margin-bottom: 8px;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 8px;
+    }
+    
+    h3 {
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+    }
+    
+    input, select, button {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      background: white;
+      transition: all 0.2s;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    
+    button {
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+    
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+    }
+    
+    .flex {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .small {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      display: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,.15);
+      z-index: 1000;
+      color: white;
+      font-weight: 500;
+    }
+    
+    .toast.show {
+      display: flex;
+      align-items: center;
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(100px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(0,0,0,.08);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: #f8fafc;
+      margin-bottom: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    
+    .grid-cols-1 { grid-template-columns: 1fr; }
+    .grid-cols-2 { grid-template-columns: 1fr 1fr; }
+    .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-ok { background: #dcfce7; color: #166534; }
+    .status-error { background: #fef2f2; color: #dc2626; }
+    .status-warning { background: #fffbeb; color: #d97706; }
+    
+    .space-y-4 > * + * { margin-top: 16px; }
+    .space-x-2 > * + * { margin-left: 8px; }
+    
+    .max-h-32 { max-height: 128px; }
+    .overflow-y-auto { overflow-y: auto; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    
+    #spinner {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 9999;
+    }
+    
+    .upload-section {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px dashed #d1d5db;
+    }
+    
+    @media (max-width: 768px) {
+      .grid-cols-2, .grid-cols-3 {
+        grid-template-columns: 1fr;
+      }
+      
+      .flex {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header class="card">
-      <h1>Admin minimal — Folkestone RM</h1>
-      <p class="small">Gestion des hôtels & chargement rapide (Excel + JSON config)</p>
+      <h1>🚀 Admin Folkestone RM - Version Améliorée</h1>
+      <p class="small">Gestion des hôtels & chargement rapide (Excel/CSV + JSON config)</p>
     </header>
 
     <section class="card" id="hotels-card">
-      <h2>Gestion des hôtels</h2>
-      <div id="hotelList" style="margin-bottom:12px"></div>
+      <h2>🏨 Gestion des hôtels</h2>
+      <div id="hotelList" class="space-y-4" style="margin-bottom: 16px"></div>
 
-      <form id="addHotelForm" class="flex" onsubmit="return false;">
-        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: monhotel)" required>
-        <button id="addHotelBtn" class="btn-primary">Ajouter</button>
+      <form id="addHotelForm" class="flex">
+        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: monhotel)" required style="flex: 1">
+        <button id="addHotelBtn" class="btn-primary">Ajouter l'hôtel</button>
       </form>
     </section>
 
+    <section class="card" id="monitoring-card">
+      <h2>📊 Monitoring des Hôtels</h2>
+      <div id="hotelStatus" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="text-gray-500">Chargement des statuts...</div>
+      </div>
+    </section>
+
+    <section class="card" id="data-preview">
+      <h2>👁️ Aperçu des Données Chargées</h2>
+      <div id="dataPreview" class="text-sm">
+        <p class="text-gray-500">Sélectionnez un hôtel et chargez les données pour voir l'aperçu.</p>
+      </div>
+    </section>
+
     <section class="card" id="upload-card">
-      <h2>Chargement rapide</h2>
-      <div style="margin-bottom:8px">
-        <label class="small">Sélectionner l'hôtel pour l'upload</label><br>
-        <select id="hotelSelect" style="width:100%;margin-top:6px"></select>
+      <h2>📤 Chargement rapide</h2>
+      <div style="margin-bottom: 16px">
+        <label class="small"><strong>Sélectionner l'hôtel pour l'upload</strong></label><br>
+        <select id="hotelSelect" style="width: 100%; margin-top: 8px; padding: 12px"></select>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <form id="excelUploadForm" class="space">
-          <label class="small">1) Planning (.xlsx)</label><br>
-          <input id="excelFile" type="file" accept=".xlsx"><br><br>
-          <button id="sendExcelBtn" class="btn-primary">Envoyer planning</button>
-        </form>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="upload-section">
+          <h3><i class="fas fa-file-excel mr-2" style="color: #10b981"></i>1) Planning (.xlsx/.csv)</h3>
+          <p class="small">Fichier Excel ou CSV contenant les tarifs et disponibilités</p>
+          <input id="excelFile" type="file" accept=".xlsx,.csv" style="width: 100%; margin: 12px 0"><br>
+          <button id="sendExcelBtn" class="btn-primary" style="width: 100%">
+            <i class="fas fa-upload mr-2"></i>Envoyer planning
+          </button>
+        </div>
 
-        <form id="configUploadForm" class="space">
-          <label class="small">2) Configuration (.json)</label><br>
-          <input id="configFile" type="file" accept=".json"><br><br>
-          <button id="sendConfigBtn" class="btn-primary">Envoyer config</button>
-        </form>
+        <div class="upload-section">
+          <h3><i class="fas fa-file-code mr-2" style="color: #3b82f6"></i>2) Configuration (.json)</h3>
+          <p class="small">Fichier JSON de configuration des partenaires et plans tarifaires</p>
+          <input id="configFile" type="file" accept=".json" style="width: 100%; margin: 12px 0"><br>
+          <button id="sendConfigBtn" class="btn-primary" style="width: 100%">
+            <i class="fas fa-upload mr-2"></i>Envoyer config
+          </button>
+        </div>
       </div>
     </section>
   </div>
 
-  <div id="spinner" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;">
+  <div id="spinner">
     <div class="spinner"></div>
   </div>
 
@@ -84,13 +303,13 @@
   const spinner = document.getElementById('spinner');
   const toast = document.getElementById('toast');
 
-  const showSpinner = (on=true)=> spinner.style.display = on? 'block':'none';
-  const showToast = (msg, err=false)=>{
+  const showSpinner = (on = true) => spinner.style.display = on ? 'block' : 'none';
+  
+  const showToast = (msg, err = false) => {
     toast.textContent = msg;
-    toast.style.background = err? '#dc2626':'#16a34a';
-    toast.style.color = '#fff';
+    toast.style.background = err ? '#ef4444' : '#10b981';
     toast.className = 'toast show';
-    setTimeout(()=> toast.className = 'toast', 3500);
+    setTimeout(() => toast.className = 'toast', 3500);
   };
 
   async function fetchHotels(){
@@ -99,6 +318,7 @@
       if(!res.ok) throw new Error('Impossible de charger la liste d\'hôtels');
       const hotels = await res.json();
       renderHotels(hotels);
+      await displayHotelStatus();
     }catch(err){
       renderHotels([]);
       showToast('Erreur chargement hôtels: ' + err.message, true);
@@ -108,94 +328,260 @@
   function renderHotels(hotels){
     hotelListEl.innerHTML = '';
     hotelSelect.innerHTML = '';
-    if(!hotels || hotels.length===0){
-      hotelListEl.innerHTML = '<div class="small">Aucun hôtel. Ajoutez-en un.</div>';
+    
+    if(!hotels || hotels.length === 0){
+      hotelListEl.innerHTML = '<div class="small">Aucun hôtel configuré. Ajoutez-en un pour commencer.</div>';
       hotelSelect.innerHTML = '<option value="">-- Aucun hôtel --</option>';
       return;
     }
-    hotels.forEach(id=>{
+    
+    hotels.forEach(id => {
       const div = document.createElement('div');
       div.className = 'list-item';
-      div.innerHTML = `<div style="font-weight:600">${id}</div>
-        <div style="display:flex;gap:8px">
-          <button data-id="${id}" class="btn-danger delete-btn" title="Supprimer">Suppr</button>
-        </div>`;
+      div.innerHTML = `
+        <div style="font-weight: 600; font-size: 16px">🏨 ${id}</div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button data-id="${id}" class="btn-danger delete-btn" title="Supprimer">
+            <i class="fas fa-trash mr-1"></i>Supprimer
+          </button>
+        </div>
+      `;
       hotelListEl.appendChild(div);
 
       const opt = document.createElement('option');
-      opt.value = id; opt.textContent = id;
+      opt.value = id; 
+      opt.textContent = id;
       hotelSelect.appendChild(opt);
     });
   }
 
   // Delegated delete
-  hotelListEl.addEventListener('click', async (e)=>{
-    if(!e.target.classList.contains('delete-btn')) return;
-    const id = e.target.dataset.id;
-    if(!confirm(`Supprimer l'hôtel '${id}' et toutes ses données ?`)) return;
+  hotelListEl.addEventListener('click', async (e) => {
+    if(!e.target.closest('.delete-btn')) return;
+    const btn = e.target.closest('.delete-btn');
+    const id = btn.dataset.id;
+    
+    if(!confirm(`Supprimer l'hôtel '${id}' et toutes ses données ? Cette action est irréversible.`)) return;
+    
     try{
       showSpinner(true);
       const res = await fetch(`${API_URL}/hotels/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if(!res.ok){
-        const err = await res.json().catch(()=>({detail:res.statusText}));
+        const err = await res.json().catch(() => ({detail: res.statusText}));
         throw new Error(err.detail || 'Erreur suppression');
       }
-      showToast(`Hôtel '${id}' supprimé.`);
+      showToast(`✅ Hôtel '${id}' supprimé avec succès.`);
       await fetchHotels();
     }catch(err){
-      showToast(`Erreur suppr: ${err.message}`, true);
+      showToast(`❌ Erreur suppression: ${err.message}`, true);
     }finally{ showSpinner(false); }
   });
 
   // Add hotel
   if(addHotelForm){
-    addHotelForm.addEventListener('submit', async (ev)=>{
+    addHotelForm.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       const id = (newHotelId.value || '').trim().toLowerCase();
-      if(!id) return showToast('ID hôtel requis', true);
+      if(!id) return showToast('❌ ID hôtel requis', true);
+      
       try{
         showSpinner(true);
         const res = await fetch(`${API_URL}/hotels?hotel_id=${encodeURIComponent(id)}`, { method: 'POST' });
+        
         if(res.status === 409){
-          const body = await res.json().catch(()=>({detail:'Conflit'}));
-          throw new Error(body.detail || 'ID existe');
+          const body = await res.json().catch(() => ({detail: 'Conflit'}));
+          throw new Error(body.detail || 'ID existe déjà');
         }
+        
         if(!res.ok) {
-          const body = await res.json().catch(()=>({detail:res.statusText}));
+          const body = await res.json().catch(() => ({detail: res.statusText}));
           throw new Error(body.detail || 'Erreur création');
         }
-        showToast(`Hôtel '${id}' ajouté.`);
+        
+        showToast(`✅ Hôtel '${id}' ajouté avec succès.`);
         newHotelId.value = '';
         await fetchHotels();
       }catch(err){
-        showToast('Erreur ajout: ' + err.message, true);
+        showToast('❌ Erreur ajout: ' + err.message, true);
       }finally{ showSpinner(false); }
     });
   }
 
+  // Hotel status monitoring
+  async function checkHotelStatus(hotelId) {
+    try {
+      const [dataRes, configRes] = await Promise.all([
+        fetch(`${API_URL}/data?hotel_id=${hotelId}`),
+        fetch(`${API_URL}/config?hotel_id=${hotelId}`)
+      ]);
+      
+      return {
+        hotelId,
+        data: dataRes.ok,
+        config: configRes.ok,
+        lastUpdate: new Date().toLocaleDateString('fr-FR')
+      };
+    } catch {
+      return { hotelId, data: false, config: false, lastUpdate: 'N/A' };
+    }
+  }
+
+  async function displayHotelStatus() {
+    const hotels = Array.from(hotelSelect.options)
+      .map(opt => opt.value)
+      .filter(val => val);
+    
+    if (!hotels.length) {
+      document.getElementById('hotelStatus').innerHTML = '<div class="text-gray-500">Aucun hôtel configuré</div>';
+      return;
+    }
+    
+    const statuses = await Promise.all(hotels.map(checkHotelStatus));
+    
+    document.getElementById('hotelStatus').innerHTML = statuses.map(status => `
+      <div class="border rounded-lg p-4 ${status.data && status.config ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+        <div class="font-semibold text-lg mb-2">🏨 ${status.hotelId}</div>
+        <div class="space-y-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="status-badge ${status.data ? 'status-ok' : 'status-error'}">
+              ${status.data ? '✅' : '❌'} Données
+            </span>
+            <span class="status-badge ${status.config ? 'status-ok' : 'status-error'}">
+              ${status.config ? '✅' : '❌'} Config
+            </span>
+          </div>
+          <div class="text-xs text-gray-500">Dernier check: ${status.lastUpdate}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Data preview
+  async function previewHotelData(hotelId) {
+    try {
+      const response = await fetch(`${API_URL}/data?hotel_id=${hotelId}`);
+      if (!response.ok) throw new Error('Données non disponibles');
+      
+      const data = await response.json();
+      const preview = document.getElementById('dataPreview');
+      
+      let html = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
+      
+      // Statistiques générales
+      html += `<div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h3 class="font-semibold mb-2">📊 Statistiques</h3>
+        <p><strong>Chambres:</strong> ${Object.keys(data.rooms || {}).length}</p>
+        <p><strong>Dates:</strong> ${data.dates_processed?.length || 'N/A'}</p>
+        <p class="text-xs text-gray-500 mt-2">Généré: ${new Date(data.report_generated_at).toLocaleDateString('fr-FR')}</p>
+      </div>`;
+      
+      // Liste des chambres
+      const rooms = Object.keys(data.rooms || {});
+      html += `<div class="bg-green-50 p-4 rounded-lg border border-green-200">
+        <h3 class="font-semibold mb-2">🏨 Chambres (${rooms.length})</h3>
+        <div class="max-h-32 overflow-y-auto text-xs space-y-1">
+          ${rooms.slice(0, 10).map(room => `<div>• ${room}</div>`).join('')}
+          ${rooms.length > 10 ? `<div class="text-gray-500">... et ${rooms.length - 10} autres</div>` : ''}
+        </div>
+      </div>`;
+      
+      // Plans tarifaires (première chambre)
+      const firstRoom = rooms[0];
+      if (firstRoom && data.rooms[firstRoom]?.plans) {
+        const plans = Object.keys(data.rooms[firstRoom].plans);
+        html += `<div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+          <h3 class="font-semibold mb-2">💰 Plans (${plans.length})</h3>
+          <div class="max-h-32 overflow-y-auto text-xs space-y-1">
+            ${plans.slice(0, 8).map(plan => `<div class="truncate" title="${plan}">• ${plan}</div>`).join('')}
+            ${plans.length > 8 ? `<div class="text-gray-500">... et ${plans.length - 8} autres</div>` : ''}
+          </div>
+        </div>`;
+      }
+      
+      html += `</div>`;
+      preview.innerHTML = html;
+      
+    } catch (error) {
+      document.getElementById('dataPreview').innerHTML = 
+        `<p class="text-red-500">❌ Impossible de charger l'aperçu: ${error.message}</p>`;
+    }
+  }
+
   // Helper upload
-  async function uploadFile(endpoint, fileInput){
+  async function uploadFile(endpoint, fileInput, fileType){
     const hotelId = hotelSelect.value;
-    if(!hotelId) return showToast('Sélectionnez d\'abord un hôtel', true);
-    if(!fileInput || !fileInput.files || fileInput.files.length===0) return showToast('Choisissez un fichier', true);
+    if(!hotelId) return showToast('❌ Sélectionnez d\'abord un hôtel', true);
+    if(!fileInput || !fileInput.files || fileInput.files.length === 0) return showToast('❌ Choisissez un fichier', true);
+    
     try{
       showSpinner(true);
-      const fd = new FormData(); fd.append('file', fileInput.files[0]);
-      const res = await fetch(`${API_URL}/${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, { method: 'POST', body: fd });
-      const body = await res.json().catch(()=>null);
+      const fd = new FormData(); 
+      fd.append('file', fileInput.files[0]);
+      
+      const res = await fetch(`${API_URL}/${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, { 
+        method: 'POST', 
+        body: fd 
+      });
+      
+      const body = await res.json().catch(() => null);
       if(!res.ok) throw new Error((body && body.detail) ? body.detail : res.statusText);
-      showToast('Upload réussi pour ' + hotelId);
-      fileInput.value = ''; // reset
+      
+      showToast(`✅ ${fileType} uploadé avec succès pour ${hotelId}`);
+      fileInput.value = '';
+      
+      // Mettre à jour les statuts et aperçu
+      await displayHotelStatus();
+      await previewHotelData(hotelId);
+      
     }catch(err){
-      showToast('Erreur upload: ' + err.message, true);
+      showToast(`❌ Erreur upload ${fileType}: ` + err.message, true);
     }finally{ showSpinner(false); }
   }
 
-  if(sendExcelBtn) sendExcelBtn.addEventListener('click', (e)=> { e.preventDefault(); uploadFile('upload/excel', excelFile); });
-  if(sendConfigBtn) sendConfigBtn.addEventListener('click', (e)=> { e.preventDefault(); uploadFile('upload/config', configFile); });
+  // Event listeners for uploads
+  if(sendExcelBtn) {
+    sendExcelBtn.addEventListener('click', (e) => { 
+      e.preventDefault(); 
+      uploadFile('upload/excel', excelFile, 'Planning'); 
+    });
+  }
+  
+  if(sendConfigBtn) {
+    sendConfigBtn.addEventListener('click', (e) => { 
+      e.preventDefault(); 
+      uploadFile('upload/config', configFile, 'Configuration'); 
+    });
+  }
+
+  // Mettre à jour l'aperçu quand un hôtel est sélectionné
+  hotelSelect.addEventListener('change', function() {
+    if (this.value) {
+      previewHotelData(this.value);
+    } else {
+      document.getElementById('dataPreview').innerHTML = 
+        '<p class="text-gray-500">Sélectionnez un hôtel et chargez les données pour voir l\'aperçu.</p>';
+    }
+  });
+
+  // Health check and auto-refresh
+  async function checkApiHealth() {
+    try {
+      const res = await fetch(`${API_URL}/health`);
+      if (res.ok) {
+        const health = await res.json();
+        console.log('API Health:', health);
+      }
+    } catch (err) {
+      console.warn('API health check failed:', err);
+    }
+  }
+
+  // Auto-refresh périodique
+  setInterval(fetchHotels, 30000);
 
   // Load on start
   fetchHotels();
+  checkApiHealth();
 })();
 </script>
 </body>

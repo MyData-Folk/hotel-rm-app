@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Hôtelier - Simulateur</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord Hôtelier - Simulateur Avancé</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header class="gradient-header text-white shadow-lg">
         <div class="container mx-auto px-4 py-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold">Tableau de Bord Hôtelier</h1>
+            <h1 class="text-3xl md:text-4xl font-bold">🏨 Tableau de Bord Hôtelier</h1>
             <p id="header-subtitle" class="mt-2 text-lg text-blue-100">Simulez une réservation ou vérifiez vos disponibilités</p>
         </div>
     </header>
@@ -22,113 +23,288 @@
                     <label for="hotelId" class="block text-sm font-medium text-gray-700 mb-2">Charger les données pour l'hôtel :</label>
                     <div class="flex">
                         <select id="hotelId" class="form-input rounded-r-none"></select>
-                        <button id="refreshDataBtn" class="btn btn-secondary rounded-l-none" title="Charger/Rafraîchir les données"><i class="fas fa-sync-alt"></i></button>
+                        <button id="refreshDataBtn" class="btn btn-secondary rounded-l-none" title="Charger/Rafraîchir les données">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="flex items-center gap-4 mt-4 md:mt-0">
-                     <a href="https://admin-folkestone.e-hotelmanager.com" class="btn btn-secondary"><i class="fas fa-cog mr-2"></i>Paramètres</a>
+                    <a href="https://admin-folkestone.e-hotelmanager.com" class="btn btn-secondary">
+                        <i class="fas fa-cog mr-2"></i>Paramètres
+                    </a>
                 </div>
             </div>
             <p id="statusMessage" class="text-sm text-gray-600 mt-4">Veuillez sélectionner un hôtel et cliquer sur rafraîchir.</p>
         </div>
 
         <!-- Outils avec système d'onglets -->
-        <div id="main-tools" class="card p-0 opacity-50 pointer-events-none">
+        <div id="main-tools" class="card p-0 opacity-50 pointer-events-none transition-all duration-300">
             <div class="flex border-b border-gray-200">
-                <button class="tab-link tab-active" data-tab="simulator"><i class="fas fa-calculator mr-2"></i>Simulateur de Réservation</button>
-                <button class="tab-link" data-tab="availability"><i class="fas fa-calendar-check mr-2"></i>Vérificateur de Disponibilité</button>
+                <button class="tab-link tab-active" data-tab="simulator">
+                    <i class="fas fa-calculator mr-2"></i>Simulateur de Réservation
+                </button>
+                <button class="tab-link" data-tab="availability">
+                    <i class="fas fa-calendar-check mr-2"></i>Vérificateur de Disponibilité
+                </button>
             </div>
             
             <div id="tab-content-simulator" class="p-6 md:p-8">
                 <form id="simulationForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                    <div><label for="simPartner" class="block text-sm font-medium mb-1">Partenaire</label><select id="simPartner" class="form-input"></select></div>
-                    <div><label for="simRoomType" class="block text-sm font-medium mb-1">Type de chambre</label><select id="simRoomType" class="form-input"></select></div>
-                    <div><label for="simRatePlan" class="block text-sm font-medium mb-1">Plan tarifaire</label><select id="simRatePlan" class="form-input"></select></div>
-                    <div><label for="simStartDate" class="block text-sm font-medium mb-1">Date d'arrivée</label><input type="date" id="simStartDate" class="form-input"></div>
-                    <div><label for="simEndDate" class="block text-sm font-medium mb-1">Date de départ</label><input type="date" id="simEndDate" class="form-input"></div>
-                    <div class="flex items-end"><button type="submit" class="btn btn-gradient-primary w-full">Simuler la Réservation</button></div>
+                    <div>
+                        <label for="simPartner" class="block text-sm font-medium mb-1">Partenaire</label>
+                        <select id="simPartner" class="form-input">
+                            <option value="">En Direct (0%)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="simRoomType" class="block text-sm font-medium mb-1">Type de chambre</label>
+                        <select id="simRoomType" class="form-input"></select>
+                    </div>
+                    <div>
+                        <label for="simRatePlan" class="block text-sm font-medium mb-1">Plan tarifaire</label>
+                        <select id="simRatePlan" class="form-input"></select>
+                    </div>
+                    <div>
+                        <label for="simStartDate" class="block text-sm font-medium mb-1">Date d'arrivée</label>
+                        <input type="date" id="simStartDate" class="form-input">
+                    </div>
+                    <div>
+                        <label for="simEndDate" class="block text-sm font-medium mb-1">Date de départ</label>
+                        <input type="date" id="simEndDate" class="form-input">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="btn btn-gradient-primary w-full">
+                            <i class="fas fa-play-circle mr-2"></i>Simuler la Réservation
+                        </button>
+                    </div>
                 </form>
             </div>
 
             <div id="tab-content-availability" class="p-6 md:p-8 hidden">
-                <p class="text-gray-500">Le vérificateur de disponibilité est en cours de développement.</p>
+                <div class="text-center py-8">
+                    <i class="fas fa-tools text-4xl text-gray-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600 mb-2">En cours de développement</h3>
+                    <p class="text-gray-500">Le vérificateur de disponibilité avancé arrive bientôt !</p>
+                </div>
             </div>
         </div>
 
-        <div id="resultsContainer" class="card mt-8 hidden">
-            <h2 class="text-xl font-bold mb-4">Résultats de la Simulation</h2>
+        <!-- Résultats de simulation -->
+        <div id="resultsContainer" class="card mt-8 hidden animate-fade-in">
+            <div class="border-b pb-4 mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Simulation : <span id="simRoomName">-</span></h2>
+                <p class="text-sm text-gray-600 mt-1" id="simSourceInfo">Source: -</p>
+            </div>
+
+            <!-- Résumé de la simulation -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Partenaire</label>
+                    <span id="simPartnerName" class="font-semibold">-</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Date d'arrivée</label>
+                    <span id="simStartDisplay" class="font-semibold">-</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Date de départ</label>
+                    <span id="simEndDisplay" class="font-semibold">-</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Nuits</label>
+                    <span id="simNights" class="font-semibold">-</span>
+                </div>
+            </div>
+
+            <!-- Contrôles de remise -->
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="applyCommission" checked class="rounded border-gray-300">
+                    <label for="applyCommission" class="text-sm font-medium" id="commissionLabel">Appliquer commission (0%)</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="promoDiscount" class="text-sm font-medium">Remise promotionnelle (%):</label>
+                    <input type="number" id="promoDiscount" min="0" max="100" value="0" 
+                           class="w-20 px-2 py-1 border border-gray-300 rounded">
+                </div>
+                <div class="text-xs text-gray-500 mt-1 md:mt-0">
+                    <i class="fas fa-info-circle mr-1"></i>Les remises partenaires sont appliquées automatiquement
+                </div>
+            </div>
+
+            <!-- Tableau des résultats -->
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
-                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider"><tr><th class="px-6 py-3">Date</th><th class="px-6 py-3 text-right">Stock</th><th class="px-6 py-3 text-right">Prix Brut</th><th class="px-6 py-3 text-right">Commission</th><th class="px-6 py-3 text-right font-bold">Prix Net</th></tr></thead>
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Brut (€)</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Net (€)</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Stock</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Disponibilité</th>
+                        </tr>
+                    </thead>
                     <tbody id="resultsTableBody" class="divide-y divide-gray-200"></tbody>
-                    <tfoot id="resultsTableFoot" class="bg-gray-100 font-bold"></tfoot>
                 </table>
+            </div>
+
+            <!-- Résumé financier -->
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-gray-800 mb-3">Détail des calculs</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>Sous-Total Brut:</span>
+                            <span id="subtotalBrut" class="font-semibold">- €</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Remise Promotion:</span>
+                            <span id="totalPromoDiscount" class="font-semibold text-green-600">- €</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Remise Partenaire:</span>
+                            <span id="totalPartnerDiscount" class="font-semibold text-green-600">- €</span>
+                        </div>
+                        <div class="flex justify-between border-t border-gray-200 pt-2">
+                            <span>Total Remises:</span>
+                            <span id="totalDiscount" class="font-semibold text-green-600">- €</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Total Commission:</span>
+                            <span id="totalCommission" class="font-semibold text-red-600">- €</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-l pl-6">
+                    <h3 class="font-semibold text-gray-800 mb-3">Total Net Final</h3>
+                    <div id="totalNetFinal" class="text-2xl font-bold text-indigo-700">- €</div>
+                    <div class="text-sm text-gray-500 mt-2" id="averagePerNight">- € par nuit en moyenne</div>
+                </div>
+            </div>
+
+            <!-- Bouton d'export -->
+            <div class="mt-6 flex justify-end gap-4">
+                <button id="newSimulationBtn" class="btn btn-secondary">
+                    <i class="fas fa-plus mr-2"></i>Nouvelle Simulation
+                </button>
+                <button id="exportBtn" class="btn btn-gradient-primary">
+                    <i class="fas fa-download mr-2"></i>Exporter en Excel
+                </button>
             </div>
         </div>
     </main>
   
-    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner"></div></div>
+    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="spinner"></div>
+    </div>
+    
     <div id="toast" class="toast"></div>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
         const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-        let hotelData = {}, hotelConfig = {};
+        let hotelData = {}, hotelConfig = {}, currentSimulationData = null;
 
-        const hotelIdSelect = document.getElementById('hotelId'), refreshDataBtn = document.getElementById('refreshDataBtn');
-        const statusMessage = document.getElementById('statusMessage'), mainTools = document.getElementById('main-tools');
-        const simPartnerSelect = document.getElementById('simPartner'), simRoomTypeSelect = document.getElementById('simRoomType'), simRatePlanSelect = document.getElementById('simRatePlan');
-        const simulationForm = document.getElementById('simulationForm'), resultsContainer = document.getElementById('resultsContainer');
-        const resultsTableBody = document.getElementById('resultsTableBody'), resultsTableFoot = document.getElementById('resultsTableFoot');
-        const spinner = document.getElementById('spinner-overlay'), toastContainer = document.getElementById('toast');
+        // Éléments DOM
+        const hotelIdSelect = document.getElementById('hotelId');
+        const refreshDataBtn = document.getElementById('refreshDataBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const mainTools = document.getElementById('main-tools');
+        const simPartnerSelect = document.getElementById('simPartner');
+        const simRoomTypeSelect = document.getElementById('simRoomType');
+        const simRatePlanSelect = document.getElementById('simRatePlan');
+        const simulationForm = document.getElementById('simulationForm');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsTableBody = document.getElementById('resultsTableBody');
+        const spinner = document.getElementById('spinner-overlay');
+        const toastContainer = document.getElementById('toast');
+        const applyCommissionCheckbox = document.getElementById('applyCommission');
+        const promoDiscountInput = document.getElementById('promoDiscount');
+        const exportBtn = document.getElementById('exportBtn');
+        const newSimulationBtn = document.getElementById('newSimulationBtn');
 
-        const showSpinner = () => spinner.classList.remove('hidden'); const hideSpinner = () => spinner.classList.add('hidden');
+        // Utilitaires
+        const showSpinner = () => spinner.classList.remove('hidden');
+        const hideSpinner = () => spinner.classList.add('hidden');
+        
         const showToast = (message, isError = false) => {
             toastContainer.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
             toastContainer.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${message}`;
-            setTimeout(() => toastContainer.classList.remove('show'), 3000);
+            setTimeout(() => toastContainer.classList.remove('show'), 4000);
         };
 
+        const formatCurrency = (val) => val != null ? `${val.toFixed(2).replace('.', ',')} €` : '–';
+        const formatDateDisplay = (dateString) => new Date(dateString).toLocaleDateString('fr-FR');
+
+        // Chargement des hôtels
         const fetchHotels = async () => {
             try {
                 const response = await fetch(`${API_URL}/hotels`);
                 if (!response.ok) throw new Error('Impossible de charger la liste des hôtels.');
                 const hotels = await response.json();
+                
                 hotelIdSelect.innerHTML = '<option value="">-- Sélectionner un hôtel --</option>';
-                hotels.forEach(id => hotelIdSelect.innerHTML += `<option value="${id}">${id}</option>`);
-            } catch(error) { showToast(error.message, true); }
+                hotels.forEach(id => {
+                    hotelIdSelect.innerHTML += `<option value="${id}">${id}</option>`;
+                });
+            } catch(error) { 
+                showToast(error.message, true); 
+            }
         };
 
+        // Chargement des données
         const loadData = async () => {
             const hotelId = hotelIdSelect.value;
             if (!hotelId) return showToast("Veuillez sélectionner un hôtel.", true);
+            
             showSpinner();
             statusMessage.textContent = 'Chargement des données...';
             resultsContainer.classList.add('hidden');
             mainTools.classList.add('opacity-50', 'pointer-events-none');
+            
             try {
-                const [dataRes, configRes] = await Promise.all([ fetch(`${API_URL}/data?hotel_id=${hotelId}`), fetch(`${API_URL}/config?hotel_id=${hotelId}`) ]);
+                const [dataRes, configRes] = await Promise.all([
+                    fetch(`${API_URL}/data?hotel_id=${hotelId}`),
+                    fetch(`${API_URL}/config?hotel_id=${hotelId}`)
+                ]);
+                
                 if (!dataRes.ok) throw new Error(`Données de planning introuvables`);
-                if (!configRes.ok) throw new Error(`Données de configuration introuvables`);
+                if (!configRes.ok) throw new Error(`Configuration introuvable`);
+                
                 hotelData = (await dataRes.json()).rooms || {};
                 hotelConfig = await configRes.json();
+                
                 populateSelectors();
-                statusMessage.textContent = `Données pour '${hotelId}' chargées. Prêt à simuler.`;
-                showToast('Données actualisées !');
+                statusMessage.textContent = `✅ Données pour '${hotelId}' chargées. Prêt à simuler.`;
+                statusMessage.className = 'text-sm text-green-600 mt-4';
+                showToast('Données actualisées avec succès !');
                 mainTools.classList.remove('opacity-50', 'pointer-events-none');
-            } catch (error) { statusMessage.innerHTML = `Erreur: ${error.message}`; showToast(error.message, true); }
-            finally { hideSpinner(); }
+                
+            } catch (error) { 
+                statusMessage.innerHTML = `❌ Erreur: ${error.message}`;
+                statusMessage.className = 'text-sm text-red-600 mt-4';
+                showToast(error.message, true); 
+            } finally { 
+                hideSpinner(); 
+            }
         };
 
+        // Peuplement des sélecteurs
         const populateSelectors = () => {
+            // Partenaires
             simPartnerSelect.innerHTML = '<option value="">En Direct (0%)</option>';
             Object.keys(hotelConfig.partners || {}).sort().forEach(name => {
-                simPartnerSelect.innerHTML += `<option value="${name}">${name} (${hotelConfig.partners[name].commission}%)</option>`;
+                const partner = hotelConfig.partners[name];
+                simPartnerSelect.innerHTML += `<option value="${name}">${name} (${partner.commission}%)</option>`;
             });
+
+            // Types de chambre
             simRoomTypeSelect.innerHTML = '';
-            (hotelConfig.displayOrder?.rooms || Object.keys(hotelData)).filter(r => hotelData[r]).forEach(room => {
+            const roomOrder = hotelConfig.displayOrder?.rooms || Object.keys(hotelData);
+            roomOrder.filter(room => hotelData[room]).forEach(room => {
                 simRoomTypeSelect.innerHTML += `<option value="${room}">${room}</option>`;
             });
+
             updateRatePlans();
         };
 
@@ -136,38 +312,174 @@
             simRatePlanSelect.innerHTML = '';
             const selectedRoom = simRoomTypeSelect.value;
             if (!selectedRoom || !hotelData[selectedRoom]?.plans) return;
+            
             const allPlans = Object.keys(hotelData[selectedRoom].plans);
-            (hotelConfig.displayOrder?.plans || allPlans).filter(p => allPlans.includes(p)).forEach(plan => {
+            const planOrder = hotelConfig.displayOrder?.plans || allPlans;
+            
+            planOrder.filter(plan => allPlans.includes(plan)).forEach(plan => {
                 simRatePlanSelect.innerHTML += `<option value="${plan}">${plan}</option>`;
             });
         };
-        
+
+        // Simulation
         const handleSimulation = async (e) => {
             e.preventDefault();
-            const payload = { hotel_id: hotelIdSelect.value, room: simRoomTypeSelect.value, plan: simRatePlanSelect.value, start: document.getElementById('simStartDate').value, end: document.getElementById('simEndDate').value, partner_name: simPartnerSelect.value };
-            if (!payload.start || !payload.end || !payload.room || !payload.plan) return showToast("Tous les champs de simulation sont requis.", true);
+            const payload = {
+                hotel_id: hotelIdSelect.value,
+                room: simRoomTypeSelect.value,
+                plan: simRatePlanSelect.value,
+                start: document.getElementById('simStartDate').value,
+                end: document.getElementById('simEndDate').value,
+                partner_name: simPartnerSelect.value,
+                apply_commission: applyCommissionCheckbox.checked,
+                promo_discount: parseFloat(promoDiscountInput.value) || 0
+            };
+
+            // Validation
+            if (!payload.start || !payload.end) {
+                return showToast("Les dates de séjour sont requises.", true);
+            }
+            if (!payload.room || !payload.plan) {
+                return showToast("La chambre et le plan tarifaire sont requis.", true);
+            }
+
             showSpinner();
             try {
-                const response = await fetch(`${API_URL}/simulate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                const result = await response.json(); if (!response.ok) throw new Error(result.detail || 'Erreur');
+                const response = await fetch(`${API_URL}/simulate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'Erreur de simulation');
+                
                 displayResults(result);
-            } catch (error) { showToast(error.message, true); } finally { hideSpinner(); }
+                showToast('Simulation terminée avec succès !');
+                
+            } catch (error) {
+                showToast(error.message, true);
+            } finally {
+                hideSpinner();
+            }
         };
 
+        // Affichage des résultats
         const displayResults = (data) => {
+            currentSimulationData = data;
             resultsContainer.classList.remove('hidden');
+            
+            // Informations de simulation
+            const simInfo = data.simulation_info;
+            document.getElementById('simRoomName').textContent = simInfo.room;
+            document.getElementById('simSourceInfo').textContent = `Source: ${simInfo.source}`;
+            document.getElementById('simPartnerName').textContent = simInfo.partner || 'Direct';
+            document.getElementById('simStartDisplay').textContent = formatDateDisplay(simInfo.start_date);
+            document.getElementById('simEndDisplay').textContent = formatDateDisplay(simInfo.end_date);
+            document.getElementById('simNights').textContent = `${simInfo.nights} nuit(s)`;
+            
+            // Mise à jour du label de commission
+            const commissionLabel = document.getElementById('commissionLabel');
+            if (simInfo.partner && applyCommissionCheckbox.checked) {
+                commissionLabel.textContent = `Appliquer commission (${simInfo.partner} ${simInfo.partner_commission}%)`;
+            } else {
+                commissionLabel.textContent = `Appliquer commission (0%)`;
+            }
+
+            // Remplissage du tableau
             resultsTableBody.innerHTML = '';
-            if (!data.results?.length) { resultsTableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Aucune donnée disponible.</td></tr>'; resultsTableFoot.innerHTML = ''; return; }
-            const formatCurrency = (val) => val != null ? val.toFixed(2).replace('.', ',') + ' €' : '–';
-            data.results.forEach(day => {
-                const stockColor = (day.stock ?? 0) > 5 ? 'text-green-600' : ((day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500');
-                resultsTableBody.innerHTML += `<tr class="hover:bg-gray-50"><td class="px-6 py-4">${day.date}</td><td class="px-6 py-4 text-right font-medium ${stockColor}">${day.stock ?? 'N/A'}</td><td class="px-6 py-4 text-right">${formatCurrency(day.price)}</td><td class="px-6 py-4 text-right text-red-600">${formatCurrency(day.commission)}</td><td class="px-6 py-4 text-right font-bold text-indigo-700">${formatCurrency(day.net_price)}</td></tr>`;
-            });
+            if (!data.results?.length) {
+                resultsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fas fa-info-circle mr-2"></i>Aucune donnée disponible pour cette période.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                data.results.forEach(day => {
+                    const stockColor = (day.stock ?? 0) > 5 ? 'text-green-600' : 
+                                     (day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500';
+                    const availabilityColor = day.availability === 'Disponible' ? 'text-green-600' : 'text-red-600';
+                    
+                    resultsTableBody.innerHTML += `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 font-medium">${day.date_display}</td>
+                            <td class="px-4 py-3 text-right">${formatCurrency(day.gross_price)}</td>
+                            <td class="px-4 py-3 text-right font-semibold text-indigo-700">${formatCurrency(day.net_price)}</td>
+                            <td class="px-4 py-3 text-right font-medium ${stockColor}">${day.stock ?? 'N/A'}</td>
+                            <td class="px-4 py-3 text-right ${availabilityColor}">
+                                ${day.availability_badge} ${day.availability}
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Mise à jour du résumé financier
             const summary = data.summary;
-            resultsTableFoot.innerHTML = `<tr><td class="px-6 py-4">Total</td><td></td><td class="px-6 py-4 text-right">${formatCurrency(summary.subtotal)}</td><td class="px-6 py-4 text-right text-red-600">${formatCurrency(summary.total_commission)}</td><td class="px-6 py-4 text-right font-bold text-indigo-700">${formatCurrency(summary.total_net)}</td></tr>`;
+            document.getElementById('subtotalBrut').textContent = formatCurrency(summary.subtotal_brut);
+            document.getElementById('totalPromoDiscount').textContent = formatCurrency(summary.total_promo_discount);
+            document.getElementById('totalPartnerDiscount').textContent = formatCurrency(summary.total_partner_discount);
+            document.getElementById('totalDiscount').textContent = formatCurrency(summary.total_discount);
+            document.getElementById('totalCommission').textContent = formatCurrency(summary.total_commission);
+            document.getElementById('totalNetFinal').textContent = formatCurrency(summary.total_net);
+            
+            // Calcul du prix moyen par nuit
+            const avgPerNight = summary.total_net / simInfo.nights;
+            document.getElementById('averagePerNight').textContent = 
+                `${formatCurrency(avgPerNight)} par nuit en moyenne`;
         };
-        
-        // Tab system
+
+        // Export Excel
+        const exportToExcel = async () => {
+            if (!currentSimulationData) {
+                return showToast("Aucune donnée à exporter", true);
+            }
+            
+            showSpinner();
+            try {
+                const response = await fetch(`${API_URL}/export/simulation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentSimulationData)
+                });
+                
+                if (!response.ok) throw new Error('Erreur lors de l\'export');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                
+                const hotelId = hotelIdSelect.value;
+                const date = new Date().toISOString().split('T')[0];
+                a.download = `simulation_${hotelId}_${date}.xlsx`;
+                
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showToast('Export Excel réussi !');
+            } catch (error) {
+                showToast('Erreur lors de l\'export: ' + error.message, true);
+            } finally {
+                hideSpinner();
+            }
+        };
+
+        // Nouvelle simulation
+        const resetSimulation = () => {
+            resultsContainer.classList.add('hidden');
+            simulationForm.reset();
+            applyCommissionCheckbox.checked = true;
+            promoDiscountInput.value = '0';
+            currentSimulationData = null;
+        };
+
+        // Système d'onglets
         document.querySelectorAll('.tab-link').forEach(button => {
             button.addEventListener('click', () => {
                 document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('tab-active'));
@@ -181,7 +493,17 @@
         refreshDataBtn.addEventListener('click', loadData);
         simRoomTypeSelect.addEventListener('change', updateRatePlans);
         simulationForm.addEventListener('submit', handleSimulation);
+        exportBtn.addEventListener('click', exportToExcel);
+        newSimulationBtn.addEventListener('click', resetSimulation);
+
+        // Set default dates (today + 7 days)
+        const today = new Date();
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 7);
         
+        document.getElementById('simStartDate').value = today.toISOString().split('T')[0];
+        document.getElementById('simEndDate').value = nextWeek.toISOString().split('T')[0];
+
         // Initial Load
         fetchHotels();
     });
