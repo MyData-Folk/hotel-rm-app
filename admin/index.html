@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin - Folkestone RM (Enhanced)</title>
+  <title>Admin - Folkestone RM (Stable)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -226,7 +226,7 @@
 <body>
   <div class="container">
     <header class="card">
-      <h1>🚀 Admin Folkestone RM - Version Améliorée</h1>
+      <h1>🚀 Admin Folkestone RM - Version Stable</h1>
       <p class="small">Gestion des hôtels & chargement rapide (Excel/CSV + JSON config)</p>
     </header>
 
@@ -235,7 +235,7 @@
       <div id="hotelList" class="space-y-4" style="margin-bottom: 16px"></div>
 
       <form id="addHotelForm" class="flex">
-        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: monhotel)" required style="flex: 1">
+        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: folkestone)" required style="flex: 1">
         <button id="addHotelBtn" class="btn-primary">Ajouter l'hôtel</button>
       </form>
     </section>
@@ -281,6 +281,21 @@
         </div>
       </div>
     </section>
+
+    <section class="card" id="debug-card">
+      <h2>🐛 Outils de Débogage</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button id="testApiBtn" class="btn-secondary">
+          <i class="fas fa-heartbeat mr-2"></i>Tester l'API
+        </button>
+        <button id="refreshAllBtn" class="btn-secondary">
+          <i class="fas fa-sync-alt mr-2"></i>Rafraîchir tout
+        </button>
+      </div>
+      <div id="debugOutput" class="mt-4 text-sm" style="display: none;">
+        <pre class="bg-gray-100 p-4 rounded-lg overflow-auto max-h-64"></pre>
+      </div>
+    </section>
   </div>
 
   <div id="spinner">
@@ -302,6 +317,9 @@
   const configFile = document.getElementById('configFile');
   const spinner = document.getElementById('spinner');
   const toast = document.getElementById('toast');
+  const testApiBtn = document.getElementById('testApiBtn');
+  const refreshAllBtn = document.getElementById('refreshAllBtn');
+  const debugOutput = document.getElementById('debugOutput');
 
   const showSpinner = (on = true) => spinner.style.display = on ? 'block' : 'none';
   
@@ -309,19 +327,47 @@
     toast.textContent = msg;
     toast.style.background = err ? '#ef4444' : '#10b981';
     toast.className = 'toast show';
-    setTimeout(() => toast.className = 'toast', 3500);
+    setTimeout(() => toast.className = 'toast', 4000);
   };
 
+  const debugLog = (data) => {
+    debugOutput.style.display = 'block';
+    debugOutput.querySelector('pre').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  };
+
+  // Test de l'API
+  async function testApi() {
+    try {
+      showSpinner(true);
+      const response = await fetch(`${API_URL}/health`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        debugLog(data);
+        showToast('✅ API en ligne et fonctionnelle');
+      } else {
+        throw new Error(`API error: ${response.status}`);
+      }
+    } catch (error) {
+      debugLog(`❌ Erreur API: ${error.message}`);
+      showToast('❌ API hors ligne', true);
+    } finally {
+      showSpinner(false);
+    }
+  }
+
+  // Chargement des hôtels
   async function fetchHotels(){
     try{
       const res = await fetch(`${API_URL}/hotels`);
-      if(!res.ok) throw new Error('Impossible de charger la liste d\'hôtels');
+      if(!res.ok) throw new Error(`Erreur ${res.status}: ${res.statusText}`);
       const hotels = await res.json();
       renderHotels(hotels);
       await displayHotelStatus();
     }catch(err){
+      console.error('Erreur chargement hôtels:', err);
       renderHotels([]);
-      showToast('Erreur chargement hôtels: ' + err.message, true);
+      showToast('❌ Erreur chargement hôtels: ' + err.message, true);
     }
   }
 
@@ -355,7 +401,7 @@
     });
   }
 
-  // Delegated delete
+  // Suppression d'hôtel
   hotelListEl.addEventListener('click', async (e) => {
     if(!e.target.closest('.delete-btn')) return;
     const btn = e.target.closest('.delete-btn');
@@ -365,19 +411,25 @@
     
     try{
       showSpinner(true);
-      const res = await fetch(`${API_URL}/hotels/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const encodedId = encodeURIComponent(id);
+      const res = await fetch(`${API_URL}/hotels/${encodedId}`, { method: 'DELETE' });
+      
       if(!res.ok){
         const err = await res.json().catch(() => ({detail: res.statusText}));
-        throw new Error(err.detail || 'Erreur suppression');
+        throw new Error(err.detail || `Erreur ${res.status}`);
       }
+      
       showToast(`✅ Hôtel '${id}' supprimé avec succès.`);
       await fetchHotels();
     }catch(err){
+      console.error('Erreur suppression:', err);
       showToast(`❌ Erreur suppression: ${err.message}`, true);
-    }finally{ showSpinner(false); }
+    }finally{ 
+      showSpinner(false); 
+    }
   });
 
-  // Add hotel
+  // Ajout d'hôtel
   if(addHotelForm){
     addHotelForm.addEventListener('submit', async (ev) => {
       ev.preventDefault();
@@ -386,7 +438,8 @@
       
       try{
         showSpinner(true);
-        const res = await fetch(`${API_URL}/hotels?hotel_id=${encodeURIComponent(id)}`, { method: 'POST' });
+        const encodedId = encodeURIComponent(id);
+        const res = await fetch(`${API_URL}/hotels?hotel_id=${encodedId}`, { method: 'POST' });
         
         if(res.status === 409){
           const body = await res.json().catch(() => ({detail: 'Conflit'}));
@@ -395,37 +448,36 @@
         
         if(!res.ok) {
           const body = await res.json().catch(() => ({detail: res.statusText}));
-          throw new Error(body.detail || 'Erreur création');
+          throw new Error(body.detail || `Erreur ${res.status}`);
         }
         
         showToast(`✅ Hôtel '${id}' ajouté avec succès.`);
         newHotelId.value = '';
         await fetchHotels();
       }catch(err){
+        console.error('Erreur ajout hôtel:', err);
         showToast('❌ Erreur ajout: ' + err.message, true);
-      }finally{ showSpinner(false); }
+      }finally{ 
+        showSpinner(false); 
+      }
     });
   }
 
-  // Hotel status monitoring
-  async function checkHotelStatus(hotelId) {
+  // Vérification statut fichiers
+  async function checkFileStatus(hotelId) {
     try {
-      const [dataRes, configRes] = await Promise.all([
-        fetch(`${API_URL}/data?hotel_id=${hotelId}`),
-        fetch(`${API_URL}/config?hotel_id=${hotelId}`)
-      ]);
-      
-      return {
-        hotelId,
-        data: dataRes.ok,
-        config: configRes.ok,
-        lastUpdate: new Date().toLocaleDateString('fr-FR')
-      };
-    } catch {
-      return { hotelId, data: false, config: false, lastUpdate: 'N/A' };
+      const encodedHotelId = encodeURIComponent(hotelId);
+      const response = await fetch(`${API_URL}/files/status?hotel_id=${encodedHotelId}`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.error('Erreur vérification statut fichiers:', error);
     }
+    return null;
   }
 
+  // Monitoring des hôtels
   async function displayHotelStatus() {
     const hotels = Array.from(hotelSelect.options)
       .map(opt => opt.value)
@@ -436,31 +488,61 @@
       return;
     }
     
-    const statuses = await Promise.all(hotels.map(checkHotelStatus));
+    const statuses = await Promise.all(hotels.map(async (hotelId) => {
+      const fileStatus = await checkFileStatus(hotelId);
+      const [dataRes, configRes] = await Promise.allSettled([
+        fetch(`${API_URL}/data?hotel_id=${encodeURIComponent(hotelId)}`),
+        fetch(`${API_URL}/config?hotel_id=${encodeURIComponent(hotelId)}`)
+      ]);
+      
+      return {
+        hotelId,
+        data: dataRes.status === 'fulfilled' && dataRes.value.ok,
+        config: configRes.status === 'fulfilled' && configRes.value.ok,
+        fileStatus: fileStatus
+      };
+    }));
     
-    document.getElementById('hotelStatus').innerHTML = statuses.map(status => `
-      <div class="border rounded-lg p-4 ${status.data && status.config ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}">
+    document.getElementById('hotelStatus').innerHTML = statuses.map(status => {
+      const hasData = status.data;
+      const hasConfig = status.config;
+      const statusClass = hasData && hasConfig ? 'bg-green-50 border-green-200' : 
+                         hasData || hasConfig ? 'bg-yellow-50 border-yellow-200' : 
+                         'bg-red-50 border-red-200';
+      
+      return `
+      <div class="border rounded-lg p-4 ${statusClass}">
         <div class="font-semibold text-lg mb-2">🏨 ${status.hotelId}</div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center gap-2">
-            <span class="status-badge ${status.data ? 'status-ok' : 'status-error'}">
-              ${status.data ? '✅' : '❌'} Données
+            <span class="status-badge ${hasData ? 'status-ok' : 'status-error'}">
+              ${hasData ? '✅' : '❌'} Données
             </span>
-            <span class="status-badge ${status.config ? 'status-ok' : 'status-error'}">
-              ${status.config ? '✅' : '❌'} Config
+            <span class="status-badge ${hasConfig ? 'status-ok' : 'status-error'}">
+              ${hasConfig ? '✅' : '❌'} Config
             </span>
           </div>
-          <div class="text-xs text-gray-500">Dernier check: ${status.lastUpdate}</div>
+          ${status.fileStatus ? `
+          <div class="text-xs space-y-1">
+            <div>📊 Fichier données: ${status.fileStatus.data_file_exists ? '✅' : '❌'}</div>
+            <div>⚙️ Config DB: ${status.fileStatus.config_exists ? '✅' : '❌'}</div>
+          </div>
+          ` : ''}
         </div>
       </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
-  // Data preview
+  // Aperçu des données
   async function previewHotelData(hotelId) {
     try {
-      const response = await fetch(`${API_URL}/data?hotel_id=${hotelId}`);
-      if (!response.ok) throw new Error('Données non disponibles');
+      const encodedHotelId = encodeURIComponent(hotelId);
+      const response = await fetch(`${API_URL}/data?hotel_id=${encodedHotelId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Données non disponibles (${response.status})`);
+      }
       
       const data = await response.json();
       const preview = document.getElementById('dataPreview');
@@ -502,43 +584,73 @@
       preview.innerHTML = html;
       
     } catch (error) {
+      console.error('Erreur aperçu données:', error);
       document.getElementById('dataPreview').innerHTML = 
         `<p class="text-red-500">❌ Impossible de charger l'aperçu: ${error.message}</p>`;
     }
   }
 
-  // Helper upload
+  // Upload de fichiers
   async function uploadFile(endpoint, fileInput, fileType){
     const hotelId = hotelSelect.value;
-    if(!hotelId) return showToast('❌ Sélectionnez d\'abord un hôtel', true);
-    if(!fileInput || !fileInput.files || fileInput.files.length === 0) return showToast('❌ Choisissez un fichier', true);
+    if(!hotelId) {
+      showToast('❌ Sélectionnez d\'abord un hôtel', true);
+      return;
+    }
+    
+    if(!fileInput || !fileInput.files || fileInput.files.length === 0) {
+      showToast('❌ Choisissez un fichier', true);
+      return;
+    }
     
     try{
       showSpinner(true);
       const fd = new FormData(); 
       fd.append('file', fileInput.files[0]);
       
-      const res = await fetch(`${API_URL}/${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, { 
+      // Encoder l'ID d'hôtel pour les URLs
+      const encodedHotelId = encodeURIComponent(hotelId);
+      const url = `${API_URL}/${endpoint}?hotel_id=${encodedHotelId}`;
+      
+      console.log(`Upload ${fileType} pour ${hotelId} (encodé: ${encodedHotelId})`);
+      
+      const res = await fetch(url, { 
         method: 'POST', 
         body: fd 
       });
       
       const body = await res.json().catch(() => null);
-      if(!res.ok) throw new Error((body && body.detail) ? body.detail : res.statusText);
+      if(!res.ok) {
+        const errorMsg = (body && body.detail) ? body.detail : `Erreur ${res.status}: ${res.statusText}`;
+        throw new Error(errorMsg);
+      }
       
-      showToast(`✅ ${fileType} uploadé avec succès pour ${hotelId}`);
+      let successMsg = `✅ ${fileType} uploadé avec succès pour ${hotelId}`;
+      
+      // Messages détaillés selon le type de fichier
+      if (body.partners_count !== undefined) {
+        successMsg += ` (${body.partners_count} partenaires)`;
+      }
+      if (body.rooms_found !== undefined) {
+        successMsg += ` (${body.rooms_found} chambres)`;
+      }
+      
+      showToast(successMsg);
       fileInput.value = '';
       
       // Mettre à jour les statuts et aperçu
       await displayHotelStatus();
       await previewHotelData(hotelId);
       
-    }catch(err){
-      showToast(`❌ Erreur upload ${fileType}: ` + err.message, true);
-    }finally{ showSpinner(false); }
+    } catch(err) {
+      console.error(`Erreur upload ${fileType}:`, err);
+      showToast(`❌ Erreur upload ${fileType}: ${err.message}`, true);
+    } finally { 
+      showSpinner(false); 
+    }
   }
 
-  // Event listeners for uploads
+  // Event listeners pour les uploads
   if(sendExcelBtn) {
     sendExcelBtn.addEventListener('click', (e) => { 
       e.preventDefault(); 
@@ -563,17 +675,18 @@
     }
   });
 
-  // Health check and auto-refresh
-  async function checkApiHealth() {
-    try {
-      const res = await fetch(`${API_URL}/health`);
-      if (res.ok) {
-        const health = await res.json();
-        console.log('API Health:', health);
-      }
-    } catch (err) {
-      console.warn('API health check failed:', err);
-    }
+  // Outils de débogage
+  if(testApiBtn) {
+    testApiBtn.addEventListener('click', testApi);
+  }
+
+  if(refreshAllBtn) {
+    refreshAllBtn.addEventListener('click', async () => {
+      showSpinner(true);
+      await fetchHotels();
+      showSpinner(false);
+      showToast('✅ Données rafraîchies');
+    });
   }
 
   // Auto-refresh périodique
@@ -581,7 +694,10 @@
 
   // Load on start
   fetchHotels();
-  checkApiHealth();
+  testApi(); // Test automatique au chargement
+
+  // Afficher la version actuelle
+  console.log('🚀 Admin Folkestone RM - Version Stable chargée');
 })();
 </script>
 </body>
