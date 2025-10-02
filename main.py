@@ -23,10 +23,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Adapte l'URL pour psycopg2
-engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=True)
+engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
 
 app = FastAPI(
-    title="Hotel RM API - v7.1 (Stable)",
+    title="Hotel RM API - v8.0 (Multi-Hotel)",
     description="API complète pour la gestion des données hôtelières et la simulation tarifaire."
 )
 
@@ -100,6 +100,12 @@ class SimulateIn(BaseModel):
     partner_name: Optional[str] = None
     apply_commission: bool = True
     promo_discount: float = 0.0
+
+class AvailabilityRequest(BaseModel):
+    hotel_id: str
+    start_date: str
+    end_date: str
+    room_type: Optional[str] = None
 
 # --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
 @app.on_event('startup')
@@ -211,7 +217,7 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
 
 @app.get("/", tags=["Status"])
 def read_root(): 
-    return {"status": "Hotel RM API v7.1 is running", "timestamp": datetime.now().isoformat()}
+    return {"status": "Hotel RM API v8.0 is running", "timestamp": datetime.now().isoformat()}
 
 @app.get("/health", tags=["Status"])
 def health_check():
@@ -228,7 +234,7 @@ def health_check():
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
         "database": db_status,
-        "version": "7.1"
+        "version": "8.0"
     }
 
 # --- Gestion des Hôtels ---
@@ -397,6 +403,66 @@ def get_config(hotel_id: str = Query(...)):
             logger.error(f"Erreur parsing config pour {hotel_id}: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Erreur de lecture de la configuration: {str(e)}")
 
+# --- NOUVEAU: Plans par partenaire ---
+@app.get("/plans/partner", tags=["Plans"])
+def get_plans_by_partner(hotel_id: str = Query(...), partner_name: str = Query(...), room_type: str = Query(...)):
+    """Récupère les plans tarifaires disponibles pour un partenaire et une chambre spécifiques"""
+    try:
+        hotel_id = decode_hotel_id(hotel_id)
+        
+        # Charger les données
+        hotel_data = get_data(hotel_id)
+        hotel_config = get_config(hotel_id)
+        
+        # Vérifier que la chambre existe
+        room_data = hotel_data.get("rooms", {}).get(room_type)
+        if not room_data:
+            raise HTTPException(status_code=404, detail=f"Chambre '{room_type}' introuvable")
+        
+        # Récupérer les informations du partenaire
+        partner_info = hotel_config.get("partners", {}).get(partner_name, {})
+        partner_codes = partner_info.get("codes", [])
+        
+        # Si pas de partenaire spécifique, retourner tous les plans
+        if not partner_name or not partner_info:
+            all_plans = list(room_data.get("plans", {}).keys())
+            return {
+                "hotel_id": hotel_id,
+                "partner_name": partner_name or "Direct",
+                "room_type": room_type,
+                "plans": all_plans,
+                "plans_count": len(all_plans)
+            }
+        
+        # Filtrer les plans selon les codes du partenaire
+        compatible_plans = []
+        all_plans = room_data.get("plans", {})
+        
+        for plan_name in all_plans.keys():
+            # Vérifier si le plan correspond aux codes du partenaire
+            if any(code.lower() in plan_name.lower() for code in partner_codes):
+                compatible_plans.append(plan_name)
+        
+        # Si aucun plan compatible, retourner tous les plans avec un avertissement
+        if not compatible_plans:
+            logger.warning(f"Aucun plan compatible trouvé pour {partner_name} dans {room_type}")
+            compatible_plans = list(all_plans.keys())
+        
+        return {
+            "hotel_id": hotel_id,
+            "partner_name": partner_name,
+            "room_type": room_type,
+            "plans": compatible_plans,
+            "plans_count": len(compatible_plans),
+            "partner_commission": partner_info.get("commission", 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur récupération plans pour {hotel_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des plans: {str(e)}")
+
 # --- Simulation ---
 @app.post("/simulate", tags=["Simulation"])
 async def simulate(request: SimulateIn):
@@ -538,6 +604,101 @@ async def simulate(request: SimulateIn):
         logger.error(f"Erreur simulation pour {request.hotel_id}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur lors de la simulation: {str(e)}")
 
+# --- NOUVEAU: Disponibilités ---
+@app.post("/availability", tags=["Availability"])
+async def get_availability(request: AvailabilityRequest):
+    """Récupère les disponibilités pour une période donnée"""
+    try:
+        hotel_id = decode_hotel_id(request.hotel_id)
+        
+        # Validation des dates
+        start_date = datetime.strptime(request.start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.end_date, '%Y-%m-%d').date()
+        
+        if start_date >= end_date:
+            raise HTTPException(status_code=400, detail="La date de début doit être avant la date de fin")
+
+        # Charger les données
+        hotel_data_full = get_data(hotel_id)
+        hotel_data = hotel_data_full.get("rooms", {})
+        
+        # Préparer les résultats
+        availability_data = []
+        current_date = start_date
+        
+        # Pour chaque jour de la période
+        while current_date < end_date:
+            date_key = current_date.strftime("%Y-%m-%d")
+            date_display = current_date.strftime("%a %d %B")
+            
+            day_availability = {
+                "date": date_key,
+                "date_display": date_display,
+                "rooms": []
+            }
+            
+            # Pour chaque type de chambre
+            for room_name, room_info in hotel_data.items():
+                # Filtrer par type de chambre si spécifié
+                if request.room_type and room_name != request.room_type:
+                    continue
+                    
+                stock = room_info.get("stock", {}).get(date_key, 0)
+                plans_count = len(room_info.get("plans", {}))
+                
+                # Calculer le prix minimum pour cette chambre à cette date
+                min_price = None
+                for plan_name, plan_data in room_info.get("plans", {}).items():
+                    price = plan_data.get(date_key)
+                    if price is not None and (min_price is None or price < min_price):
+                        min_price = price
+                
+                room_status = {
+                    "room_name": room_name,
+                    "stock": stock,
+                    "min_price": min_price,
+                    "plans_count": plans_count,
+                    "status": "Disponible" if stock > 0 else "Complet",
+                    "status_badge": "🟢" if stock > 0 else "🔴"
+                }
+                
+                day_availability["rooms"].append(room_status)
+            
+            availability_data.append(day_availability)
+            current_date += timedelta(days=1)
+
+        # Statistiques globales
+        total_nights = len(availability_data)
+        total_rooms = len(hotel_data)
+        available_rooms_per_day = [
+            len([room for room in day["rooms"] if room["stock"] > 0])
+            for day in availability_data
+        ]
+        avg_availability = sum(available_rooms_per_day) / len(available_rooms_per_day) if available_rooms_per_day else 0
+        
+        return {
+            "hotel_id": hotel_id,
+            "period": {
+                "start_date": request.start_date,
+                "end_date": request.end_date,
+                "nights": total_nights
+            },
+            "availability": availability_data,
+            "summary": {
+                "total_rooms": total_rooms,
+                "total_nights": total_nights,
+                "average_availability": round(avg_availability, 1),
+                "min_availability": min(available_rooms_per_day) if available_rooms_per_day else 0,
+                "max_availability": max(available_rooms_per_day) if available_rooms_per_day else 0
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur disponibilités pour {request.hotel_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul des disponibilités: {str(e)}")
+
 # --- Export Excel ---
 @app.post("/export/simulation", tags=["Export"])
 async def export_simulation(data: dict):
@@ -617,70 +778,6 @@ def check_files_status(hotel_id: str = Query(...)):
         "config_exists": config_exists,
         "data_file_path": data_path
     }
-
-@app.get("/test/config/{hotel_id}", tags=["Debug"])
-def test_config(hotel_id: str):
-    """Endpoint de test pour valider la configuration et les données"""
-    try:
-        hotel_id = decode_hotel_id(hotel_id)
-        config = get_config(hotel_id)
-        data = get_data(hotel_id)
-        
-        # Validation de la configuration
-        partners = config.get("partners", {})
-        valid_partners = {}
-        config_errors = []
-        
-        for partner_name, partner_config in partners.items():
-            try:
-                commission = partner_config.get("commission", 0)
-                if not isinstance(commission, (int, float)):
-                    config_errors.append(f"Commission invalide pour {partner_name}: {commission}")
-                
-                codes = partner_config.get("codes", [])
-                if not isinstance(codes, list):
-                    config_errors.append(f"Codes invalides pour {partner_name}")
-                    
-                valid_partners[partner_name] = {
-                    "commission": commission,
-                    "codes_count": len(codes),
-                    "has_discount": "defaultDiscount" in partner_config
-                }
-            except Exception as e:
-                config_errors.append(f"Erreur partenaire {partner_name}: {str(e)}")
-        
-        # Analyse des données
-        rooms_data = data.get("rooms", {})
-        rooms_analysis = {}
-        
-        for room_name, room_info in rooms_data.items():
-            plans = list(room_info.get("plans", {}).keys())
-            stock_dates = list(room_info.get("stock", {}).keys())
-            
-            rooms_analysis[room_name] = {
-                "plans_count": len(plans),
-                "stock_dates_count": len(stock_dates),
-                "sample_plans": plans[:3]
-            }
-        
-        return {
-            "hotel_id": hotel_id,
-            "config_status": {
-                "partners_count": len(valid_partners),
-                "valid_partners": valid_partners,
-                "errors": config_errors,
-                "has_display_order": "displayOrder" in config
-            },
-            "data_status": {
-                "rooms_count": len(rooms_analysis),
-                "rooms_analysis": rooms_analysis,
-                "total_dates": len(data.get("dates_processed", [])),
-                "report_date": data.get("report_generated_at")
-            }
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur test configuration: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

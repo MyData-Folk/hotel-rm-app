@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin - Folkestone RM (Stable)</title>
+  <title>Admin - Folkestone RM (Multi-Hôtels)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     :root {
@@ -107,6 +107,11 @@
       color: white;
     }
     
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+    
     .flex {
       display: flex;
       gap: 12px;
@@ -174,6 +179,7 @@
     .grid-cols-1 { grid-template-columns: 1fr; }
     .grid-cols-2 { grid-template-columns: 1fr 1fr; }
     .grid-cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
     
     .status-badge {
       display: inline-flex;
@@ -187,6 +193,7 @@
     .status-ok { background: #dcfce7; color: #166534; }
     .status-error { background: #fef2f2; color: #dc2626; }
     .status-warning { background: #fffbeb; color: #d97706; }
+    .status-info { background: #dbeafe; color: #1e40af; }
     
     .space-y-4 > * + * { margin-top: 16px; }
     .space-x-2 > * + * { margin-left: 8px; }
@@ -211,8 +218,23 @@
       border: 2px dashed #d1d5db;
     }
     
+    .hotel-card {
+      border: 2px solid #e5e7eb;
+      transition: all 0.3s ease;
+    }
+    
+    .hotel-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+    
+    .hotel-card.active {
+      border-color: var(--primary);
+      background: #f0f9ff;
+    }
+    
     @media (max-width: 768px) {
-      .grid-cols-2, .grid-cols-3 {
+      .grid-cols-2, .grid-cols-3, .grid-cols-4 {
         grid-template-columns: 1fr;
       }
       
@@ -226,8 +248,8 @@
 <body>
   <div class="container">
     <header class="card">
-      <h1>🚀 Admin Folkestone RM - Version Stable</h1>
-      <p class="small">Gestion des hôtels & chargement rapide (Excel/CSV + JSON config)</p>
+      <h1>🚀 Admin Folkestone RM - Gestion Multi-Hôtels</h1>
+      <p class="small">Gérez plusieurs hôtels et leurs configurations indépendamment</p>
     </header>
 
     <section class="card" id="hotels-card">
@@ -235,61 +257,76 @@
       <div id="hotelList" class="space-y-4" style="margin-bottom: 16px"></div>
 
       <form id="addHotelForm" class="flex">
-        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: folkestone)" required style="flex: 1">
+        <input id="newHotelId" placeholder="Nouvel ID d'hôtel (ex: folkestone, vendome)" required style="flex: 1">
         <button id="addHotelBtn" class="btn-primary">Ajouter l'hôtel</button>
       </form>
     </section>
 
     <section class="card" id="monitoring-card">
       <h2>📊 Monitoring des Hôtels</h2>
-      <div id="hotelStatus" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div id="hotelStatus" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="text-gray-500">Chargement des statuts...</div>
       </div>
     </section>
 
-    <section class="card" id="data-preview">
-      <h2>👁️ Aperçu des Données Chargées</h2>
-      <div id="dataPreview" class="text-sm">
-        <p class="text-gray-500">Sélectionnez un hôtel et chargez les données pour voir l'aperçu.</p>
-      </div>
-    </section>
-
     <section class="card" id="upload-card">
-      <h2>📤 Chargement rapide</h2>
-      <div style="margin-bottom: 16px">
-        <label class="small"><strong>Sélectionner l'hôtel pour l'upload</strong></label><br>
-        <select id="hotelSelect" style="width: 100%; margin-top: 8px; padding: 12px"></select>
+      <h2>📤 Chargement des données</h2>
+      
+      <!-- Sélection d'hôtel pour upload -->
+      <div style="margin-bottom: 20px">
+        <label class="small"><strong>🔍 Sélectionner l'hôtel pour l'upload</strong></label>
+        <div class="flex mt-2">
+          <select id="hotelSelect" style="flex: 1; padding: 12px">
+            <option value="">-- Sélectionnez un hôtel --</option>
+          </select>
+          <button id="refreshHotelsBtn" class="btn-secondary" style="margin-left: 8px">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div id="selectedHotelInfo" class="mt-2 text-sm" style="display: none;">
+          <!-- Informations sur l'hôtel sélectionné -->
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="upload-section">
+        <div class="upload-section" id="excelUploadSection">
           <h3><i class="fas fa-file-excel mr-2" style="color: #10b981"></i>1) Planning (.xlsx/.csv)</h3>
           <p class="small">Fichier Excel ou CSV contenant les tarifs et disponibilités</p>
           <input id="excelFile" type="file" accept=".xlsx,.csv" style="width: 100%; margin: 12px 0"><br>
-          <button id="sendExcelBtn" class="btn-primary" style="width: 100%">
+          <button id="sendExcelBtn" class="btn-primary" style="width: 100%" disabled>
             <i class="fas fa-upload mr-2"></i>Envoyer planning
           </button>
         </div>
 
-        <div class="upload-section">
+        <div class="upload-section" id="configUploadSection">
           <h3><i class="fas fa-file-code mr-2" style="color: #3b82f6"></i>2) Configuration (.json)</h3>
           <p class="small">Fichier JSON de configuration des partenaires et plans tarifaires</p>
           <input id="configFile" type="file" accept=".json" style="width: 100%; margin: 12px 0"><br>
-          <button id="sendConfigBtn" class="btn-primary" style="width: 100%">
+          <button id="sendConfigBtn" class="btn-primary" style="width: 100%" disabled>
             <i class="fas fa-upload mr-2"></i>Envoyer config
           </button>
         </div>
       </div>
     </section>
 
+    <section class="card" id="data-preview">
+      <h2>👁️ Aperçu des Données</h2>
+      <div id="dataPreview" class="text-sm">
+        <p class="text-gray-500">Sélectionnez un hôtel pour voir l'aperçu de ses données.</p>
+      </div>
+    </section>
+
     <section class="card" id="debug-card">
       <h2>🐛 Outils de Débogage</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button id="testApiBtn" class="btn-secondary">
           <i class="fas fa-heartbeat mr-2"></i>Tester l'API
         </button>
         <button id="refreshAllBtn" class="btn-secondary">
           <i class="fas fa-sync-alt mr-2"></i>Rafraîchir tout
+        </button>
+        <button id="clearSelectionBtn" class="btn-secondary">
+          <i class="fas fa-times mr-2"></i>Effacer sélection
         </button>
       </div>
       <div id="debugOutput" class="mt-4 text-sm" style="display: none;">
@@ -319,7 +356,13 @@
   const toast = document.getElementById('toast');
   const testApiBtn = document.getElementById('testApiBtn');
   const refreshAllBtn = document.getElementById('refreshAllBtn');
+  const refreshHotelsBtn = document.getElementById('refreshHotelsBtn');
+  const clearSelectionBtn = document.getElementById('clearSelectionBtn');
   const debugOutput = document.getElementById('debugOutput');
+  const selectedHotelInfo = document.getElementById('selectedHotelInfo');
+  const dataPreview = document.getElementById('dataPreview');
+
+  let currentSelectedHotel = null;
 
   const showSpinner = (on = true) => spinner.style.display = on ? 'block' : 'none';
   
@@ -373,20 +416,23 @@
 
   function renderHotels(hotels){
     hotelListEl.innerHTML = '';
-    hotelSelect.innerHTML = '';
+    hotelSelect.innerHTML = '<option value="">-- Sélectionnez un hôtel --</option>';
     
     if(!hotels || hotels.length === 0){
       hotelListEl.innerHTML = '<div class="small">Aucun hôtel configuré. Ajoutez-en un pour commencer.</div>';
-      hotelSelect.innerHTML = '<option value="">-- Aucun hôtel --</option>';
       return;
     }
     
     hotels.forEach(id => {
+      // Liste principale
       const div = document.createElement('div');
       div.className = 'list-item';
       div.innerHTML = `
         <div style="font-weight: 600; font-size: 16px">🏨 ${id}</div>
         <div style="display: flex; gap: 8px; align-items: center">
+          <button data-id="${id}" class="btn-secondary select-hotel-btn" title="Sélectionner">
+            <i class="fas fa-check mr-1"></i>Sélectionner
+          </button>
           <button data-id="${id}" class="btn-danger delete-btn" title="Supprimer">
             <i class="fas fa-trash mr-1"></i>Supprimer
           </button>
@@ -394,6 +440,7 @@
       `;
       hotelListEl.appendChild(div);
 
+      // Select pour upload
       const opt = document.createElement('option');
       opt.value = id; 
       opt.textContent = id;
@@ -401,8 +448,77 @@
     });
   }
 
+  // Sélectionner un hôtel
+  function selectHotel(hotelId) {
+    currentSelectedHotel = hotelId;
+    
+    // Mettre à jour l'interface
+    hotelSelect.value = hotelId;
+    updateSelectedHotelInfo(hotelId);
+    updateUploadButtons();
+    
+    // Charger l'aperçu des données
+    previewHotelData(hotelId);
+    
+    showToast(`✅ Hôtel '${hotelId}' sélectionné`);
+  }
+
+  // Mettre à jour les informations de l'hôtel sélectionné
+  async function updateSelectedHotelInfo(hotelId) {
+    if (!hotelId) {
+      selectedHotelInfo.style.display = 'none';
+      return;
+    }
+
+    try {
+      const status = await checkFileStatus(hotelId);
+      selectedHotelInfo.innerHTML = `
+        <div class="flex items-center gap-4">
+          <span class="font-semibold">🏨 ${hotelId}</span>
+          <span class="status-badge ${status.data_file_exists ? 'status-ok' : 'status-warning'}">
+            ${status.data_file_exists ? '✅ Données' : '⚠️ Données'}
+          </span>
+          <span class="status-badge ${status.config_exists ? 'status-ok' : 'status-warning'}">
+            ${status.config_exists ? '✅ Config' : '⚠️ Config'}
+          </span>
+        </div>
+      `;
+      selectedHotelInfo.style.display = 'block';
+    } catch (error) {
+      selectedHotelInfo.innerHTML = `
+        <div class="flex items-center gap-4">
+          <span class="font-semibold">🏨 ${hotelId}</span>
+          <span class="status-badge status-error">❌ Erreur chargement</span>
+        </div>
+      `;
+      selectedHotelInfo.style.display = 'block';
+    }
+  }
+
+  // Mettre à jour l'état des boutons d'upload
+  function updateUploadButtons() {
+    const hasSelection = currentSelectedHotel !== null;
+    sendExcelBtn.disabled = !hasSelection;
+    sendConfigBtn.disabled = !hasSelection;
+    
+    if (hasSelection) {
+      sendExcelBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>Envoyer planning pour ${currentSelectedHotel}`;
+      sendConfigBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>Envoyer config pour ${currentSelectedHotel}`;
+    } else {
+      sendExcelBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>Envoyer planning`;
+      sendConfigBtn.innerHTML = `<i class="fas fa-upload mr-2"></i>Envoyer config`;
+    }
+  }
+
   // Suppression d'hôtel
   hotelListEl.addEventListener('click', async (e) => {
+    if (e.target.closest('.select-hotel-btn')) {
+      const btn = e.target.closest('.select-hotel-btn');
+      const id = btn.dataset.id;
+      selectHotel(id);
+      return;
+    }
+    
     if(!e.target.closest('.delete-btn')) return;
     const btn = e.target.closest('.delete-btn');
     const id = btn.dataset.id;
@@ -420,8 +536,14 @@
       }
       
       showToast(`✅ Hôtel '${id}' supprimé avec succès.`);
+      
+      // Si l'hôtel supprimé était sélectionné, effacer la sélection
+      if (currentSelectedHotel === id) {
+        clearSelection();
+      }
+      
       await fetchHotels();
-    }catch(err){
+    }catch(err) {
       console.error('Erreur suppression:', err);
       showToast(`❌ Erreur suppression: ${err.message}`, true);
     }finally{ 
@@ -454,6 +576,9 @@
         showToast(`✅ Hôtel '${id}' ajouté avec succès.`);
         newHotelId.value = '';
         await fetchHotels();
+        
+        // Sélectionner automatiquement le nouvel hôtel
+        selectHotel(id);
       }catch(err){
         console.error('Erreur ajout hôtel:', err);
         showToast('❌ Erreur ajout: ' + err.message, true);
@@ -495,31 +620,35 @@
         fetch(`${API_URL}/config?hotel_id=${encodeURIComponent(hotelId)}`)
       ]);
       
+      const hasData = dataRes.status === 'fulfilled' && dataRes.value.ok;
+      const hasConfig = configRes.status === 'fulfilled' && configRes.value.ok;
+      
       return {
         hotelId,
-        data: dataRes.status === 'fulfilled' && dataRes.value.ok,
-        config: configRes.status === 'fulfilled' && configRes.value.ok,
-        fileStatus: fileStatus
+        hasData,
+        hasConfig,
+        fileStatus,
+        isSelected: hotelId === currentSelectedHotel
       };
     }));
     
     document.getElementById('hotelStatus').innerHTML = statuses.map(status => {
-      const hasData = status.data;
-      const hasConfig = status.config;
-      const statusClass = hasData && hasConfig ? 'bg-green-50 border-green-200' : 
-                         hasData || hasConfig ? 'bg-yellow-50 border-yellow-200' : 
-                         'bg-red-50 border-red-200';
+      const statusClass = status.isSelected ? 'hotel-card active' : 'hotel-card';
+      const cardStyle = status.isSelected ? 'border-color: var(--primary); background: #f0f9ff;' : '';
       
       return `
-      <div class="border rounded-lg p-4 ${statusClass}">
-        <div class="font-semibold text-lg mb-2">🏨 ${status.hotelId}</div>
+      <div class="border rounded-lg p-4 ${statusClass}" style="${cardStyle}">
+        <div class="font-semibold text-lg mb-2 flex items-center justify-between">
+          <span>🏨 ${status.hotelId}</span>
+          ${status.isSelected ? '<span class="status-badge status-info">Sélectionné</span>' : ''}
+        </div>
         <div class="space-y-2 text-sm">
           <div class="flex items-center gap-2">
-            <span class="status-badge ${hasData ? 'status-ok' : 'status-error'}">
-              ${hasData ? '✅' : '❌'} Données
+            <span class="status-badge ${status.hasData ? 'status-ok' : 'status-warning'}">
+              ${status.hasData ? '✅' : '⚠️'} Données
             </span>
-            <span class="status-badge ${hasConfig ? 'status-ok' : 'status-error'}">
-              ${hasConfig ? '✅' : '❌'} Config
+            <span class="status-badge ${status.hasConfig ? 'status-ok' : 'status-warning'}">
+              ${status.hasConfig ? '✅' : '⚠️'} Config
             </span>
           </div>
           ${status.fileStatus ? `
@@ -528,6 +657,11 @@
             <div>⚙️ Config DB: ${status.fileStatus.config_exists ? '✅' : '❌'}</div>
           </div>
           ` : ''}
+          <div class="flex gap-2 mt-2">
+            <button onclick="selectHotel('${status.hotelId}')" class="text-xs btn-secondary" style="padding: 4px 8px;">
+              <i class="fas fa-check mr-1"></i>Sélectionner
+            </button>
+          </div>
         </div>
       </div>
       `;
@@ -545,7 +679,6 @@
       }
       
       const data = await response.json();
-      const preview = document.getElementById('dataPreview');
       
       let html = `<div class="grid grid-cols-1 md:grid-cols-3 gap-4">`;
       
@@ -581,19 +714,18 @@
       }
       
       html += `</div>`;
-      preview.innerHTML = html;
+      dataPreview.innerHTML = html;
       
     } catch (error) {
       console.error('Erreur aperçu données:', error);
-      document.getElementById('dataPreview').innerHTML = 
+      dataPreview.innerHTML = 
         `<p class="text-red-500">❌ Impossible de charger l'aperçu: ${error.message}</p>`;
     }
   }
 
   // Upload de fichiers
   async function uploadFile(endpoint, fileInput, fileType){
-    const hotelId = hotelSelect.value;
-    if(!hotelId) {
+    if (!currentSelectedHotel) {
       showToast('❌ Sélectionnez d\'abord un hôtel', true);
       return;
     }
@@ -608,11 +740,10 @@
       const fd = new FormData(); 
       fd.append('file', fileInput.files[0]);
       
-      // Encoder l'ID d'hôtel pour les URLs
-      const encodedHotelId = encodeURIComponent(hotelId);
+      const encodedHotelId = encodeURIComponent(currentSelectedHotel);
       const url = `${API_URL}/${endpoint}?hotel_id=${encodedHotelId}`;
       
-      console.log(`Upload ${fileType} pour ${hotelId} (encodé: ${encodedHotelId})`);
+      console.log(`Upload ${fileType} pour ${currentSelectedHotel}`);
       
       const res = await fetch(url, { 
         method: 'POST', 
@@ -625,7 +756,7 @@
         throw new Error(errorMsg);
       }
       
-      let successMsg = `✅ ${fileType} uploadé avec succès pour ${hotelId}`;
+      let successMsg = `✅ ${fileType} uploadé avec succès pour ${currentSelectedHotel}`;
       
       // Messages détaillés selon le type de fichier
       if (body.partners_count !== undefined) {
@@ -640,7 +771,8 @@
       
       // Mettre à jour les statuts et aperçu
       await displayHotelStatus();
-      await previewHotelData(hotelId);
+      await updateSelectedHotelInfo(currentSelectedHotel);
+      await previewHotelData(currentSelectedHotel);
       
     } catch(err) {
       console.error(`Erreur upload ${fileType}:`, err);
@@ -648,6 +780,16 @@
     } finally { 
       showSpinner(false); 
     }
+  }
+
+  // Effacer la sélection
+  function clearSelection() {
+    currentSelectedHotel = null;
+    hotelSelect.value = '';
+    selectedHotelInfo.style.display = 'none';
+    updateUploadButtons();
+    dataPreview.innerHTML = '<p class="text-gray-500">Sélectionnez un hôtel pour voir l\'aperçu de ses données.</p>';
+    showToast('✅ Sélection effacée');
   }
 
   // Event listeners pour les uploads
@@ -665,13 +807,12 @@
     });
   }
 
-  // Mettre à jour l'aperçu quand un hôtel est sélectionné
+  // Sélection via le select
   hotelSelect.addEventListener('change', function() {
     if (this.value) {
-      previewHotelData(this.value);
+      selectHotel(this.value);
     } else {
-      document.getElementById('dataPreview').innerHTML = 
-        '<p class="text-gray-500">Sélectionnez un hôtel et chargez les données pour voir l\'aperçu.</p>';
+      clearSelection();
     }
   });
 
@@ -689,6 +830,22 @@
     });
   }
 
+  if(refreshHotelsBtn) {
+    refreshHotelsBtn.addEventListener('click', async () => {
+      showSpinner(true);
+      await fetchHotels();
+      showSpinner(false);
+      showToast('✅ Liste des hôtels rafraîchie');
+    });
+  }
+
+  if(clearSelectionBtn) {
+    clearSelectionBtn.addEventListener('click', clearSelection);
+  }
+
+  // Exposer selectHotel globalement pour les boutons
+  window.selectHotel = selectHotel;
+
   // Auto-refresh périodique
   setInterval(fetchHotels, 30000);
 
@@ -697,7 +854,7 @@
   testApi(); // Test automatique au chargement
 
   // Afficher la version actuelle
-  console.log('🚀 Admin Folkestone RM - Version Stable chargée');
+  console.log('🚀 Admin Folkestone RM - Gestion Multi-Hôtels chargée');
 })();
 </script>
 </body>
