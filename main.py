@@ -30,33 +30,65 @@ app = FastAPI(
     description="API complète pour la gestion des données hôtelières et la simulation tarifaire."
 )
 
-# --- 2. MIDDLEWARE CORS ---
+# --- 2. MIDDLEWARE CORS CORRIGÉ ---
 origins = [
     "https://folkestone.e-hotelmanager.com",
     "https://admin-folkestone.e-hotelmanager.com",
     "http://127.0.0.1:5500",
     "http://localhost:3000",
-    "http://localhost:8000"
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "https://localhost:3000",
+    # Ajout des patterns de sous-domaines
+    "https://*.e-hotelmanager.com",
+    "http://*.e-hotelmanager.com"
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 # Middleware de gestion d'erreurs global
 @app.middleware("http")
 async def catch_exceptions_middleware(request, call_next):
     try:
-        return await call_next(request)
+        response = await call_next(request)
+        
+        # Ajout des headers CORS pour toutes les réponses
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
     except Exception as e:
         logger.error(f"Erreur non gérée: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"detail": "Erreur interne du serveur"}
+            content={"detail": "Erreur interne du serveur"},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "*"
+            }
         )
+
+# Gestion explicite des requêtes OPTIONS pour CORS preflight
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request, rest_of_path: str):
+    return JSONResponse(
+        content={"status": "OK"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
 
 # --- 3. FONCTIONS UTILITAIRES ---
 def decode_hotel_id(hotel_id: str) -> str:
@@ -221,7 +253,11 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
 
 @app.get("/", tags=["Status"])
 def read_root(): 
-    return {"status": "Hotel RM API v8.0 is running", "timestamp": datetime.now().isoformat()}
+    return {
+        "status": "Hotel RM API v8.0 is running", 
+        "timestamp": datetime.now().isoformat(),
+        "cors_enabled": True
+    }
 
 @app.get("/health", tags=["Status"])
 def health_check():
@@ -238,7 +274,8 @@ def health_check():
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
         "database": db_status,
-        "version": "8.0"
+        "version": "8.0",
+        "cors": "enabled"
     }
 
 # --- Gestion des Hôtels ---
