@@ -4,796 +4,619 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord Hôtelier - Simulateur Avancé</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #334155; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        /* Header */
+        .gradient-header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .hotel-selector select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.5rem 1rem; border-radius: 6px; width: 200px; }
+        .hotel-selector select option { color: #1e293b; }
+        
+        /* Cards */
+        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+        .card-body { padding: 1.5rem; }
+        
+        /* Forms */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; margin-bottom: 0.5rem; color: #475569; font-size: 0.875rem; }
+        .form-control { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem; transition: border-color 0.2s; }
+        .form-control:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        
+        /* Checkbox */
+        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+        .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; }
+        
+        /* Buttons */
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.875rem; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn-secondary:hover { background: #475569; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        
+        /* Results */
+        .results-section { margin-top: 2rem; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .summary-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .summary-value { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 0.5rem 0; }
+        .summary-label { font-size: 0.875rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        /* Tables */
+        .table-container { overflow-x: auto; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        .data-table th { background: #f1f5f9; padding: 0.75rem; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; }
+        .data-table td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+        .data-table tr:hover { background: #f8fafc; }
+        
+        /* Status */
+        .status-available { color: #059669; font-weight: 600; }
+        .status-complet { color: #dc2626; font-weight: 600; }
+        
+        /* Loading */
+        .loading { text-align: center; padding: 2rem; color: #64748b; }
+        .spinner { border: 2px solid #f1f5f9; border-top: 2px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Tabs */
+        .tabs { display: flex; border-bottom: 1px solid #e2e8f0; margin-bottom: 1.5rem; }
+        .tab { padding: 0.75rem 1.5rem; background: none; border: none; cursor: pointer; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; }
+        .tab.active { color: #3b82f6; border-bottom-color: #3b82f6; }
+        
+        /* Source */
+        .source-info { background: #f1f5f9; padding: 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.875rem; color: #475569; }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .header-content { flex-direction: column; gap: 1rem; align-items: flex-start; }
+        }
+    </style>
 </head>
 <body>
-    <header class="gradient-header text-white shadow-lg">
-        <div class="container mx-auto px-4 py-8 text-center">
-            <h1 class="text-3xl md:text-4xl font-bold">🏨 Tableau de Bord Hôtelier</h1>
-            <p id="header-subtitle" class="mt-2 text-lg text-blue-100">Simulez une réservation ou vérifiez vos disponibilités</p>
-        </div>
-    </header>
-
-    <main class="container mx-auto px-4 py-8 max-w-7xl">
-        <!-- Panneau de contrôle -->
-        <div class="card p-6 md:p-8 mb-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="flex-grow w-full md:w-auto">
-                    <label for="hotelId" class="block text-sm font-medium text-gray-700 mb-2">Charger les données pour l'hôtel :</label>
-                    <div class="flex">
-                        <select id="hotelId" class="form-input rounded-r-none"></select>
-                        <button id="refreshDataBtn" class="btn btn-secondary rounded-l-none" title="Charger/Rafraîchir les données">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
-                    </div>
+    <div class="gradient-header">
+        <div class="container">
+            <div class="header-content">
+                <div>
+                    <h1>Simulateur Tarifaire Hôtelier</h1>
+                    <p>Calculez vos revenus nets en temps réel</p>
                 </div>
-                <div class="flex items-center gap-4 mt-4 md:mt-0">
-                    <a href="https://admin-folkestone.e-hotelmanager.com" class="btn btn-secondary">
-                        <i class="fas fa-cog mr-2"></i>Paramètres
-                    </a>
+                <div class="hotel-selector">
+                    <select id="hotelSelect">
+                        <option value="">Chargement des hôtels...</option>
+                    </select>
                 </div>
             </div>
-            <p id="statusMessage" class="text-sm text-gray-600 mt-4">Veuillez sélectionner un hôtel et cliquer sur rafraîchir.</p>
         </div>
+    </div>
 
-        <!-- Outils avec système d'onglets -->
-        <div id="main-tools" class="card p-0 opacity-50 pointer-events-none transition-all duration-300">
-            <div class="flex border-b border-gray-200">
-                <button class="tab-link tab-active" data-tab="simulator">
-                    <i class="fas fa-calculator mr-2"></i>Simulateur de Réservation
-                </button>
-                <button class="tab-link" data-tab="availability">
-                    <i class="fas fa-calendar-check mr-2"></i>Vérificateur de Disponibilité
-                </button>
+    <div class="container">
+        <!-- Section Configuration -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Configuration de la Simulation</h2>
             </div>
-            
-            <!-- Onglet Simulateur -->
-            <div id="tab-content-simulator" class="p-6 md:p-8">
-                <form id="simulationForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                    <div>
-                        <label for="simPartner" class="block text-sm font-medium mb-1">Partenaire</label>
-                        <select id="simPartner" class="form-input">
-                            <option value="">En Direct (0%)</option>
+            <div class="card-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="roomSelect">Type de Chambre</label>
+                        <select id="roomSelect" class="form-control">
+                            <option value="">Sélectionnez une chambre</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="simRoomType" class="block text-sm font-medium mb-1">Type de chambre</label>
-                        <select id="simRoomType" class="form-input"></select>
+                    
+                    <div class="form-group">
+                        <label for="planSelect">Plan Tarifaire</label>
+                        <select id="planSelect" class="form-control">
+                            <option value="">Sélectionnez un plan</option>
+                        </select>
                     </div>
-                    <div>
-                        <label for="simRatePlan" class="block text-sm font-medium mb-1">Plan tarifaire</label>
-                        <select id="simRatePlan" class="form-input"></select>
+                    
+                    <div class="form-group">
+                        <label for="partnerSelect">Partenaire</label>
+                        <select id="partnerSelect" class="form-control">
+                            <option value="">Direct (sans partenaire)</option>
+                        </select>
                     </div>
-                    <div>
-                        <label for="simStartDate" class="block text-sm font-medium mb-1">Date d'arrivée</label>
-                        <input type="date" id="simStartDate" class="form-input">
+                    
+                    <div class="form-group">
+                        <label for="dateRange">Période</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="date" id="startDate" class="form-control" style="flex: 1;">
+                            <input type="date" id="endDate" class="form-control" style="flex: 1;">
+                        </div>
                     </div>
-                    <div>
-                        <label for="simEndDate" class="block text-sm font-medium mb-1">Date de départ</label>
-                        <input type="date" id="simEndDate" class="form-input">
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Options de Calcul</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="applyCommission" checked>
+                            <label for="applyCommission">Appliquer la commission partenaire</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="applyPartnerDiscount" checked>
+                            <label for="applyPartnerDiscount">Appliquer la remise partenaire</label>
+                        </div>
                     </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="btn btn-gradient-primary w-full">
-                            <i class="fas fa-play-circle mr-2"></i>Simuler la Réservation
+                    
+                    <div class="form-group">
+                        <label for="promoDiscount">Remise Promotionnelle (%)</label>
+                        <input type="number" id="promoDiscount" class="form-control" min="0" max="100" step="0.1" value="0">
+                    </div>
+                    
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <button id="simulateBtn" class="btn btn-primary" style="min-width: 120px;">
+                            Lancer la Simulation
                         </button>
-                    </div>
-                </form>
-
-                <!-- Contrôles de remise -->
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-6 p-4 bg-gray-50 rounded-lg">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="applyCommission" checked class="rounded border-gray-300">
-                        <label for="applyCommission" class="text-sm font-medium" id="commissionLabel">Appliquer commission (0%)</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="promoDiscount" class="text-sm font-medium">Remise promotionnelle (%):</label>
-                        <input type="number" id="promoDiscount" min="0" max="100" value="0" 
-                               class="w-20 px-2 py-1 border border-gray-300 rounded">
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Onglet Disponibilités -->
-            <div id="tab-content-availability" class="p-6 md:p-8 hidden">
-                <form id="availabilityForm" class="grid grid-cols-1 md:grid-cols-4 gap-6 items-end mb-6">
-                    <div>
-                        <label for="availStartDate" class="block text-sm font-medium mb-1">Date d'arrivée</label>
-                        <input type="date" id="availStartDate" class="form-input">
+        <!-- Section Résultats -->
+        <div id="resultsSection" class="results-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Résultats de la Simulation</h2>
+                </div>
+                <div class="card-body">
+                    <div id="simulationInfo" class="source-info" style="display: none;"></div>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">Sous-Total Brut</div>
+                            <div class="summary-value" id="subtotalBrut">0 €</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Remises et Promos</div>
+                            <div class="summary-value" id="totalDiscount">0 €</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Commission</div>
+                            <div class="summary-value" id="totalCommission">0 €</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Total Net</div>
+                            <div class="summary-value" id="totalNet" style="color: #059669;">0 €</div>
+                        </div>
                     </div>
-                    <div>
-                        <label for="availEndDate" class="block text-sm font-medium mb-1">Date de départ</label>
-                        <input type="date" id="availEndDate" class="form-input">
-                    </div>
-                    <div>
-                        <label for="availRoomType" class="block text-sm font-medium mb-1">Type de chambre (optionnel)</label>
-                        <select id="availRoomType" class="form-input">
-                            <option value="">Toutes les chambres</option>
-                        </select>
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="btn btn-gradient-primary w-full">
-                            <i class="fas fa-search mr-2"></i>Vérifier Disponibilités
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Résultats Disponibilités -->
-                <div id="availabilityResults" class="hidden">
-                    <div class="border-b pb-4 mb-6">
-                        <h2 class="text-xl font-bold text-gray-800">Disponibilités</h2>
-                        <p class="text-sm text-gray-600 mt-1" id="availPeriodInfo">Période: -</p>
-                    </div>
-
-                    <!-- Résumé des disponibilités -->
-                    <div id="availabilitySummary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-                        <!-- Chargé dynamiquement -->
-                    </div>
-
-                    <!-- Tableau des disponibilités -->
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm">
-                            <thead class="bg-gray-50">
+                    
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
                                 <tr>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Chambres Disponibles</th>
-                                    <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Min (€)</th>
-                                    <th class="px-4 py-3 text-center font-semibold text-gray-700">Statut</th>
+                                    <th>Date</th>
+                                    <th>Prix Brut</th>
+                                    <th>Prix Après Remise</th>
+                                    <th>Commission</th>
+                                    <th>Prix Net</th>
+                                    <th>Stock</th>
+                                    <th>Disponibilité</th>
                                 </tr>
                             </thead>
-                            <tbody id="availabilityTableBody" class="divide-y divide-gray-200">
-                                <!-- Chargé dynamiquement -->
+                            <tbody id="resultsTable">
+                                <!-- Les résultats seront insérés ici -->
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Détail par chambre -->
-                    <div id="roomDetails" class="mt-8 hidden">
-                        <h3 class="text-lg font-semibold mb-4">Détail par chambre</h3>
-                        <div id="roomDetailsContent" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <!-- Chargé dynamiquement -->
-                        </div>
+                    
+                    <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                        <button id="exportBtn" class="btn btn-secondary">Exporter en Excel</button>
+                        <button id="availabilityBtn" class="btn btn-success">Voir les Disponibilités</button>
                     </div>
-                </div>
-
-                <!-- État vide -->
-                <div id="availabilityEmpty" class="text-center py-12">
-                    <i class="fas fa-calendar-alt text-4xl text-gray-400 mb-4"></i>
-                    <h3 class="text-xl font-semibold text-gray-600 mb-2">Vérifiez les disponibilités</h3>
-                    <p class="text-gray-500">Sélectionnez une période pour voir les disponibilités des chambres.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Résultats de simulation -->
-        <div id="resultsContainer" class="card mt-8 hidden animate-fade-in">
-            <div class="border-b pb-4 mb-6">
-                <h2 class="text-xl font-bold text-gray-800">Simulation : <span id="simRoomName">-</span></h2>
-                <p class="text-sm text-gray-600 mt-1" id="simSourceInfo">Source: -</p>
-            </div>
-
-            <!-- Résumé de la simulation -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-blue-50 rounded-lg">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Partenaire</label>
-                    <span id="simPartnerName" class="font-semibold">-</span>
+        <!-- Section Disponibilités -->
+        <div id="availabilitySection" class="results-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tableau des Disponibilités</h2>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Date d'arrivée</label>
-                    <span id="simStartDisplay" class="font-semibold">-</span>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Date de départ</label>
-                    <span id="simEndDisplay" class="font-semibold">-</span>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Nuits</label>
-                    <span id="simNights" class="font-semibold">-</span>
-                </div>
-            </div>
-
-            <!-- Tableau des résultats -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Brut (€)</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Net (€)</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Stock</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Disponibilité</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTableBody" class="divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-
-            <!-- Résumé financier -->
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold text-gray-800 mb-3">Détail des calculs</h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span>Sous-Total Brut:</span>
-                            <span id="subtotalBrut" class="font-semibold">- €</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Remise Promotion:</span>
-                            <span id="totalPromoDiscount" class="font-semibold text-green-600">- €</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Remise Partenaire:</span>
-                            <span id="totalPartnerDiscount" class="font-semibold text-green-600">- €</span>
-                        </div>
-                        <div class="flex justify-between border-t border-gray-200 pt-2">
-                            <span>Total Remises:</span>
-                            <span id="totalDiscount" class="font-semibold text-green-600">- €</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Total Commission:</span>
-                            <span id="totalCommission" class="font-semibold text-red-600">- €</span>
-                        </div>
+                <div class="card-body">
+                    <div id="availabilityTableContainer">
+                        <!-- Le tableau des disponibilités sera généré ici -->
                     </div>
                 </div>
-                <div class="border-l pl-6">
-                    <h3 class="font-semibold text-gray-800 mb-3">Total Net Final</h3>
-                    <div id="totalNetFinal" class="text-2xl font-bold text-indigo-700">- €</div>
-                    <div class="text-sm text-gray-500 mt-2" id="averagePerNight">- € par nuit en moyenne</div>
-                </div>
-            </div>
-
-            <!-- Bouton d'export -->
-            <div class="mt-6 flex justify-end gap-4">
-                <button id="newSimulationBtn" class="btn btn-secondary">
-                    <i class="fas fa-plus mr-2"></i>Nouvelle Simulation
-                </button>
-                <button id="exportBtn" class="btn btn-gradient-primary">
-                    <i class="fas fa-download mr-2"></i>Exporter en Excel
-                </button>
             </div>
         </div>
-    </main>
-  
-    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="spinner"></div>
     </div>
-    
-    <div id="toast" class="toast"></div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-        let hotelData = {}, hotelConfig = {}, currentSimulationData = null;
-
-        // Éléments DOM
-        const hotelIdSelect = document.getElementById('hotelId');
-        const refreshDataBtn = document.getElementById('refreshDataBtn');
-        const statusMessage = document.getElementById('statusMessage');
-        const mainTools = document.getElementById('main-tools');
-        const simPartnerSelect = document.getElementById('simPartner');
-        const simRoomTypeSelect = document.getElementById('simRoomType');
-        const simRatePlanSelect = document.getElementById('simRatePlan');
-        const simulationForm = document.getElementById('simulationForm');
-        const resultsContainer = document.getElementById('resultsContainer');
-        const resultsTableBody = document.getElementById('resultsTableBody');
-        const spinner = document.getElementById('spinner-overlay');
-        const toastContainer = document.getElementById('toast');
-        const applyCommissionCheckbox = document.getElementById('applyCommission');
-        const promoDiscountInput = document.getElementById('promoDiscount');
-        const exportBtn = document.getElementById('exportBtn');
-        const newSimulationBtn = document.getElementById('newSimulationBtn');
-
-        // Éléments Disponibilités
-        const availabilityForm = document.getElementById('availabilityForm');
-        const availStartDate = document.getElementById('availStartDate');
-        const availEndDate = document.getElementById('availEndDate');
-        const availRoomType = document.getElementById('availRoomType');
-        const availabilityResults = document.getElementById('availabilityResults');
-        const availabilityEmpty = document.getElementById('availabilityEmpty');
-        const availabilitySummary = document.getElementById('availabilitySummary');
-        const availabilityTableBody = document.getElementById('availabilityTableBody');
-        const roomDetails = document.getElementById('roomDetails');
-        const roomDetailsContent = document.getElementById('roomDetailsContent');
-        const availPeriodInfo = document.getElementById('availPeriodInfo');
-
-        // Utilitaires
-        const showSpinner = () => spinner.classList.remove('hidden');
-        const hideSpinner = () => spinner.classList.add('hidden');
+        // Configuration
+        const API_BASE = 'https://folkestone.e-hotelmanager.com';
         
-        const showToast = (message, isError = false) => {
-            toastContainer.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
-            toastContainer.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} mr-2"></i> ${message}`;
-            setTimeout(() => toastContainer.classList.remove('show'), 4000);
+        // Éléments DOM
+        const elements = {
+            hotelSelect: document.getElementById('hotelSelect'),
+            roomSelect: document.getElementById('roomSelect'),
+            planSelect: document.getElementById('planSelect'),
+            partnerSelect: document.getElementById('partnerSelect'),
+            startDate: document.getElementById('startDate'),
+            endDate: document.getElementById('endDate'),
+            applyCommission: document.getElementById('applyCommission'),
+            applyPartnerDiscount: document.getElementById('applyPartnerDiscount'),
+            promoDiscount: document.getElementById('promoDiscount'),
+            simulateBtn: document.getElementById('simulateBtn'),
+            resultsSection: document.getElementById('resultsSection'),
+            availabilitySection: document.getElementById('availabilitySection'),
+            simulationInfo: document.getElementById('simulationInfo'),
+            subtotalBrut: document.getElementById('subtotalBrut'),
+            totalDiscount: document.getElementById('totalDiscount'),
+            totalCommission: document.getElementById('totalCommission'),
+            totalNet: document.getElementById('totalNet'),
+            resultsTable: document.getElementById('resultsTable'),
+            exportBtn: document.getElementById('exportBtn'),
+            availabilityBtn: document.getElementById('availabilityBtn'),
+            availabilityTableContainer: document.getElementById('availabilityTableContainer')
         };
 
-        const formatCurrency = (val) => val != null ? `${val.toFixed(2).replace('.', ',')} €` : '–';
-        const formatDateDisplay = (dateString) => new Date(dateString).toLocaleDateString('fr-FR');
+        // Données de l'application
+        let appState = {
+            currentHotel: null,
+            hotelData: null,
+            hotelConfig: null,
+            simulationResults: null
+        };
 
-        // Chargement des hôtels
-        const fetchHotels = async () => {
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDates();
+            loadHotels();
+            setupEventListeners();
+        });
+
+        function initializeDates() {
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            elements.startDate.value = today.toISOString().split('T')[0];
+            elements.endDate.value = tomorrow.toISOString().split('T')[0];
+        }
+
+        function setupEventListeners() {
+            elements.hotelSelect.addEventListener('change', onHotelChange);
+            elements.roomSelect.addEventListener('change', onRoomChange);
+            elements.partnerSelect.addEventListener('change', onPartnerChange);
+            elements.simulateBtn.addEventListener('click', runSimulation);
+            elements.exportBtn.addEventListener('click', exportToExcel);
+            elements.availabilityBtn.addEventListener('click', showAvailability);
+        }
+
+        async function loadHotels() {
             try {
-                const response = await fetch(`${API_URL}/hotels`);
-                if (!response.ok) throw new Error('Impossible de charger la liste des hôtels.');
+                const response = await fetch(`${API_BASE}/hotels`);
                 const hotels = await response.json();
                 
-                hotelIdSelect.innerHTML = '<option value="">-- Sélectionner un hôtel --</option>';
-                hotels.forEach(id => {
-                    hotelIdSelect.innerHTML += `<option value="${id}">${id}</option>`;
+                elements.hotelSelect.innerHTML = '<option value="">Sélectionnez un hôtel</option>';
+                hotels.forEach(hotel => {
+                    const option = document.createElement('option');
+                    option.value = hotel;
+                    option.textContent = hotel;
+                    elements.hotelSelect.appendChild(option);
                 });
-            } catch(error) { 
-                showToast(error.message, true); 
+            } catch (error) {
+                console.error('Erreur chargement hôtels:', error);
+                showError('Impossible de charger la liste des hôtels');
             }
-        };
+        }
 
-        // Chargement des données
-        const loadData = async () => {
-            const hotelId = hotelIdSelect.value;
-            if (!hotelId) return showToast("Veuillez sélectionner un hôtel.", true);
+        async function onHotelChange() {
+            const hotelId = elements.hotelSelect.value;
+            if (!hotelId) return;
             
-            showSpinner();
-            statusMessage.textContent = 'Chargement des données...';
-            resultsContainer.classList.add('hidden');
-            mainTools.classList.add('opacity-50', 'pointer-events-none');
+            appState.currentHotel = hotelId;
             
             try {
-                const [dataRes, configRes] = await Promise.all([
-                    fetch(`${API_URL}/data?hotel_id=${encodeURIComponent(hotelId)}`),
-                    fetch(`${API_URL}/config?hotel_id=${encodeURIComponent(hotelId)}`)
+                showLoading(elements.roomSelect, 'Chargement des chambres...');
+                showLoading(elements.partnerSelect, 'Chargement des partenaires...');
+                
+                // Charger les données et config en parallèle
+                const [dataResponse, configResponse] = await Promise.all([
+                    fetch(`${API_BASE}/data?hotel_id=${encodeURIComponent(hotelId)}`),
+                    fetch(`${API_BASE}/config?hotel_id=${encodeURIComponent(hotelId)}`)
                 ]);
                 
-                if (!dataRes.ok) throw new Error(`Données de planning introuvables`);
-                if (!configRes.ok) throw new Error(`Configuration introuvable`);
-                
-                hotelData = (await dataRes.json()).rooms || {};
-                hotelConfig = await configRes.json();
-                
-                populateSelectors();
-                statusMessage.textContent = `✅ Données pour '${hotelId}' chargées. Prêt à simuler.`;
-                statusMessage.className = 'text-sm text-green-600 mt-4';
-                showToast('Données actualisées avec succès !');
-                mainTools.classList.remove('opacity-50', 'pointer-events-none');
-                
-            } catch (error) { 
-                statusMessage.innerHTML = `❌ Erreur: ${error.message}`;
-                statusMessage.className = 'text-sm text-red-600 mt-4';
-                showToast(error.message, true); 
-            } finally { 
-                hideSpinner(); 
-            }
-        };
-
-        // Peuplement des sélecteurs
-        const populateSelectors = () => {
-            // Partenaires
-            simPartnerSelect.innerHTML = '<option value="">En Direct (0%)</option>';
-            Object.keys(hotelConfig.partners || {}).sort().forEach(name => {
-                const partner = hotelConfig.partners[name];
-                simPartnerSelect.innerHTML += `<option value="${name}">${name} (${partner.commission}%)</option>`;
-            });
-
-            // Types de chambre (Simulateur)
-            simRoomTypeSelect.innerHTML = '';
-            const roomOrder = hotelConfig.displayOrder?.rooms || Object.keys(hotelData);
-            roomOrder.filter(room => hotelData[room]).forEach(room => {
-                simRoomTypeSelect.innerHTML += `<option value="${room}">${room}</option>`;
-            });
-
-            // Types de chambre (Disponibilités)
-            availRoomType.innerHTML = '<option value="">Toutes les chambres</option>';
-            roomOrder.filter(room => hotelData[room]).forEach(room => {
-                availRoomType.innerHTML += `<option value="${room}">${room}</option>`;
-            });
-
-            updateRatePlans();
-        };
-
-        // Mise à jour des plans tarifaires selon le partenaire
-        const updateRatePlans = async () => {
-            const selectedRoom = simRoomTypeSelect.value;
-            const selectedPartner = simPartnerSelect.value;
-            const hotelId = hotelIdSelect.value;
-
-            if (!selectedRoom || !hotelId) {
-                simRatePlanSelect.innerHTML = '';
-                return;
-            }
-
-            try {
-                showSpinner();
-                const params = new URLSearchParams({
-                    hotel_id: hotelId,
-                    room_type: selectedRoom,
-                    partner_name: selectedPartner || ''
-                });
-
-                const response = await fetch(`${API_URL}/plans/partner?${params}`);
-                if (!response.ok) throw new Error('Erreur chargement plans');
-
-                const data = await response.json();
-                simRatePlanSelect.innerHTML = '';
-
-                if (data.plans && data.plans.length > 0) {
-                    data.plans.forEach(plan => {
-                        simRatePlanSelect.innerHTML += `<option value="${plan}">${plan}</option>`;
-                    });
-                    
-                    // Mettre à jour le label de commission
-                    const commissionLabel = document.getElementById('commissionLabel');
-                    if (selectedPartner && data.partner_commission) {
-                        commissionLabel.textContent = `Appliquer commission (${selectedPartner} ${data.partner_commission}%)`;
-                    } else {
-                        commissionLabel.textContent = `Appliquer commission (0%)`;
-                    }
-                    
-                    showToast(`✅ ${data.plans_count} plans chargés pour ${selectedPartner || 'Direct'}`);
-                } else {
-                    simRatePlanSelect.innerHTML = '<option value="">Aucun plan disponible</option>';
-                    showToast('⚠️ Aucun plan tarifaire disponible', true);
+                if (!dataResponse.ok || !configResponse.ok) {
+                    throw new Error('Données ou configuration manquantes');
                 }
+                
+                appState.hotelData = await dataResponse.json();
+                appState.hotelConfig = await configResponse.json();
+                
+                populateRooms();
+                populatePartners();
+                
+            } catch (error) {
+                console.error('Erreur chargement données:', error);
+                showError('Données manquantes. Veuillez uploader les fichiers Excel et JSON de configuration.');
+            }
+        }
+
+        function populateRooms() {
+            const rooms = Object.keys(appState.hotelData.rooms || {});
+            elements.roomSelect.innerHTML = '<option value="">Sélectionnez une chambre</option>';
+            
+            rooms.forEach(room => {
+                const option = document.createElement('option');
+                option.value = room;
+                option.textContent = room;
+                elements.roomSelect.appendChild(option);
+            });
+        }
+
+        function populatePartners() {
+            const partners = Object.keys(appState.hotelConfig.partners || {});
+            elements.partnerSelect.innerHTML = '<option value="">Direct (sans partenaire)</option>';
+            
+            partners.forEach(partner => {
+                const option = document.createElement('option');
+                option.value = partner;
+                option.textContent = partner;
+                elements.partnerSelect.appendChild(option);
+            });
+        }
+
+        async function onRoomChange() {
+            const room = elements.roomSelect.value;
+            const partner = elements.partnerSelect.value;
+            
+            if (room && partner) {
+                await loadPlansForPartner(room, partner);
+            }
+        }
+
+        async function onPartnerChange() {
+            const room = elements.roomSelect.value;
+            const partner = elements.partnerSelect.value;
+            
+            if (room && partner) {
+                await loadPlansForPartner(room, partner);
+            }
+        }
+
+        async function loadPlansForPartner(room, partner) {
+            try {
+                showLoading(elements.planSelect, 'Chargement des plans...');
+                
+                const url = `${API_BASE}/plans/partner?hotel_id=${encodeURIComponent(appState.currentHotel)}&partner_name=${encodeURIComponent(partner)}&room_type=${encodeURIComponent(room)}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error('Plans non disponibles');
+                
+                const data = await response.json();
+                
+                elements.planSelect.innerHTML = '<option value="">Sélectionnez un plan</option>';
+                data.plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan;
+                    option.textContent = plan;
+                    elements.planSelect.appendChild(option);
+                });
+                
             } catch (error) {
                 console.error('Erreur chargement plans:', error);
-                simRatePlanSelect.innerHTML = '<option value="">Erreur chargement</option>';
-                showToast('❌ Erreur chargement des plans', true);
-            } finally {
-                hideSpinner();
+                elements.planSelect.innerHTML = '<option value="">Aucun plan disponible</option>';
             }
-        };
+        }
 
-        // Simulation
-        const handleSimulation = async (e) => {
-            e.preventDefault();
-            const payload = {
-                hotel_id: hotelIdSelect.value,
-                room: simRoomTypeSelect.value,
-                plan: simRatePlanSelect.value,
-                start: document.getElementById('simStartDate').value,
-                end: document.getElementById('simEndDate').value,
-                partner_name: simPartnerSelect.value,
-                apply_commission: applyCommissionCheckbox.checked,
-                promo_discount: parseFloat(promoDiscountInput.value) || 0
-            };
-
-            // Validation
-            if (!payload.start || !payload.end) {
-                return showToast("Les dates de séjour sont requises.", true);
-            }
-            if (!payload.room || !payload.plan) {
-                return showToast("La chambre et le plan tarifaire sont requis.", true);
-            }
-
-            showSpinner();
+        async function runSimulation() {
+            if (!validateForm()) return;
+            
             try {
-                const response = await fetch(`${API_URL}/simulate`, {
+                showLoading(elements.simulateBtn, 'Calcul en cours...');
+                
+                const requestData = {
+                    hotel_id: appState.currentHotel,
+                    room: elements.roomSelect.value,
+                    plan: elements.planSelect.value,
+                    partner_name: elements.partnerSelect.value || null,
+                    start: elements.startDate.value,
+                    end: elements.endDate.value,
+                    apply_commission: elements.applyCommission.checked,
+                    apply_partner_discount: elements.applyPartnerDiscount.checked,
+                    promo_discount: parseFloat(elements.promoDiscount.value) || 0
+                };
+                
+                const response = await fetch(`${API_BASE}/simulate`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(requestData)
                 });
                 
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || 'Erreur de simulation');
+                if (!response.ok) throw new Error(await response.text());
                 
-                displayResults(result);
-                showToast('Simulation terminée avec succès !');
-                
-            } catch (error) {
-                showToast(error.message, true);
-            } finally {
-                hideSpinner();
-            }
-        };
-
-        // Disponibilités
-        const handleAvailability = async (e) => {
-            e.preventDefault();
-            const payload = {
-                hotel_id: hotelIdSelect.value,
-                start_date: availStartDate.value,
-                end_date: availEndDate.value,
-                room_type: availRoomType.value || null
-            };
-
-            if (!payload.start_date || !payload.end_date) {
-                return showToast("Les dates de période sont requises.", true);
-            }
-
-            showSpinner();
-            try {
-                const response = await fetch(`${API_URL}/availability`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.detail || 'Erreur disponibilités');
-                
-                displayAvailabilityResults(result);
-                showToast('Disponibilités chargées avec succès !');
+                const results = await response.json();
+                appState.simulationResults = results;
+                displayResults(results);
                 
             } catch (error) {
-                showToast(error.message, true);
+                console.error('Erreur simulation:', error);
+                showError('Erreur lors de la simulation: ' + error.message);
             } finally {
-                hideSpinner();
+                elements.simulateBtn.textContent = 'Lancer la Simulation';
             }
-        };
+        }
 
-        // Affichage des résultats de simulation
-        const displayResults = (data) => {
-            currentSimulationData = data;
-            resultsContainer.classList.remove('hidden');
+        function validateForm() {
+            if (!elements.hotelSelect.value) {
+                showError('Veuillez sélectionner un hôtel');
+                return false;
+            }
+            if (!elements.roomSelect.value) {
+                showError('Veuillez sélectionner une chambre');
+                return false;
+            }
+            if (!elements.planSelect.value) {
+                showError('Veuillez sélectionner un plan tarifaire');
+                return false;
+            }
+            if (!elements.startDate.value || !elements.endDate.value) {
+                showError('Veuillez sélectionner une période');
+                return false;
+            }
+            return true;
+        }
+
+        function displayResults(results) {
+            // Afficher les informations source
+            elements.simulationInfo.style.display = 'block';
+            elements.simulationInfo.innerHTML = `<strong>Source:</strong> ${results.simulation_info.source}`;
             
-            // Informations de simulation
-            const simInfo = data.simulation_info;
-            document.getElementById('simRoomName').textContent = simInfo.room;
-            document.getElementById('simSourceInfo').textContent = `Source: ${simInfo.source}`;
-            document.getElementById('simPartnerName').textContent = simInfo.partner || 'Direct';
-            document.getElementById('simStartDisplay').textContent = formatDateDisplay(simInfo.start_date);
-            document.getElementById('simEndDisplay').textContent = formatDateDisplay(simInfo.end_date);
-            document.getElementById('simNights').textContent = `${simInfo.nights} nuit(s)`;
+            // Mettre à jour les totaux
+            elements.subtotalBrut.textContent = formatCurrency(results.summary.subtotal_brut);
+            elements.totalDiscount.textContent = formatCurrency(results.summary.total_discount);
+            elements.totalCommission.textContent = formatCurrency(results.summary.total_commission);
+            elements.totalNet.textContent = formatCurrency(results.summary.total_net);
             
-            // Remplissage du tableau
-            resultsTableBody.innerHTML = '';
-            if (!data.results?.length) {
-                resultsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                            <i class="fas fa-info-circle mr-2"></i>Aucune donnée disponible pour cette période.
-                        </td>
-                    </tr>
+            // Remplir le tableau des résultats
+            elements.resultsTable.innerHTML = '';
+            results.results.forEach(day => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${day.date_display}</td>
+                    <td>${formatCurrency(day.gross_price)}</td>
+                    <td>${formatCurrency(day.price_after_promo)}</td>
+                    <td>${formatCurrency(day.commission)}</td>
+                    <td>${formatCurrency(day.net_price)}</td>
+                    <td>${day.stock}</td>
+                    <td class="${day.availability === 'Disponible' ? 'status-available' : 'status-complet'}">
+                        ${day.availability}
+                    </td>
                 `;
-            } else {
-                data.results.forEach(day => {
-                    const stockColor = (day.stock ?? 0) > 5 ? 'text-green-600' : 
-                                     (day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500';
-                    const availabilityColor = day.availability === 'Disponible' ? 'text-green-600' : 'text-red-600';
-                    
-                    resultsTableBody.innerHTML += `
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-4 py-3 font-medium">${day.date_display}</td>
-                            <td class="px-4 py-3 text-right">${formatCurrency(day.gross_price)}</td>
-                            <td class="px-4 py-3 text-right font-semibold text-indigo-700">${formatCurrency(day.net_price)}</td>
-                            <td class="px-4 py-3 text-right font-medium ${stockColor}">${day.stock ?? 'N/A'}</td>
-                            <td class="px-4 py-3 text-right ${availabilityColor}">
-                                ${day.availability_badge} ${day.availability}
-                            </td>
-                        </tr>
-                    `;
-                });
-            }
-
-            // Mise à jour du résumé financier
-            const summary = data.summary;
-            document.getElementById('subtotalBrut').textContent = formatCurrency(summary.subtotal_brut);
-            document.getElementById('totalPromoDiscount').textContent = formatCurrency(summary.total_promo_discount);
-            document.getElementById('totalPartnerDiscount').textContent = formatCurrency(summary.total_partner_discount);
-            document.getElementById('totalDiscount').textContent = formatCurrency(summary.total_discount);
-            document.getElementById('totalCommission').textContent = formatCurrency(summary.total_commission);
-            document.getElementById('totalNetFinal').textContent = formatCurrency(summary.total_net);
+                elements.resultsTable.appendChild(row);
+            });
             
-            // Calcul du prix moyen par nuit
-            const avgPerNight = summary.total_net / simInfo.nights;
-            document.getElementById('averagePerNight').textContent = 
-                `${formatCurrency(avgPerNight)} par nuit en moyenne`;
-        };
+            // Afficher la section résultats
+            elements.resultsSection.style.display = 'block';
+            elements.availabilitySection.style.display = 'none';
+        }
 
-        // Affichage des disponibilités
-        const displayAvailabilityResults = (data) => {
-            availabilityEmpty.classList.add('hidden');
-            availabilityResults.classList.remove('hidden');
-            roomDetails.classList.add('hidden');
+        async function showAvailability() {
+            if (!appState.currentHotel) return;
+            
+            try {
+                const requestData = {
+                    hotel_id: appState.currentHotel,
+                    start_date: elements.startDate.value,
+                    end_date: elements.endDate.value
+                };
+                
+                const response = await fetch(`${API_BASE}/availability`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) throw new Error('Données indisponibles');
+                
+                const availabilityData = await response.json();
+                displayAvailabilityTable(availabilityData);
+                
+            } catch (error) {
+                console.error('Erreur disponibilités:', error);
+                showError('Impossible de charger les disponibilités');
+            }
+        }
 
-            // Informations de période
-            availPeriodInfo.textContent = `Période: ${formatDateDisplay(data.period.start_date)} au ${formatDateDisplay(data.period.end_date)}`;
-
-            // Résumé
-            const summary = data.summary;
-            availabilitySummary.innerHTML = `
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-blue-600">${summary.total_rooms}</div>
-                    <div class="text-sm text-gray-600">Chambres totales</div>
+        function displayAvailabilityTable(data) {
+            const { period, availability } = data;
+            
+            let html = `
+                <div style="margin-bottom: 1rem; color: #64748b; font-size: 0.875rem;">
+                    Période: ${period.start_date} au ${period.end_date}
                 </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">${summary.average_availability}</div>
-                    <div class="text-sm text-gray-600">Disponibilité moyenne</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-orange-600">${summary.min_availability}</div>
-                    <div class="text-sm text-gray-600">Disponibilité min</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-purple-600">${summary.max_availability}</div>
-                    <div class="text-sm text-gray-600">Disponibilité max</div>
-                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Type de Chambre</th>
             `;
-
-            // Tableau des disponibilités
-            availabilityTableBody.innerHTML = '';
-            data.availability.forEach(day => {
-                const availableRooms = day.rooms.filter(room => room.stock > 0);
-                const minPrice = Math.min(...availableRooms.map(room => room.min_price || Infinity));
-                
-                availabilityTableBody.innerHTML += `
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 font-medium">${day.date_display}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex flex-wrap gap-1">
-                                ${availableRooms.map(room => `
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        ${room.room_name}
-                                    </span>
-                                `).join('')}
-                                ${availableRooms.length === 0 ? '<span class="text-red-500 text-sm">Aucune chambre disponible</span>' : ''}
-                            </div>
-                        </td>
-                        <td class="px-4 py-3 text-right font-semibold">
-                            ${minPrice !== Infinity ? formatCurrency(minPrice) : '–'}
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                availableRooms.length > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }">
-                                ${availableRooms.length > 0 ? '🟢 Disponible' : '🔴 Complet'}
-                            </span>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            // Détail par chambre
-            displayRoomDetails(data.availability);
-        };
-
-        // Détail par chambre pour les disponibilités
-        const displayRoomDetails = (availabilityData) => {
-            roomDetailsContent.innerHTML = '';
-            roomDetails.classList.remove('hidden');
-
-            // Regrouper par chambre
-            const roomsSummary = {};
-            availabilityData.forEach(day => {
-                day.rooms.forEach(room => {
-                    if (!roomsSummary[room.room_name]) {
-                        roomsSummary[room.room_name] = {
-                            total_days: 0,
-                            available_days: 0,
-                            min_price: Infinity,
-                            max_price: 0
-                        };
-                    }
-                    
-                    roomsSummary[room.room_name].total_days++;
-                    if (room.stock > 0) {
-                        roomsSummary[room.room_name].available_days++;
-                    }
-                    if (room.min_price && room.min_price < roomsSummary[room.room_name].min_price) {
-                        roomsSummary[room.room_name].min_price = room.min_price;
-                    }
-                    if (room.min_price && room.min_price > roomsSummary[room.room_name].max_price) {
-                        roomsSummary[room.room_name].max_price = room.min_price;
-                    }
-                });
-            });
-
-            // Afficher le résumé par chambre
-            Object.entries(roomsSummary).forEach(([roomName, stats]) => {
-                const availabilityRate = (stats.available_days / stats.total_days) * 100;
-                
-                roomDetailsContent.innerHTML += `
-                    <div class="bg-white border border-gray-200 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-800 mb-2">${roomName}</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span>Disponibilité:</span>
-                                <span class="font-medium ${availabilityRate > 50 ? 'text-green-600' : availabilityRate > 20 ? 'text-orange-600' : 'text-red-600'}">
-                                    ${stats.available_days}/${stats.total_days} jours (${availabilityRate.toFixed(1)}%)
-                                </span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Prix min:</span>
-                                <span class="font-medium">${stats.min_price !== Infinity ? formatCurrency(stats.min_price) : '–'}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span>Prix max:</span>
-                                <span class="font-medium">${stats.max_price > 0 ? formatCurrency(stats.max_price) : '–'}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        };
-
-        // Export Excel
-        const exportToExcel = async () => {
-            if (!currentSimulationData) {
-                return showToast("Aucune donnée à exporter", true);
-            }
             
-            showSpinner();
+            // En-têtes de dates
+            period.dates.forEach(date => {
+                html += `<th>${period.date_display[date]}</th>`;
+            });
+            
+            html += `</tr></thead><tbody>`;
+            
+            // Lignes de données
+            Object.keys(availability).forEach(room => {
+                html += `<tr><td style="font-weight: 600;">${room}</td>`;
+                
+                period.dates.forEach(date => {
+                    const stock = availability[room][date];
+                    const statusClass = stock > 0 ? 'status-available' : 'status-complet';
+                    html += `<td class="${statusClass}">${stock}</td>`;
+                });
+                
+                html += `</tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            
+            elements.availabilityTableContainer.innerHTML = html;
+            elements.availabilitySection.style.display = 'block';
+            elements.resultsSection.style.display = 'none';
+        }
+
+        async function exportToExcel() {
+            if (!appState.simulationResults) return;
+            
             try {
-                const response = await fetch(`${API_URL}/export/simulation`, {
+                const response = await fetch(`${API_BASE}/export/simulation`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentSimulationData)
+                    body: JSON.stringify(appState.simulationResults)
                 });
                 
-                if (!response.ok) throw new Error('Erreur lors de l\'export');
+                if (!response.ok) throw new Error('Export échoué');
                 
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.style.display = 'none';
                 a.href = url;
-                
-                const hotelId = hotelIdSelect.value;
-                const date = new Date().toISOString().split('T')[0];
-                a.download = `simulation_${hotelId}_${date}.xlsx`;
-                
+                a.download = `simulation_${new Date().toISOString().split('T')[0]}.xlsx`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
-                showToast('Export Excel réussi !');
             } catch (error) {
-                showToast('Erreur lors de l\'export: ' + error.message, true);
-            } finally {
-                hideSpinner();
+                console.error('Erreur export:', error);
+                showError('Erreur lors de l\'export');
             }
-        };
+        }
 
-        // Nouvelle simulation
-        const resetSimulation = () => {
-            resultsContainer.classList.add('hidden');
-            simulationForm.reset();
-            applyCommissionCheckbox.checked = true;
-            promoDiscountInput.value = '0';
-            currentSimulationData = null;
-        };
+        // Utilitaires
+        function formatCurrency(amount) {
+            if (amount === null || amount === undefined) return '-';
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+        }
 
-        // Réinitialiser les disponibilités
-        const resetAvailability = () => {
-            availabilityResults.classList.add('hidden');
-            availabilityEmpty.classList.remove('hidden');
-            roomDetails.classList.add('hidden');
-        };
+        function showLoading(element, text) {
+            const originalText = element.textContent;
+            element.textContent = text;
+            element.disabled = true;
+            return () => {
+                element.textContent = originalText;
+                element.disabled = false;
+            };
+        }
 
-        // Système d'onglets
-        document.querySelectorAll('.tab-link').forEach(button => {
-            button.addEventListener('click', () => {
-                document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('tab-active'));
-                button.classList.add('tab-active');
-                document.querySelectorAll('[id^="tab-content-"]').forEach(content => content.classList.add('hidden'));
-                document.getElementById(`tab-content-${button.dataset.tab}`).classList.remove('hidden');
-                
-                // Réinitialiser l'affichage quand on change d'onglet
-                if (button.dataset.tab === 'availability') {
-                    resetAvailability();
-                }
-            });
-        });
-
-        // Event Listeners
-        refreshDataBtn.addEventListener('click', loadData);
-        simRoomTypeSelect.addEventListener('change', updateRatePlans);
-        simPartnerSelect.addEventListener('change', updateRatePlans);
-        simulationForm.addEventListener('submit', handleSimulation);
-        availabilityForm.addEventListener('submit', handleAvailability);
-        exportBtn.addEventListener('click', exportToExcel);
-        newSimulationBtn.addEventListener('click', resetSimulation);
-
-        // Set default dates
-        const today = new Date();
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 7);
-        
-        document.getElementById('simStartDate').value = today.toISOString().split('T')[0];
-        document.getElementById('simEndDate').value = nextWeek.toISOString().split('T')[0];
-        document.getElementById('availStartDate').value = today.toISOString().split('T')[0];
-        document.getElementById('availEndDate').value = nextWeek.toISOString().split('T')[0];
-
-        // Initial Load
-        fetchHotels();
-    });
+        function showError(message) {
+            alert('Erreur: ' + message);
+        }
     </script>
 </body>
 </html>

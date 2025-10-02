@@ -99,13 +99,14 @@ class SimulateIn(BaseModel):
     end: str
     partner_name: Optional[str] = None
     apply_commission: bool = True
+    apply_partner_discount: bool = True
     promo_discount: float = 0.0
 
 class AvailabilityRequest(BaseModel):
     hotel_id: str
     start_date: str
     end_date: str
-    room_type: Optional[str] = None
+    room_types: List[str] = []
 
 # --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
 @app.on_event('startup')
@@ -122,6 +123,9 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
     hotel_data = {}
     if df.shape[0] < 1: 
         return {}
+
+    # Récupération de la source (cellule A1)
+    source_info = str(df.iloc[0, 0]) if df.shape[0] > 0 and df.shape[1] > 0 else "Source inconnue"
 
     # Détection des colonnes de date (première ligne)
     header_row = df.iloc[0].tolist()
@@ -208,7 +212,7 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
 
     logger.info(f"Parsing terminé: {len(hotel_data)} chambres, {len(date_cols)} dates")
     return {
-        'report_generated_at': str(datetime.now()), 
+        'report_generated_at': source_info,
         'rooms': hotel_data,
         'dates_processed': [dc['date'] for dc in date_cols]
     }
@@ -308,7 +312,8 @@ async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...))
             'status': 'ok', 
             'hotel_id': hotel_id, 
             'rooms_found': len(parsed.get('rooms', {})),
-            'dates_processed': len(parsed.get('dates_processed', []))
+            'dates_processed': len(parsed.get('dates_processed', [])),
+            'source_info': parsed.get('report_generated_at', 'Source inconnue')
         }
         
     except Exception as e:
@@ -454,7 +459,8 @@ def get_plans_by_partner(hotel_id: str = Query(...), partner_name: str = Query(.
             "room_type": room_type,
             "plans": compatible_plans,
             "plans_count": len(compatible_plans),
-            "partner_commission": partner_info.get("commission", 0)
+            "partner_commission": partner_info.get("commission", 0),
+            "partner_discount": partner_info.get("defaultDiscount", {}).get("percentage", 0)
         }
         
     except HTTPException:
@@ -511,15 +517,16 @@ async def simulate(request: SimulateIn):
         # Configuration des calculs
         commission_rate = partner_info.get("commission", 0) / 100.0 if request.apply_commission else 0.0
         discount_info = partner_info.get("defaultDiscount", {})
-        partner_discount_rate = discount_info.get("percentage", 0) / 100.0
+        partner_discount_rate = discount_info.get("percentage", 0) / 100.0 if request.apply_partner_discount else 0.0
         promo_discount_rate = request.promo_discount / 100.0
         
         # Vérification si le plan est exclu de la remise partenaire
-        apply_partner_discount = True
-        if discount_info.get("excludePlansContaining"):
+        apply_partner_discount = request.apply_partner_discount
+        if apply_partner_discount and discount_info.get("excludePlansContaining"):
             exclude_keywords = discount_info.get("excludePlansContaining", [])
             if any(kw.lower() in plan_key.lower() for kw in exclude_keywords):
                 apply_partner_discount = False
+                partner_discount_rate = 0.0
                 logger.info(f"Remise partenaire exclue pour le plan: {plan_key}")
 
         # Calculs par date
@@ -531,43 +538,45 @@ async def simulate(request: SimulateIn):
             gross_price = plan_data.get(date_key)
             stock = room_data.get("stock", {}).get(date_key, 0)
             
-            # Application des remises en cascade
-            price_after_promo = gross_price
-            if gross_price is not None and promo_discount_rate > 0:
-                price_after_promo = gross_price * (1 - promo_discount_rate)
-            
-            price_after_partner_discount = price_after_promo
+            # Application des remises en cascade (d'abord remise partenaire, puis promo)
+            price_after_partner_discount = gross_price
             if gross_price is not None and apply_partner_discount and partner_discount_rate > 0:
-                price_after_partner_discount = price_after_promo * (1 - partner_discount_rate)
+                price_after_partner_discount = gross_price * (1 - partner_discount_rate)
             
-            # Calcul de la commission
-            commission = price_after_partner_discount * commission_rate if price_after_partner_discount is not None else 0
-            net_price = price_after_partner_discount - commission if price_after_partner_discount is not None else None
+            price_after_promo = price_after_partner_discount
+            if gross_price is not None and promo_discount_rate > 0:
+                price_after_promo = price_after_partner_discount * (1 - promo_discount_rate)
+            
+            # Calcul de la commission (sur le prix après toutes les remises)
+            commission = price_after_promo * commission_rate if price_after_promo is not None else 0
+            net_price = price_after_promo - commission if price_after_promo is not None else None
 
             # Détermination de la disponibilité
             availability = "Disponible" if stock > 0 else "Complet"
-            availability_badge = "🟢" if stock > 0 else "🔴"
+            
+            # Format de date avec jour de la semaine en français
+            jours_semaine = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"]
+            date_display = f"{jours_semaine[current_date.weekday()]} {current_date.strftime('%d/%m')}"
             
             results.append({
                 "date": date_key,
-                "date_display": current_date.strftime("%a %d %B"),
+                "date_display": date_display,
                 "stock": stock,
                 "gross_price": gross_price,
+                "price_after_partner_discount": price_after_partner_discount,
                 "price_after_promo": price_after_promo,
-                "price_after_discount": price_after_partner_discount,
                 "commission": commission,
                 "net_price": net_price,
-                "availability": availability,
-                "availability_badge": availability_badge
+                "availability": availability
             })
             current_date += timedelta(days=1)
 
         # Calcul des totaux
         valid_results = [r for r in results if r.get("gross_price") is not None]
         subtotal_brut = sum(r.get("gross_price") or 0 for r in valid_results)
-        total_promo_discount = sum((r.get("gross_price") or 0) - (r.get("price_after_promo") or 0) for r in valid_results)
-        total_partner_discount = sum((r.get("price_after_promo") or 0) - (r.get("price_after_discount") or 0) for r in valid_results)
-        total_discount = total_promo_discount + total_partner_discount
+        total_partner_discount = sum((r.get("gross_price") or 0) - (r.get("price_after_partner_discount") or 0) for r in valid_results)
+        total_promo_discount = sum((r.get("price_after_partner_discount") or 0) - (r.get("price_after_promo") or 0) for r in valid_results)
+        total_discount = total_partner_discount + total_promo_discount
         total_commission = sum(r.get("commission") or 0 for r in valid_results)
         total_net = subtotal_brut - total_discount - total_commission
 
@@ -585,13 +594,13 @@ async def simulate(request: SimulateIn):
                 "start_date": request.start,
                 "end_date": request.end,
                 "nights": len(results),
-                "source": f"FOLKESTONE OPERA - {datetime.now().strftime('%A %d %B %Y %H:%M:%S')}"
+                "source": hotel_data_full.get("report_generated_at", "Source inconnue")
             },
             "results": results,
             "summary": {
                 "subtotal_brut": subtotal_brut,
-                "total_promo_discount": total_promo_discount,
                 "total_partner_discount": total_partner_discount,
+                "total_promo_discount": total_promo_discount,
                 "total_discount": total_discount,
                 "total_commission": total_commission,
                 "total_net": total_net
@@ -622,75 +631,41 @@ async def get_availability(request: AvailabilityRequest):
         hotel_data_full = get_data(hotel_id)
         hotel_data = hotel_data_full.get("rooms", {})
         
-        # Préparer les résultats
-        availability_data = []
-        current_date = start_date
+        # Filtrer les chambres si spécifié
+        room_types = request.room_types if request.room_types else list(hotel_data.keys())
         
-        # Pour chaque jour de la période
+        # Générer toutes les dates de la période
+        dates_in_period = []
+        current_date = start_date
         while current_date < end_date:
-            date_key = current_date.strftime("%Y-%m-%d")
-            date_display = current_date.strftime("%a %d %B")
-            
-            day_availability = {
-                "date": date_key,
-                "date_display": date_display,
-                "rooms": []
-            }
-            
-            # Pour chaque type de chambre
-            for room_name, room_info in hotel_data.items():
-                # Filtrer par type de chambre si spécifié
-                if request.room_type and room_name != request.room_type:
-                    continue
-                    
-                stock = room_info.get("stock", {}).get(date_key, 0)
-                plans_count = len(room_info.get("plans", {}))
-                
-                # Calculer le prix minimum pour cette chambre à cette date
-                min_price = None
-                for plan_name, plan_data in room_info.get("plans", {}).items():
-                    price = plan_data.get(date_key)
-                    if price is not None and (min_price is None or price < min_price):
-                        min_price = price
-                
-                room_status = {
-                    "room_name": room_name,
-                    "stock": stock,
-                    "min_price": min_price,
-                    "plans_count": plans_count,
-                    "status": "Disponible" if stock > 0 else "Complet",
-                    "status_badge": "🟢" if stock > 0 else "🔴"
-                }
-                
-                day_availability["rooms"].append(room_status)
-            
-            availability_data.append(day_availability)
+            dates_in_period.append(current_date.strftime("%Y-%m-%d"))
             current_date += timedelta(days=1)
-
-        # Statistiques globales
-        total_nights = len(availability_data)
-        total_rooms = len(hotel_data)
-        available_rooms_per_day = [
-            len([room for room in day["rooms"] if room["stock"] > 0])
-            for day in availability_data
-        ]
-        avg_availability = sum(available_rooms_per_day) / len(available_rooms_per_day) if available_rooms_per_day else 0
+        
+        # Préparer les données de disponibilité
+        availability_data = {}
+        for room_name in room_types:
+            if room_name in hotel_data:
+                room_info = hotel_data[room_name]
+                availability_data[room_name] = {}
+                for date_str in dates_in_period:
+                    availability_data[room_name][date_str] = room_info.get("stock", {}).get(date_str, 0)
+        
+        # Format des dates pour l'affichage
+        date_display = {}
+        for date_str in dates_in_period:
+            date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+            jours_semaine = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"]
+            date_display[date_str] = f"{jours_semaine[date_obj.weekday()]} {date_obj.strftime('%d/%m')}"
         
         return {
             "hotel_id": hotel_id,
             "period": {
                 "start_date": request.start_date,
                 "end_date": request.end_date,
-                "nights": total_nights
+                "dates": dates_in_period,
+                "date_display": date_display
             },
-            "availability": availability_data,
-            "summary": {
-                "total_rooms": total_rooms,
-                "total_nights": total_nights,
-                "average_availability": round(avg_availability, 1),
-                "min_availability": min(available_rooms_per_day) if available_rooms_per_day else 0,
-                "max_availability": max(available_rooms_per_day) if available_rooms_per_day else 0
-            }
+            "availability": availability_data
         }
         
     except HTTPException:
@@ -712,7 +687,7 @@ async def export_simulation(data: dict):
             df_data.append({
                 "Date": day.get("date_display", day.get("date")),
                 "Prix Brut (€)": day.get("gross_price"),
-                "Prix Après Remise (€)": day.get("price_after_discount"),
+                "Prix Après Remise (€)": day.get("price_after_promo"),
                 "Commission (€)": day.get("commission"),
                 "Prix Net (€)": day.get("net_price"),
                 "Stock": day.get("stock"),
@@ -736,8 +711,7 @@ async def export_simulation(data: dict):
                 "Période": [f"{sim_info.get('start_date', '')} au {sim_info.get('end_date', '')}"],
                 "Nuits": [sim_info.get("nights", 0)],
                 "Sous-Total Brut (€)": [summary.get("subtotal_brut", 0)],
-                "Remise Promotion (€)": [summary.get("total_promo_discount", 0)],
-                "Remise Partenaire (€)": [summary.get("total_partner_discount", 0)],
+                "Remises et Promos (€)": [summary.get("total_discount", 0)],
                 "Total Commission (€)": [summary.get("total_commission", 0)],
                 "Total Net (€)": [summary.get("total_net", 0)]
             }
