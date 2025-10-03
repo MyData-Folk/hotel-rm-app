@@ -3,239 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administration - Gestion Hôtelière</title>
+    <title>HôtelMaster Pro - Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #334155; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
-        /* Header */
-        .admin-header { background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); color: white; padding: 2rem 0; margin-bottom: 2rem; }
-        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
         
-        /* Navigation */
-        .admin-nav { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
-        .nav-tabs { display: flex; border-bottom: 1px solid #e2e8f0; }
-        .nav-tab { padding: 1rem 1.5rem; background: none; border: none; cursor: pointer; font-weight: 500; color: #64748b; border-bottom: 2px solid transparent; }
-        .nav-tab.active { color: #0f766e; border-bottom-color: #0f766e; }
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        }
         
-        /* Cards */
-        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
-        .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
-        .card-body { padding: 1.5rem; }
+        .card-hover {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
         
-        /* Forms */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group label { font-weight: 600; margin-bottom: 0.5rem; color: #475569; font-size: 0.875rem; }
-        .form-control { padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.875rem; transition: border-color 0.2s; }
-        .form-control:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1); }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
         
-        /* Buttons */
-        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.875rem; }
-        .btn-primary { background: #0f766e; color: white; }
-        .btn-primary:hover { background: #0d9488; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-secondary { background: #64748b; color: white; }
-        .btn-secondary:hover { background: #475569; }
+        .file-upload {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
         
-        /* File Upload */
-        .file-upload { border: 2px dashed #cbd5e1; border-radius: 6px; padding: 2rem; text-align: center; transition: border-color 0.2s; }
-        .file-upload:hover { border-color: #0f766e; }
-        .file-upload input { display: none; }
-        .file-upload label { display: inline-block; padding: 0.75rem 1.5rem; background: #f1f5f9; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .file-upload:hover {
+            border-color: #0f766e;
+            background-color: rgba(241, 245, 249, 0.5);
+        }
         
-        /* Status */
-        .status-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .status-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .status-value { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0.5rem 0; }
-        .status-label { font-size: 0.875rem; color: #64748b; }
+        .nav-tab {
+            position: relative;
+            transition: all 0.3s ease;
+        }
         
-        /* Tables */
-        .table-container { overflow-x: auto; }
-        .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-        .data-table th { background: #f1f5f9; padding: 0.75rem; text-align: left; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; }
-        .data-table td { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; }
-        .data-table tr:hover { background: #f8fafc; }
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #0f766e;
+        }
         
-        /* Loading */
-        .loading { text-align: center; padding: 2rem; color: #64748b; }
-        .spinner { border: 2px solid #f1f5f9; border-top: 2px solid #0f766e; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
         
-        /* Messages */
-        .message { padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
-        .message-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .message-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         
-        /* Responsive */
-        @media (max-width: 768px) {
-            .form-grid { grid-template-columns: 1fr; }
-            .status-section { grid-template-columns: 1fr; }
-            .header-content { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .nav-tabs { flex-wrap: wrap; }
+        .smooth-transition {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
     </style>
 </head>
-<body>
-    <div class="admin-header">
-        <div class="container">
-            <div class="header-content">
+<body class="bg-gray-50 text-gray-800">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-md">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1>Administration Hôtelière</h1>
-                    <p>Gestion des données et configurations</p>
+                    <h1 class="text-2xl md:text-3xl font-bold">HôtelMaster Pro</h1>
+                    <p class="text-primary-100 opacity-90">Dashboard de gestion hôtelière premium</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
+                        <i data-feather="user" class="w-5 h-5"></i>
+                        <span>Administrateur</span>
+                    </div>
+                    <button class="p-2 rounded-full hover:bg-white/10">
+                        <i data-feather="settings" class="w-5 h-5"></i>
+                    </button>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
-    <div class="container">
+    <main class="container mx-auto px-4 py-8">
         <!-- Navigation -->
-        <div class="admin-nav">
-            <div class="nav-tabs">
-                <button class="nav-tab active" data-tab="hotels">Gestion des Hôtels</button>
-                <button class="nav-tab" data-tab="upload">Upload de Données</button>
-                <button class="nav-tab" data-tab="status">Statut du Système</button>
+        <nav class="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+            <div class="flex flex-wrap">
+                <button class="nav-tab active px-6 py-4 font-medium text-primary-700 flex items-center gap-2" data-tab="hotels">
+                    <i data-feather="home" class="w-4 h-4"></i>
+                    Gestion des Hôtels
+                </button>
+                <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="upload">
+                    <i data-feather="upload" class="w-4 h-4"></i>
+                    Import de Données
+                </button>
+                <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="status">
+                    <i data-feather="activity" class="w-4 h-4"></i>
+                    Statut du Système
+                </button>
             </div>
-        </div>
+        </nav>
+
+        <!-- Messages Container -->
+        <div id="messageContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-md"></div>
 
         <!-- Section Gestion des Hôtels -->
         <div id="hotelsTab" class="tab-content active">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Créer un Nouvel Hôtel</h2>
-                </div>
-                <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="newHotelId">ID de l'Hôtel</label>
-                            <input type="text" id="newHotelId" class="form-control" placeholder="ex: hotel-paris-centre">
-                        </div>
-                        <div class="form-group" style="justify-content: flex-end;">
-                            <button id="createHotelBtn" class="btn btn-primary">Créer l'Hôtel</button>
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Create Hotel Card -->
+                <div class="card-hover bg-white rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                            <i data-feather="plus" class="w-5 h-5 text-primary-600"></i>
+                            Créer un Nouvel Hôtel
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="md:col-span-3">
+                                <label for="newHotelId" class="block text-sm font-medium text-gray-700 mb-1">ID de l'Hôtel</label>
+                                <input type="text" id="newHotelId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="ex: hotel-paris-centre">
+                            </div>
+                            <div class="flex items-end">
+                                <button id="createHotelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                                    <i data-feather="plus" class="w-4 h-4"></i>
+                                    Créer
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>Liste des Hôtels</h2>
-                </div>
-                <div class="card-body">
-                    <div id="hotelsList" class="loading">
-                        <div class="spinner"></div>
-                        <p>Chargement des hôtels...</p>
+                <!-- Hotels List -->
+                <div class="card-hover bg-white rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                            <i data-feather="list" class="w-5 h-5 text-primary-600"></i>
+                            Liste des Hôtels
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div id="hotelsList" class="flex flex-col items-center justify-center py-8">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+                            <p class="text-gray-500">Chargement des hôtels...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Section Upload de Données -->
-        <div id="uploadTab" class="tab-content" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Upload des Données Excel</h2>
-                </div>
-                <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="excelHotelSelect">Sélectionnez l'Hôtel</label>
-                            <select id="excelHotelSelect" class="form-control">
-                                <option value="">Chargement...</option>
-                            </select>
+        <!-- Section Import de Données -->
+        <div id="uploadTab" class="tab-content hidden">
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Excel Upload -->
+                <div class="card-hover bg-white rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                            <i data-feather="file-text" class="w-5 h-5 text-primary-600"></i>
+                            Import des Données Excel
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label for="excelHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
+                                <select id="excelHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <option value="">Chargement...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
+                                <input type="file" id="excelFile" accept=".xlsx,.csv" class="hidden">
+                                <label for="excelFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
+                                    <i data-feather="upload" class="w-4 h-4"></i>
+                                    Choisir un fichier Excel/CSV
+                                </label>
+                                <p class="mt-4 text-sm text-gray-500 text-center">
+                                    Formats supportés: .xlsx, .csv<br>
+                                    <span class="text-xs">Taille maximale: 10MB</span>
+                                </p>
+                                <div id="excelFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <button id="uploadExcelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                                    <i data-feather="upload-cloud" class="w-4 h-4"></i>
+                                    Importer le Fichier
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="file-upload">
-                        <input type="file" id="excelFile" accept=".xlsx,.csv">
-                        <label for="excelFile">Choisir un fichier Excel/CSV</label>
-                        <p style="margin-top: 1rem; color: #64748b; font-size: 0.875rem;">
-                            Formats supportés: .xlsx, .csv
-                        </p>
-                    </div>
-                    
-                    <div style="margin-top: 1.5rem;">
-                        <button id="uploadExcelBtn" class="btn btn-primary">Uploader le Fichier Excel</button>
-                    </div>
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2>Upload de la Configuration JSON</h2>
-                </div>
-                <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="jsonHotelSelect">Sélectionnez l'Hôtel</label>
-                            <select id="jsonHotelSelect" class="form-control">
-                                <option value="">Chargement...</option>
-                            </select>
+                <!-- JSON Upload -->
+                <div class="card-hover bg-white rounded-xl overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                            <i data-feather="code" class="w-5 h-5 text-primary-600"></i>
+                            Import de la Configuration JSON
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label for="jsonHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
+                                <select id="jsonHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                    <option value="">Chargement...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
+                                <input type="file" id="jsonFile" accept=".json" class="hidden">
+                                <label for="jsonFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
+                                    <i data-feather="upload" class="w-4 h-4"></i>
+                                    Choisir un fichier JSON
+                                </label>
+                                <p class="mt-4 text-sm text-gray-500 text-center">
+                                    Format supporté: .json<br>
+                                    <span class="text-xs">Taille maximale: 5MB</span>
+                                </p>
+                                <div id="jsonFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
+                            </div>
+                            
+                            <div>
+                                <button id="uploadJsonBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                                    <i data-feather="upload-cloud" class="w-4 h-4"></i>
+                                    Importer la Configuration
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="file-upload">
-                        <input type="file" id="jsonFile" accept=".json">
-                        <label for="jsonFile">Choisir un fichier JSON</label>
-                        <p style="margin-top: 1rem; color: #64748b; font-size: 0.875rem;">
-                            Format supporté: .json
-                        </p>
-                    </div>
-                    
-                    <div style="margin-top: 1.5rem;">
-                        <button id="uploadJsonBtn" class="btn btn-primary">Uploader la Configuration</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Section Statut du Système -->
-        <div id="statusTab" class="tab-content" style="display: none;">
-            <div class="status-section">
-                <div class="status-card">
-                    <div class="status-label">Hôtels Configurés</div>
-                    <div class="status-value" id="hotelsCount">0</div>
+        <div id="statusTab" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- Status Cards -->
+                <div class="card-hover bg-white rounded-xl p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Hôtels Configurés</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="hotelsCount">0</h3>
+                        </div>
+                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+                            <i data-feather="home" class="w-5 h-5"></i>
+                        </div>
+                    </div>
                 </div>
-                <div class="status-card">
-                    <div class="status-label">API Status</div>
-                    <div class="status-value" id="apiStatus">Checking...</div>
+                
+                <div class="card-hover bg-white rounded-xl p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Statut API</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="apiStatus">Checking...</h3>
+                        </div>
+                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+                            <i data-feather="cloud" class="w-5 h-5"></i>
+                        </div>
+                    </div>
                 </div>
-                <div class="status-card">
-                    <div class="status-label">Base de Données</div>
-                    <div class="status-value" id="dbStatus">Checking...</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h2>Statut Détaillé par Hôtel</h2>
-                </div>
-                <div class="card-body">
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Hôtel</th>
-                                    <th>Données Excel</th>
-                                    <th>Configuration JSON</th>
-                                    <th>Dernière Mise à Jour</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="detailedStatus">
-                                <!-- Le statut détaillé sera inséré ici -->
-                            </tbody>
-                        </table>
+                
+                <div class="card-hover bg-white rounded-xl p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Base de Données</p>
+                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="dbStatus">Checking...</h3>
+                        </div>
+                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+                            <i data-feather="database" class="w-5 h-5"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Messages -->
-        <div id="messageContainer"></div>
-    </div>
+            <!-- Detailed Status -->
+            <div class="card-hover bg-white rounded-xl overflow-hidden">
+                <div class="p-6 border-b border-gray-100 bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                        <i data-feather="bar-chart-2" class="w-5 h-5 text-primary-600"></i>
+                        Statut Détaillé par Hôtel
+                    </h2>
+                </div>
+                <div class="p-6 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hôtel</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Données Excel</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Configuration JSON</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Mise à Jour</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailedStatus" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
         // Configuration
@@ -259,6 +357,8 @@
             jsonFile: document.getElementById('jsonFile'),
             uploadExcelBtn: document.getElementById('uploadExcelBtn'),
             uploadJsonBtn: document.getElementById('uploadJsonBtn'),
+            excelFileName: document.getElementById('excelFileName'),
+            jsonFileName: document.getElementById('jsonFileName'),
             
             // Statut
             hotelsCount: document.getElementById('hotelsCount'),
@@ -272,10 +372,12 @@
 
         // Initialisation
         document.addEventListener('DOMContentLoaded', function() {
+            feather.replace();
             setupNavigation();
             loadHotels();
             setupEventListeners();
             checkSystemStatus();
+            setupFileInputs();
         });
 
         function setupNavigation() {
@@ -285,10 +387,10 @@
                     
                     // Mettre à jour les tabs actives
                     elements.navTabs.forEach(t => t.classList.remove('active'));
-                    elements.tabContents.forEach(c => c.style.display = 'none');
+                    elements.tabContents.forEach(c => c.classList.add('hidden'));
                     
                     this.classList.add('active');
-                    document.getElementById(`${targetTab}Tab`).style.display = 'block';
+                    document.getElementById(`${targetTab}Tab`).classList.remove('hidden');
                     
                     // Recharger les données si nécessaire
                     if (targetTab === 'status') {
@@ -304,8 +406,35 @@
             elements.uploadJsonBtn.addEventListener('click', uploadJson);
         }
 
+        function setupFileInputs() {
+            elements.excelFile.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    elements.excelFileName.textContent = this.files[0].name;
+                    elements.excelFileName.classList.remove('hidden');
+                } else {
+                    elements.excelFileName.classList.add('hidden');
+                }
+            });
+            
+            elements.jsonFile.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    elements.jsonFileName.textContent = this.files[0].name;
+                    elements.jsonFileName.classList.remove('hidden');
+                } else {
+                    elements.jsonFileName.classList.add('hidden');
+                }
+            });
+        }
+
         async function loadHotels() {
             try {
+                elements.hotelsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+                        <p class="text-gray-500">Chargement des hôtels...</p>
+                    </div>
+                `;
+                
                 const response = await fetch(`${API_BASE}/hotels`);
                 const hotels = await response.json();
                 
@@ -314,31 +443,66 @@
                 
             } catch (error) {
                 console.error('Erreur chargement hôtels:', error);
+                elements.hotelsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-8">
+                        <i data-feather="alert-triangle" class="w-8 h-8 text-red-500 mb-4"></i>
+                        <p class="text-gray-500">Erreur lors du chargement des hôtels</p>
+                        <button onclick="loadHotels()" class="mt-4 text-primary-600 hover:text-primary-800 font-medium">
+                            <i data-feather="refresh-cw" class="w-4 h-4 inline mr-2"></i>
+                            Réessayer
+                        </button>
+                    </div>
+                `;
+                feather.replace();
                 showMessage('Impossible de charger la liste des hôtels', 'error');
             }
         }
 
         function updateHotelsList(hotels) {
             if (hotels.length === 0) {
-                elements.hotelsList.innerHTML = '<p>Aucun hôtel configuré</p>';
+                elements.hotelsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-8">
+                        <i data-feather="box" class="w-8 h-8 text-gray-400 mb-4"></i>
+                        <p class="text-gray-500">Aucun hôtel configuré</p>
+                    </div>
+                `;
+                feather.replace();
                 return;
             }
             
-            let html = '<div class="table-container"><table class="data-table"><thead><tr><th>ID Hôtel</th><th>Actions</th></tr></thead><tbody>';
+            let html = `
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Hôtel</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+            `;
             
             hotels.forEach(hotel => {
                 html += `
                     <tr>
-                        <td>${hotel}</td>
-                        <td>
-                            <button class="btn btn-danger btn-sm" onclick="deleteHotel('${hotel}')">Supprimer</button>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hotel}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button onclick="deleteHotel('${hotel}')" class="inline-flex items-center px-3 py-1 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                <i data-feather="trash-2" class="w-4 h-4 mr-2"></i>
+                                Supprimer
+                            </button>
                         </td>
                     </tr>
                 `;
             });
             
-            html += '</tbody></table></div>';
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
             elements.hotelsList.innerHTML = html;
+            feather.replace();
         }
 
         function updateHotelSelects(hotels) {
@@ -355,6 +519,12 @@
                 showMessage('Veuillez saisir un ID d\'hôtel', 'error');
                 return;
             }
+            
+            elements.createHotelBtn.disabled = true;
+            elements.createHotelBtn.innerHTML = `
+                <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                Création en cours...
+            `;
             
             try {
                 const response = await fetch(`${API_BASE}/hotels?hotel_id=${encodeURIComponent(hotelId)}`, {
@@ -373,6 +543,13 @@
             } catch (error) {
                 console.error('Erreur création hôtel:', error);
                 showMessage('Erreur: ' + error.message, 'error');
+            } finally {
+                elements.createHotelBtn.disabled = false;
+                elements.createHotelBtn.innerHTML = `
+                    <i data-feather="plus" class="w-4 h-4 mr-2"></i>
+                    Créer
+                `;
+                feather.replace();
             }
         }
 
@@ -401,8 +578,13 @@
             const hotelId = elements.excelHotelSelect.value;
             const file = elements.excelFile.files[0];
             
-            if (!hotelId || !file) {
-                showMessage('Veuillez sélectionner un hôtel et un fichier', 'error');
+            if (!hotelId) {
+                showMessage('Veuillez sélectionner un hôtel', 'error');
+                return;
+            }
+            
+            if (!file) {
+                showMessage('Veuillez sélectionner un fichier Excel', 'error');
                 return;
             }
             
@@ -413,8 +595,13 @@
             const hotelId = elements.jsonHotelSelect.value;
             const file = elements.jsonFile.files[0];
             
-            if (!hotelId || !file) {
-                showMessage('Veuillez sélectionner un hôtel et un fichier', 'error');
+            if (!hotelId) {
+                showMessage('Veuillez sélectionner un hôtel', 'error');
+                return;
+            }
+            
+            if (!file) {
+                showMessage('Veuillez sélectionner un fichier JSON', 'error');
                 return;
             }
             
@@ -428,8 +615,11 @@
             const endpoint = type === 'excel' ? '/upload/excel' : '/upload/config';
             
             try {
-                button.textContent = 'Upload en cours...';
                 button.disabled = true;
+                button.innerHTML = `
+                    <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                    ${type === 'excel' ? 'Import en cours...' : 'Upload en cours...'}
+                `;
                 
                 const response = await fetch(`${API_BASE}${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, {
                     method: 'POST',
@@ -447,16 +637,22 @@
                 // Réinitialiser le fichier
                 if (type === 'excel') {
                     elements.excelFile.value = '';
+                    elements.excelFileName.classList.add('hidden');
                 } else {
                     elements.jsonFile.value = '';
+                    elements.jsonFileName.classList.add('hidden');
                 }
                 
             } catch (error) {
                 console.error(`Erreur upload ${type}:`, error);
                 showMessage('Erreur: ' + error.message, 'error');
             } finally {
-                button.textContent = type === 'excel' ? 'Uploader le Fichier Excel' : 'Uploader la Configuration';
                 button.disabled = false;
+                button.innerHTML = `
+                    <i data-feather="upload-cloud" class="w-4 h-4 mr-2"></i>
+                    ${type === 'excel' ? 'Importer le Fichier' : 'Importer la Configuration'}
+                `;
+                feather.replace();
             }
         }
 
@@ -467,9 +663,9 @@
                 if (healthResponse.ok) {
                     const health = await healthResponse.json();
                     elements.apiStatus.textContent = 'En ligne';
-                    elements.apiStatus.style.color = '#059669';
+                    elements.apiStatus.className = 'text-2xl font-bold text-green-600 mt-1';
                     elements.dbStatus.textContent = health.database === 'healthy' ? 'En ligne' : 'Erreur';
-                    elements.dbStatus.style.color = health.database === 'healthy' ? '#059669' : '#dc2626';
+                    elements.dbStatus.className = `text-2xl font-bold ${health.database === 'healthy' ? 'text-green-600' : 'text-red-600'} mt-1`;
                 } else {
                     throw new Error('API non disponible');
                 }
@@ -482,31 +678,57 @@
                 
                 // Statut détaillé pour chaque hôtel
                 let detailedHtml = '';
-                for (const hotel of hotels) {
-                    const statusResponse = await fetch(`${API_BASE}/files/status?hotel_id=${encodeURIComponent(hotel)}`);
-                    const status = await statusResponse.json();
-                    
-                    detailedHtml += `
+                if (hotels.length === 0) {
+                    detailedHtml = `
                         <tr>
-                            <td>${hotel}</td>
-                            <td>${status.data_file_exists ? '✅' : '❌'}</td>
-                            <td>${status.config_exists ? '✅' : '❌'}</td>
-                            <td>${new Date().toLocaleDateString('fr-FR')}</td>
-                            <td>
-                                <button class="btn btn-secondary btn-sm" onclick="testHotel('${hotel}')">Tester</button>
-                            </td>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Aucun hôtel configuré</td>
                         </tr>
                     `;
+                } else {
+                    for (const hotel of hotels) {
+                        const statusResponse = await fetch(`${API_BASE}/files/status?hotel_id=${encodeURIComponent(hotel)}`);
+                        const status = await statusResponse.json();
+                        
+                        detailedHtml += `
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hotel}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${status.data_file_exists ? 
+                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Présent</span>' : 
+                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Absent</span>'}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    ${status.config_exists ? 
+                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Présent</span>' : 
+                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Absent</span>'}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date().toLocaleDateString('fr-FR')}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <button onclick="testHotel('${hotel}')" class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                        <i data-feather="check-circle" class="w-4 h-4 mr-2"></i>
+                                        Tester
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }
                 }
                 
-                elements.detailedStatus.innerHTML = detailedHtml || '<tr><td colspan="5">Aucun hôtel configuré</td></tr>';
+                elements.detailedStatus.innerHTML = detailedHtml;
+                feather.replace();
                 
             } catch (error) {
                 console.error('Erreur statut système:', error);
                 elements.apiStatus.textContent = 'Hors ligne';
-                elements.apiStatus.style.color = '#dc2626';
+                elements.apiStatus.className = 'text-2xl font-bold text-red-600 mt-1';
                 elements.dbStatus.textContent = 'Inconnu';
-                elements.dbStatus.style.color = '#64748b';
+                elements.dbStatus.className = 'text-2xl font-bold text-gray-600 mt-1';
+                
+                elements.detailedStatus.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Erreur lors du chargement des données</td>
+                    </tr>
+                `;
             }
         }
 
@@ -525,20 +747,41 @@
 
         function showMessage(message, type) {
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message message-${type}`;
-            messageDiv.textContent = message;
+            messageDiv.className = `flex items-start p-4 rounded-lg shadow-lg ${type === 'error' ? 'bg-red-50 border-l-4 border-red-500' : 'bg-green-50 border-l-4 border-green-500'}`;
+            
+            const icon = document.createElement('i');
+            icon.setAttribute('data-feather', type === 'error' ? 'alert-triangle' : 'check-circle');
+            icon.className = `w-5 h-5 ${type === 'error' ? 'text-red-500' : 'text-green-500'} mr-3`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'flex-1';
+            messageContent.innerHTML = `
+                <p class="text-sm font-medium ${type === 'error' ? 'text-red-800' : 'text-green-800'}">${message}</p>
+            `;
+            
+            const closeButton = document.createElement('button');
+            closeButton.className = 'ml-4 text-gray-400 hover:text-gray-500';
+            closeButton.innerHTML = '<i data-feather="x" class="w-5 h-5"></i>';
+            closeButton.onclick = () => messageDiv.remove();
+            
+            messageDiv.appendChild(icon);
+            messageDiv.appendChild(messageContent);
+            messageDiv.appendChild(closeButton);
             
             elements.messageContainer.appendChild(messageDiv);
+            feather.replace();
             
             // Supprimer automatiquement après 5 secondes
             setTimeout(() => {
-                messageDiv.remove();
+                messageDiv.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                setTimeout(() => messageDiv.remove(), 300);
             }, 5000);
         }
 
         // Exposer les fonctions globales
         window.deleteHotel = deleteHotel;
         window.testHotel = testHotel;
+        window.loadHotels = loadHotels;
     </script>
 </body>
 </html>
