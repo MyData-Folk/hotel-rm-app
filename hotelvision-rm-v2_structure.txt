@@ -1,0 +1,23 @@
+hotelvision-rm-v2/
+├── .gitignore
+├── .env.example
+├── README.md
+├── requirements.txt
+├── main.py
+├── database.py
+├── models.py
+├── auth.py
+├── admin.py
+├── api/
+│   ├── __init__.py
+│   ├── hotels.py
+│   ├── permissions.py
+│   ├── simulations.py
+│   └── uploads.py
+├── frontend/
+│   ├── login.html
+│   ├── index.html
+│   └── admin.html
+└── static/
+    └── css/
+        └── admin.css

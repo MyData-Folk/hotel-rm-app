@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HotelVision RM v2.0 - Administration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        #vanta-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        }
+        
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(220, 38, 38, 0.6);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+        }
+        
+        .tab-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.tab-active {
+            border-bottom: 3px solid #dc2626;
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .form-input {
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .form-input:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #dc2626;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-suspended {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-deleted {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="vanta-bg"></div>
+    
+    <header class="gradient-header text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center space-x-3">
+                    <i data-feather="settings" class="w-8 h-8"></i>
+                    <h1 class="text-2xl md:text-3xl font-bold">HotelVision RM v2.0 - Administration</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
+                        <i data-feather="user" class="w-5 h-5"></i>
+                        <span id="userEmail">admin@example.com</span>
+                    </div>
+                    <a href="https://hotelvision.e-hotelmanager.com" class="btn btn-secondary flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        <i data-feather="home" class="mr-2 w-4 h-4"></i> Tableau de bord
+                    </a>
+                    <button id="logoutBtn" class="p-2 rounded-full hover:bg-white/10">
+                        <i data-feather="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Tableau de bord principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Statistiques -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Statistiques</h3>
+                    <i data-feather="bar-chart-2" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Hôtels</span>
+                        <span id="statsHotels" class="text-sm font-semibold text-gray-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Utilisateurs</span>
+                        <span id="statsUsers" class="text-sm font-semibold text-gray-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Plans tarifaires</span>
+                        <span id="statsTariffs" class="text-sm font-semibold text-gray-900">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Configurations</span>
+                        <span id="statsConfigs" class="text-sm font-semibold text-gray-900">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Actions rapides</h3>
+                    <i data-feather="zap" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <div class="space-y-2">
+                    <button id="createHotelBtn" class="w-full flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">
+                        <i data-feather="plus" class="mr-2 w-4 h-4"></i>
+                        Créer un hôtel
+                    </button>
+                    <button id="uploadTariffBtn" class="w-full flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+                        <i data-feather="upload" class="mr-2 w-4 h-4"></i>
+                        Upload tarifaire
+                    </button>
+                    <button id="uploadConfigBtn" class="w-full flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        <i data-feather="settings" class="mr-2 w-4 h-4"></i>
+                        Upload config
+                    </button>
+                </div>
+            </div>
+
+            <!-- Activité récente -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Activité récente</h3>
+                    <i data-feather="clock" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <div id="recentActivity" class="space-y-2">
+                    <div class="text-sm text-gray-500">Aucune activité récente</div>
+                </div>
+            </div>
+
+            <!-- Système -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Système</h3>
+                    <i data-feather="server" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <div class="space-y-3">
+                    <div id="systemHealth" class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600">Santé</span>
+                        <span class="text-sm font-semibold text-green-600">En ligne</span>
+                    </div>
+                    <button id="refreshBtn" class="w-full flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                        <i data-feather="refresh-cw" class="mr-2 w-4 h-4"></i>
+                        Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation par onglets -->
+        <div class="card mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="flex space-x-8 px-6">
+                    <button class="tab-btn tab-active py-4 px-1 border-b-2 border-red-500 text-sm font-medium text-red-600" data-tab="hotels">
+                        <i data-feather="building" class="w-4 h-4 inline mr-2"></i>
+                        Gestion des hôtels
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="permissions">
+                        <i data-feather="users" class="w-4 h-4 inline mr-2"></i>
+                        Gestion des permissions
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="audit">
+                        <i data-feather="file-text" class="w-4 h-4 inline mr-2"></i>
+                        Audit log
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="export">
+                        <i data-feather="download" class="w-4 h-4 inline mr-2"></i>
+                        Export
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Contenu des onglets -->
+            <div class="p-6">
+                <!-- Onglet Hotels -->
+                <div id="hotels-tab" class="tab-content">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Liste des hôtels</h3>
+                            <div class="flex gap-2">
+                                <input type="text" id="searchHotels" placeholder="Rechercher un hôtel..." class="form-input px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                <select id="filterHotels" class="form-input px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                    <option value="all">Tous</option>
+                                    <option value="active">Actifs</option>
+                                    <option value="suspended">Suspendus</option>
+                                    <option value="deleted">Supprimés</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateurs</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière mise à jour</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hotelsTableBody" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Permissions -->
+                <div id="permissions-tab" class="tab-content hidden">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Gestion des permissions</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                            <div>
+                                <label for="userEmail" class="block text-sm font-medium text-gray-700 mb-1">Email de l'utilisateur</label>
+                                <input type="email" id="userEmail" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" placeholder="user@example.com">
+                            </div>
+                            
+                            <div>
+                                <label for="hotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Hôtel</label>
+                                <select id="hotelSelect" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                    <option value="">-- Sélectionner --</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="durationSelect" class="block text-sm font-medium text-gray-700 mb-1">Durée d'accès</label>
+                                <select id="durationSelect" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                    <option value="1_day">1 jour</option>
+                                    <option value="7_days">7 jours</option>
+                                    <option value="1_month" selected>1 mois</option>
+                                    <option value="1_year">1 an</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-end">
+                                <button id="grantAccessBtn" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                                    <i data-feather="check" class="mr-2 w-4 h-4"></i> Accorder l'accès
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h4 class="text-md font-semibold text-gray-900">Permissions actives</h4>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50 sticky top-0">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hôtel</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date d'expiration</th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="permissionsTableBody" class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Audit -->
+                <div id="audit-tab" class="tab-content hidden">
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Audit log</h3>
+                            <div class="flex gap-2">
+                                <input type="text" id="searchAudit" placeholder="Rechercher dans l'audit..." class="form-input px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                <select id="filterAudit" class="form-input px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                    <option value="all">Toutes les actions</option>
+                                    <option value="create_hotel">Créer hôtel</option>
+                                    <option value="update_hotel">Mettre à jour hôtel</option>
+                                    <option value="delete_hotel">Supprimer hôtel</option>
+                                    <option value="update_tariff">Mettre à jour tarif</option>
+                                    <option value="update_config">Mettre à jour config</option>
+                                </select>
+                                <button id="exportAuditBtn" class="btn btn-secondary px-4 py-2 rounded-md text-sm font-medium">
+                                    <i data-feather="download" class="w-4 h-4 inline mr-1"></i> Exporter
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Table</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hôtel</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Effectué par</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditTableBody" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Export -->
+                <div id="export-tab" class="tab-content hidden">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Exporter les données</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Export tarifaire -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h4 class="text-md font-semibold text-gray-900 mb-4">Plans tarifaires</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label for="exportHotelTariff" class="block text-sm font-medium text-gray-700 mb-1">Hôtel</label>
+                                        <select id="exportHotelTariff" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="">-- Sélectionner --</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="exportFormatTariff" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                                        <select id="exportFormatTariff" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="json">JSON</option>
+                                            <option value="csv">CSV</option>
+                                            <option value="excel">Excel</option>
+                                        </select>
+                                    </div>
+                                    <button id="exportTariffBtn" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                                        <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter les tarifs
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Export configuration -->
+                            <div class="bg-gray-50 rounded-lg p-6">
+                                <h4 class="text-md font-semibold text-gray-900 mb-4">Configurations</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label for="exportHotelConfig" class="block text-sm font-medium text-gray-700 mb-1">Hôtel</label>
+                                        <select id="exportHotelConfig" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="">-- Sélectionner --</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="exportFormatConfig" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                                        <select id="exportFormatConfig" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="json">JSON</option>
+                                        </select>
+                                    </div>
+                                    <button id="exportConfigBtn" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                                        <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter les configurations
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Audit log export -->
+                            <div class="bg-gray-50 rounded-lg p-6 md:col-span-2">
+                                <h4 class="text-md font-semibold text-gray-900 mb-4">Audit log complet</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label for="exportAuditHotel" class="block text-sm font-medium text-gray-700 mb-1">Hôtel (optionnel)</label>
+                                        <select id="exportAuditHotel" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="">Tous les hôtels</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="exportAuditFormat" class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+                                        <select id="exportAuditFormat" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                            <option value="json">JSON</option>
+                                            <option value="csv">CSV</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button id="exportAuditFullBtn" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                                            <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter l'audit
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modales -->
+    <div id="createHotelModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Créer un nouvel hôtel</h3>
+            <form id="createHotelForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="newHotelId" class="block text-sm font-medium text-gray-700 mb-1">ID de l'hôtel</label>
+                        <input type="text" id="newHotelId" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    </div>
+                    <div>
+                        <label for="newHotelName" class="block text-sm font-medium text-gray-700 mb-1">Nom de l'hôtel</label>
+                        <input type="text" id="newHotelName" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    </div>
+                    <div>
+                        <label for="newHotelEmail" class="block text-sm font-medium text-gray-700 mb-1">Email admin</label>
+                        <input type="email" id="newHotelEmail" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    </div>
+                    <div>
+                        <label for="newHotelContactEmail" class="block text-sm font-medium text-gray-700 mb-1">Email de contact</label>
+                        <input type="email" id="newHotelContactEmail" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                    </div>
+                    <div>
+                        <label for="newHotelContactPhone" class="block text-sm font-medium text-gray-700 mb-1">Téléphone de contact</label>
+                        <input type="tel" id="newHotelContactPhone" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelCreateHotel" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="uploadTariffModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Uploader un plan tarifaire</h3>
+            <form id="uploadTariffForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="uploadTariffHotel" class="block text-sm font-medium text-gray-700 mb-1">Hôtel</label>
+                        <select id="uploadTariffHotel" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="uploadTariffName" class="block text-sm font-medium text-gray-700 mb-1">Nom du plan</label>
+                        <input type="text" id="uploadTariffName" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    </div>
+                    <div>
+                        <label for="uploadTariffFile" class="block text-sm font-medium text-gray-700 mb-1">Fichier Excel/CSV</label>
+                        <input type="file" id="uploadTariffFile" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div>
+                        <label for="uploadTariffValidFrom" class="block text-sm font-medium text-gray-700 mb-1">Valide à partir du</label>
+                        <input type="date" id="uploadTariffValidFrom" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                    </div>
+                    <div>
+                        <label for="uploadTariffValidTo" class="block text-sm font-medium text-gray-700 mb-1">Valide jusqu'au</label>
+                        <input type="date" id="uploadTariffValidTo" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelUploadTariff" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Uploader</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="uploadConfigModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Uploader une configuration</h3>
+            <form id="uploadConfigForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="uploadConfigHotel" class="block text-sm font-medium text-gray-700 mb-1">Hôtel</label>
+                        <select id="uploadConfigHotel" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                            <option value="">-- Sélectionner --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="uploadConfigName" class="block text-sm font-medium text-gray-700 mb-1">Nom de la configuration</label>
+                        <input type="text" id="uploadConfigName" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" required>
+                    </div>
+                    <div>
+                        <label for="uploadConfigVersion" class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                        <input type="text" id="uploadConfigVersion" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" value="1.0">
+                    </div>
+                    <div>
+                        <label for="uploadConfigFile" class="block text-sm font-medium text-gray-700 mb-1">Fichier JSON</label>
+                        <input type="file" id="uploadConfigFile" class="form-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" accept=".json" required>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelUploadConfig" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Uploader</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="spinner"></div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialisation de Vanta.js pour l'arrière-plan
+    VANTA.NET({
+        el: "#vanta-bg",
+        color: 0xdc2626,
+        backgroundColor: 0xf8fafc,
+        points: 12,
+        maxDistance: 20,
+        spacing: 15
+    });
+
+    // Configuration Supabase avec les clés fournies
+    const SUPABASE_URL = 'https://supabase.e-hotelmanager.com';
+    const SUPABASE_ANON_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc1OTYzMjAwMCwiZXhwIjo0OTE1MzA1NjAwLCJyb2xlIjoiYW5vbiJ9.REKN8YlJRDjhxS3HcDwmw5_KVZ8ylGG4ARkAvybsOUY';
+    
+    const { supabase } = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    const API_URL = 'https://admin-hv.e-hotelmanager.com';
+    let authToken = localStorage.getItem('hotelvision_token');
+    let currentUser = null;
+    let currentTab = 'hotels';
+
+    const DOMElements = {
+        userEmail: document.getElementById('userEmail'),
+        hotelSelect: document.getElementById('hotelSelect'),
+        durationSelect: document.getElementById('durationSelect'),
+        grantAccessBtn: document.getElementById('grantAccessBtn'),
+        permissionsTableBody: document.getElementById('permissionsTableBody'),
+        hotelsTableBody: document.getElementById('hotelsTableBody'),
+        auditTableBody: document.getElementById('auditTableBody'),
+        statsHotels: document.getElementById('statsHotels'),
+        statsUsers: document.getElementById('statsUsers'),
+        statsTariffs: document.getElementById('statsTariffs'),
+        statsConfigs: document.getElementById('statsConfigs'),
+        recentActivity: document.getElementById('recentActivity'),
+        searchHotels: document.getElementById('searchHotels'),
+        filterHotels: document.getElementById('filterHotels'),
+        searchAudit: document.getElementById('searchAudit'),
+        filterAudit: document.getElementById('filterAudit'),
+        toast: document.getElementById('toast'),
+        spinner: document.getElementById('spinner-overlay'),
+        logoutBtn: document.getElementById('logoutBtn'),
+        createHotelBtn: document.getElementById('createHotelBtn'),
+        uploadTariffBtn: document.getElementById('uploadTariffBtn'),
+        uploadConfigBtn: document.getElementById('uploadConfigBtn'),
+        refreshBtn: document.getElementById('refreshBtn'),
+        exportTariffBtn: document.getElementById('exportTariffBtn'),
+        exportConfigBtn: document.getElementById('exportConfigBtn'),
+        exportAuditBtn: document.getElementById('exportAuditBtn'),
+        exportAuditFullBtn: document.getElementById('exportAuditFullBtn'),
+        exportHotelTariff: document.getElementById('exportHotelTariff'),
+        exportHotelConfig: document.getElementById('exportHotelConfig'),
+        exportAuditHotel: document.getElementById('exportAuditHotel'),
+        createHotelModal: document.getElementById('createHotelModal'),
+        uploadTariffModal: document.getElementById('uploadTariffModal'),
+        uploadConfigModal: document.getElementById('uploadConfigModal'),
+        cancelCreateHotel: document.getElementById('cancelCreateHotel'),
+        cancelUploadTariff: document.getElementById('cancelUploadTariff'),
+        cancelUploadConfig: document.getElementById('cancelUploadConfig')
+    };
+
+    const showSpinner = () => {
+        if (DOMElements.spinner) DOMElements.spinner.classList.remove('hidden');
+    };
+    
+    const hideSpinner = () => {
+        if (DOMElements.spinner) DOMElements.spinner.classList.add('hidden');
+    };
+    
+    const showToast = (message, isError = false) => {
+        if (!DOMElements.toast) return;
+        DOMElements.toast.textContent = message;
+        DOMElements.toast.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
+        setTimeout(() => {
+            if (DOMElements.toast) DOMElements.toast.classList.remove('show');
+        }, 4000);
+    };
+
+    // Gestion des onglets
+    function switchTab(tabName) {
+        // Mettre à jour les boutons d'onglets
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('border-red-500', 'text-red-600', 'tab-active');
+                btn.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                btn.classList.remove('border-red-500', 'text-red-600', 'tab-active');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            }
+        });
+
+        // Masquer tous les contenus d'onglets
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+
+        // Afficher le contenu de l'onglet actif
+        const activeTab = document.getElementById(`${tabName}-tab`);
+        if (activeTab) {
+            activeTab.classList.remove('hidden');
+        }
+
+        currentTab = tabName;
+
+        // Charger les données pour l'onglet actif
+        switch (tabName) {
+            case 'hotels':
+                loadHotels();
+                break;
+            case 'permissions':
+                loadPermissions();
+                break;
+            case 'audit':
+                loadAuditLog();
+                break;
+            case 'export':
+                loadExportData();
+                break;
+        }
+    }
+
+    // Vérifier l'authentification
+    async function checkAuth() {
+        if (!authToken) {
+            window.location.href = 'https://hotelvision.e-hotelmanager.com/login';
+            return;
+        }
+        
+        try {
+            // Vérifier la validité du token avec notre API
+            const response = await fetch(`${API_URL}/api/verify-token`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Token invalide');
+            }
+            
+            const data = await response.json();
+            currentUser = data.user;
+            
+            // Vérifier si l'utilisateur est un administrateur
+            if (currentUser.role !== 'admin') {
+                showToast('Accès refusé. Vous n\'êtes pas administrateur.', true);
+                setTimeout(() => {
+                    window.location.href = 'https://hotelvision.e-hotelmanager.com';
+                }, 2000);
+                return;
+            }
+            
+            // Mettre à jour l'interface utilisateur
+            if (DOMElements.userEmail) {
+                DOMElements.userEmail.textContent = currentUser.email;
+            }
+            
+            // Charger les données initiales
+            await loadDashboard();
+            await loadHotels();
+            
+        } catch (error) {
+            console.error('Erreur d\'authentification:', error);
+            localStorage.removeItem('hotelvision_token');
+            window.location.href = 'https://hotelvision.e-hotelmanager.com/login';
+        }
+    }
+
+    // Charger le tableau de bord
+    async function loadDashboard() {
+        try {
+            showSpinner();
+            
+            const response = await fetch(`${API_URL}/api/admin/dashboard/stats`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger les statistiques');
+            }
+            
+            const stats = await response.json();
+            
+            // Mettre à jour les statistiques
+            if (DOMElements.statsHotels) DOMElements.statsHotels.textContent = stats.stats.hotels;
+            if (DOMElements.statsUsers) DOMElements.statsUsers.textContent = stats.stats.users;
+            if (DOMElements.statsTariffs) DOMElements.statsTariffs.textContent = stats.stats.tariff_plans;
+            if (DOMElements.statsConfigs) DOMElements.statsConfigs.textContent = stats.stats.configurations;
+            
+            // Mettre à jour l'activité récente
+            if (DOMElements.recentActivity && stats.recent_activity) {
+                DOMElements.recentActivity.innerHTML = stats.recent_activity.slice(0, 5).map(activity => `
+                    <div class="text-sm">
+                        <div class="font-medium text-gray-900">${actionToLabel(activity.action)}</div>
+                        <div class="text-gray-500">${new Date(activity.performed_at).toLocaleDateString('fr-FR')} ${new Date(activity.performed_at).toLocaleTimeString('fr-FR')}</div>
+                    </div>
+                `).join('');
+            }
+            
+            hideSpinner();
+            
+        } catch (error) {
+            console.error('Erreur chargement statistiques:', error);
+            showToast(error.message, true);
+            hideSpinner();
+        }
+    }
+
+    // Charger la liste des hôtels
+    async function loadHotels() {
+        try {
+            showSpinner();
+            
+            const response = await fetch(`${API_URL}/api/admin/hotels`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger les hôtels');
+            }
+            
+            const hotels = await response.json();
+            const allHotels = hotels.hotels;
+            
+            // Mettre à jour les selects
+            updateSelects(allHotels);
+            
+            // Filtrer les hôtels
+            let filteredHotels = allHotels;
+            const filterValue = DOMElements.filterHotels?.value || 'all';
+            const searchValue = DOMElements.searchHotels?.value?.toLowerCase() || '';
+            
+            if (filterValue !== 'all') {
+                filteredHotels = filteredHotels.filter(hotel => hotel.status === filterValue);
+            }
+            
+            if (searchValue) {
+                filteredHotels = filteredHotels.filter(hotel => 
+                    hotel.hotel_name.toLowerCase().includes(searchValue) ||
+                    hotel.hotel_id.toLowerCase().includes(searchValue)
+                );
+            }
+            
+            if (DOMElements.hotelsTableBody) {
+                if (filteredHotels.length === 0) {
+                    DOMElements.hotelsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">Aucun hôtel trouvé</td>
+                        </tr>
+                    `;
+                } else {
+                    DOMElements.hotelsTableBody.innerHTML = filteredHotels.map(hotel => {
+                        const statusClass = hotel.status === 'active' ? 'status-active' : 
+                                          hotel.status === 'suspended' ? 'status-suspended' : 
+                                          'status-deleted';
+                        
+                        return `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hotel.hotel_name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hotel.hotel_id}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hotel.admin_email}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="status-badge ${statusClass}">${hotel.status}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hotel.users_count || 0}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${hotel.last_update || 'Jamais'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewHotelDetails('${hotel.hotel_id}')" class="text-red-600 hover:text-red-900">
+                                            <i data-feather="eye" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="editHotel('${hotel.hotel_id}')" class="text-blue-600 hover:text-blue-900">
+                                            <i data-feather="edit" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="deleteHotel('${hotel.hotel_id}')" class="text-red-600 hover:text-red-900">
+                                            <i data-feather="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    // Réinitialiser les icônes Feather
+                    feather.replace();
+                }
+            }
+            
+            hideSpinner();
+            
+        } catch (error) {
+            console.error('Erreur chargement hôtels:', error);
+            showToast(error.message, true);
+            hideSpinner();
+        }
+    }
+
+    // Mettre à jour les selects
+    function updateSelects(hotels) {
+        // Select pour permissions
+        if (DOMElements.hotelSelect) {
+            DOMElements.hotelSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.hotelSelect.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+
+        // Select pour export tarifaire
+        if (DOMElements.exportHotelTariff) {
+            DOMElements.exportHotelTariff.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.exportHotelTariff.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+
+        // Select pour export configuration
+        if (DOMElements.exportHotelConfig) {
+            DOMElements.exportHotelConfig.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.exportHotelConfig.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+
+        // Select pour audit log
+        if (DOMElements.exportAuditHotel) {
+            DOMElements.exportAuditHotel.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.exportAuditHotel.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+
+        // Select pour upload tarifaire
+        if (DOMElements.uploadTariffHotel) {
+            DOMElements.uploadTariffHotel.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.uploadTariffHotel.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+
+        // Select pour upload configuration
+        if (DOMElements.uploadConfigHotel) {
+            DOMElements.uploadConfigHotel.innerHTML = '<option value="">-- Sélectionner --</option>';
+            hotels.forEach(hotel => {
+                DOMElements.uploadConfigHotel.innerHTML += `<option value="${hotel.hotel_id}">${hotel.hotel_name}</option>`;
+            });
+        }
+    }
+
+    // Charger les permissions
+    async function loadPermissions() {
+        try {
+            showSpinner();
+            
+            const response = await fetch(`${API_URL}/api/permissions/`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger les permissions');
+            }
+            
+            const permissions = await response.json();
+            
+            if (DOMElements.permissionsTableBody) {
+                if (permissions.length === 0) {
+                    DOMElements.permissionsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">Aucune permission active</td>
+                        </tr>
+                    `;
+                } else {
+                    DOMElements.permissionsTableBody.innerHTML = permissions.map(permission => {
+                        const expirationDate = new Date(permission.access_expires_at);
+                        const formattedDate = expirationDate.toLocaleDateString('fr-FR');
+                        
+                        return `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${permission.user_email}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${permission.hotel_name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedDate}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button onclick="revokePermission('${permission.user_email}', '${permission.hotel_id}')" class="text-red-600 hover:text-red-900">
+                                        <i data-feather="trash-2" class="w-4 h-4"></i> Révoquer
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                    
+                    // Réinitialiser les icônes Feather
+                    feather.replace();
+                }
+            }
+            
+            hideSpinner();
+            
+        } catch (error) {
+            console.error('Erreur chargement permissions:', error);
+            showToast(error.message, true);
+            hideSpinner();
+        }
+    }
+
+    // Charger l'audit log
+    async function loadAuditLog() {
+        try {
+            showSpinner();
+            
+            let url = `${API_URL}/api/admin/audit-log`;
+            const filterValue = DOMElements.filterAudit?.value || 'all';
+            if (filterValue !== 'all') {
+                url += `?action=${filterValue}`;
+            }
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger l\'audit log');
+            }
+            
+            const auditData = await response.json();
+            
+            if (DOMElements.auditTableBody) {
+                if (auditData.audit_log.length === 0) {
+                    DOMElements.auditTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Aucune activité trouvée</td>
+                        </tr>
+                    `;
+                } else {
+                    DOMElements.auditTableBody.innerHTML = auditData.audit_log.map(audit => {
+                        const performedDate = new Date(audit.performed_at);
+                        const formattedDate = performedDate.toLocaleDateString('fr-FR') + ' ' + performedDate.toLocaleTimeString('fr-FR');
+                        
+                        return `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${actionToLabel(audit.action)}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${audit.table_name}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${audit.hotel_id || 'N/A'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${audit.performed_by || 'Système'}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedDate}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+            
+            hideSpinner();
+            
+        } catch (error) {
+            console.error('Erreur chargement audit log:', error);
+            showToast(error.message, true);
+            hideSpinner();
+        }
+    }
+
+    // Charger les données pour l'export
+    function loadExportData() {
+        // Les données sont déjà chargées dans updateSelects
+    }
+
+    // Convertir les actions en labels
+    function actionToLabel(action) {
+        const actionLabels = {
+            'create_hotel': 'Création hôtel',
+            'update_hotel': 'Mise à jour hôtel',
+            'delete_hotel': 'Suppression hôtel',
+            'update_tariff': 'Mise à jour tarif',
+            'update_config': 'Mise à jour config',
+            'create_tariff': 'Création tarif',
+            'create_config': 'Création config',
+            'reset_hotel_data': 'Réinitialisation hôtel'
+        };
+        return actionLabels[action] || action;
+    }
+
+    // Accorder une permission
+    async function grantPermission() {
+        const userEmail = DOMElements.userEmail.value.trim();
+        const hotelId = DOMElements.hotelSelect.value;
+        const duration = DOMElements.durationSelect.value;
+        
+        if (!userEmail || !hotelId) {
+            showToast('Veuillez remplir tous les champs', true);
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const response = await fetch(`${API_URL}/api/permissions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    user_email: userEmail,
+                    hotel_id: hotelId,
+                    duration: duration
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de l\'octroi de la permission');
+            }
+            
+            showToast(data.message);
+            
+            // Réinitialiser le formulaire
+            DOMElements.userEmail.value = '';
+            DOMElements.hotelSelect.value = '';
+            
+            // Recharger la liste des permissions
+            await loadPermissions();
+            
+        } catch (error) {
+            console.error('Erreur octroi permission:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    }
+
+    // Révoquer une permission
+    window.revokePermission = async function(userEmail, hotelId) {
+        if (!confirm(`Êtes-vous sûr de vouloir révoquer l'accès de ${userEmail} à l'hôtel ${hotelId} ?`)) {
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const response = await fetch(`${API_URL}/api/permissions/`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    user_email: userEmail,
+                    hotel_id: hotelId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de la révocation de la permission');
+            }
+            
+            showToast(data.message);
+            
+            // Recharger la liste des permissions
+            await loadPermissions();
+            
+        } catch (error) {
+            console.error('Erreur révocation permission:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    };
+
+    // Créer un hôtel
+    async function createHotel() {
+        const hotelId = DOMElements.newHotelId.value.trim();
+        const hotelName = DOMElements.newHotelName.value.trim();
+        const adminEmail = DOMElements.newHotelEmail.value.trim();
+        const contactEmail = DOMElements.newHotelContactEmail.value.trim();
+        const contactPhone = DOMElements.newHotelContactPhone.value.trim();
+        
+        if (!hotelId || !hotelName || !adminEmail) {
+            showToast('Veuillez remplir tous les champs obligatoires', true);
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const response = await fetch(`${API_URL}/api/admin/hotels/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({
+                    hotel_id: hotelId,
+                    hotel_name: hotelName,
+                    admin_email: adminEmail,
+                    contact_email: contactEmail,
+                    contact_phone: contactPhone
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de la création de l\'hôtel');
+            }
+            
+            showToast(data.message);
+            
+            // Fermer la modale
+            DOMElements.createHotelModal.classList.add('hidden');
+            
+            // Réinitialiser le formulaire
+            document.getElementById('createHotelForm').reset();
+            
+            // Recharger la liste des hôtels
+            await loadHotels();
+            await loadDashboard();
+            
+        } catch (error) {
+            console.error('Erreur création hôtel:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    }
+
+    // Uploader un plan tarifaire
+    async function uploadTariff() {
+        const hotelId = DOMElements.uploadTariffHotel.value;
+        const planName = DOMElements.uploadTariffName.value.trim();
+        const fileInput = DOMElements.uploadTariffFile;
+        const validFrom = DOMElements.uploadTariffValidFrom.value;
+        const validTo = DOMElements.uploadTariffValidTo.value;
+        
+        if (!hotelId || !planName || !fileInput.files[0]) {
+            showToast('Veuillez remplir tous les champs', true);
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('hotel_id', hotelId);
+            formData.append('plan_name', planName);
+            if (validFrom) formData.append('valid_from', validFrom);
+            if (validTo) formData.append('valid_to', validTo);
+            
+            const response = await fetch(`${API_URL}/api/admin/hotels/${hotelId}/tariff/upload`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de l\'upload du tarif');
+            }
+            
+            showToast(data.message);
+            
+            // Fermer la modale
+            DOMElements.uploadTariffModal.classList.add('hidden');
+            
+            // Réinitialiser le formulaire
+            document.getElementById('uploadTariffForm').reset();
+            
+            // Recharger les données
+            await loadHotels();
+            await loadDashboard();
+            
+        } catch (error) {
+            console.error('Erreur upload tarif:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    }
+
+    // Uploader une configuration
+    async function uploadConfig() {
+        const hotelId = DOMElements.uploadConfigHotel.value;
+        const configName = DOMElements.uploadConfigName.value.trim();
+        const version = DOMElements.uploadConfigVersion.value.trim();
+        const fileInput = DOMElements.uploadConfigFile;
+        
+        if (!hotelId || !configName || !fileInput.files[0]) {
+            showToast('Veuillez remplir tous les champs', true);
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('hotel_id', hotelId);
+            formData.append('config_name', configName);
+            formData.append('version', version);
+            
+            const response = await fetch(`${API_URL}/api/admin/hotels/${hotelId}/config/upload`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de l\'upload de la configuration');
+            }
+            
+            showToast(data.message);
+            
+            // Fermer la modale
+            DOMElements.uploadConfigModal.classList.add('hidden');
+            
+            // Réinitialiser le formulaire
+            document.getElementById('uploadConfigForm').reset();
+            
+            // Recharger les données
+            await loadHotels();
+            await loadDashboard();
+            
+        } catch (error) {
+            console.error('Erreur upload config:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    }
+
+    // Exporter les tarifs
+    async function exportTariff() {
+        const hotelId = DOMElements.exportHotelTariff.value;
+        const format = DOMElements.exportFormatTariff.value;
+        
+        if (!hotelId) {
+            showToast('Veuillez sélectionner un hôtel', true);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/hotel/export/tariff?hotel_id=${hotelId}&format=${format}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erreur lors de l\'export');
+            }
+            
+            // Gérer le téléchargement
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tariff_${hotelId}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showToast('Export réussi');
+            
+        } catch (error) {
+            console.error('Erreur export tarif:', error);
+            showToast(error.message, true);
+        }
+    }
+
+    // Exporter les configurations
+    async function exportConfig() {
+        const hotelId = DOMElements.exportHotelConfig.value;
+        const format = DOMElements.exportFormatConfig.value;
+        
+        if (!hotelId) {
+            showToast('Veuillez sélectionner un hôtel', true);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${API_URL}/api/hotel/export/config?hotel_id=${hotelId}&format=${format}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erreur lors de l\'export');
+            }
+            
+            // Gérer le téléchargement
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `config_${hotelId}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showToast('Export réussi');
+            
+        } catch (error) {
+            console.error('Erreur export config:', error);
+            showToast(error.message, true);
+        }
+    }
+
+    // Exporter l'audit log
+    async function exportAudit() {
+        const hotelId = DOMElements.exportAuditHotel.value;
+        const format = DOMElements.exportAuditFormat.value;
+        
+        try {
+            let url = `${API_URL}/api/admin/audit-log/export?format=${format}`;
+            if (hotelId) {
+                url += `?hotel_id=${hotelId}`;
+            }
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Erreur lors de l\'export');
+            }
+            
+            // Gérer le téléchargement
+            const blob = await response.blob();
+            const urlObj = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = urlObj;
+            a.download = `audit_log.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(urlObj);
+            document.body.removeChild(a);
+            
+            showToast('Export réussi');
+            
+        } catch (error) {
+            console.error('Erreur export audit:', error);
+            showToast(error.message, true);
+        }
+    }
+
+    // Voir les détails d'un hôtel
+    window.viewHotelDetails = async function(hotelId) {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/hotels/${hotelId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger les détails');
+            }
+            
+            const data = await response.json();
+            
+            // Afficher les détails dans une modale ou un toast
+            showToast(`Hôtel: ${data.hotel.hotel_name}, Admin: ${data.hotel.admin_email}`);
+            
+        } catch (error) {
+            console.error('Erreur chargement détails:', error);
+            showToast(error.message, true);
+        }
+    };
+
+    // Modifier un hôtel
+    window.editHotel = async function(hotelId) {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/hotels/${hotelId}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Impossible de charger les détails');
+            }
+            
+            const data = await response.json();
+            
+            // Remplir le formulaire de création avec les données existantes
+            DOMElements.newHotelId.value = data.hotel.hotel_id;
+            DOMElements.newHotelName.value = data.hotel.hotel_name;
+            DOMElements.newHotelEmail.value = data.hotel.admin_email;
+            DOMElements.newHotelContactEmail.value = data.hotel.contact_email || '';
+            DOMElements.newHotelContactPhone.value = data.hotel.contact_phone || '';
+            
+            // Afficher la modale
+            DOMElements.createHotelModal.classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Erreur chargement détails:', error);
+            showToast(error.message, true);
+        }
+    };
+
+    // Supprimer un hôtel
+    window.deleteHotel = async function(hotelId) {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cet hôtel ? Cette action est irréversible.')) {
+            return;
+        }
+        
+        showSpinner();
+        
+        try {
+            const response = await fetch(`${API_URL}/api/admin/hotels/${hotelId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.detail || 'Erreur lors de la suppression');
+            }
+            
+            showToast(data.message);
+            
+            // Recharger la liste des hôtels
+            await loadHotels();
+            await loadDashboard();
+            
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+            showToast(error.message, true);
+        } finally {
+            hideSpinner();
+        }
+    };
+
+    // Gérer la déconnexion
+    async function handleLogout() {
+        try {
+            await supabase.auth.signOut();
+            localStorage.removeItem('hotelvision_token');
+            localStorage.removeItem('hotelvision_user');
+            window.location.href = 'https://hotelvision.e-hotelmanager.com/login';
+        } catch (error) {
+            console.error('Erreur de déconnexion:', error);
+            showToast('Erreur lors de la déconnexion', true);
+        }
+    }
+    
+    // Event listeners
+    if (DOMElements.grantAccessBtn) DOMElements.grantAccessBtn.addEventListener('click', grantPermission);
+    if (DOMElements.logoutBtn) DOMElements.logoutBtn.addEventListener('click', handleLogout);
+    if (DOMElements.createHotelBtn) DOMElements.createHotelBtn.addEventListener('click', () => {
+        // Remplir avec des valeurs par défaut
+        const now = new Date();
+        const hotelId = 'hotel_' + now.getTime();
+        const hotelName = 'Nouvel Hôtel ' + now.toLocaleDateString();
+        
+        DOMElements.newHotelId.value = hotelId;
+        DOMElements.newHotelName.value = hotelName;
+        DOMElements.newHotelEmail.value = currentUser.email;
+        
+        DOMElements.createHotelModal.classList.remove('hidden');
+    });
+    if (DOMElements.uploadTariffBtn) DOMElements.uploadTariffBtn.addEventListener('click', () => {
+        DOMElements.uploadTariffModal.classList.remove('hidden');
+    });
+    if (DOMElements.uploadConfigBtn) DOMElements.uploadConfigBtn.addEventListener('click', () => {
+        DOMElements.uploadConfigModal.classList.remove('hidden');
+    });
+    if (DOMElements.refreshBtn) DOMElements.refreshBtn.addEventListener('click', () => {
+        loadDashboard();
+        loadHotels();
+    });
+    if (DOMElements.exportTariffBtn) DOMElements.exportTariffBtn.addEventListener('click', exportTariff);
+    if (DOMElements.exportConfigBtn) DOMElements.exportConfigBtn.addEventListener('click', exportConfig);
+    if (DOMElements.exportAuditBtn) DOMElements.exportAuditBtn.addEventListener('click', loadAuditLog);
+    if (DOMElements.exportAuditFullBtn) DOMElements.exportAuditFullBtn.addEventListener('click', exportAudit);
+    
+    // Gestion des modales
+    if (DOMElements.cancelCreateHotel) DOMElements.cancelCreateHotel.addEventListener('click', () => {
+        DOMElements.createHotelModal.classList.add('hidden');
+    });
+    if (DOMElements.cancelUploadTariff) DOMElements.cancelUploadTariff.addEventListener('click', () => {
+        DOMElements.uploadTariffModal.classList.add('hidden');
+    });
+    if (DOMElements.cancelUploadConfig) DOMElements.cancelUploadConfig.addEventListener('click', () => {
+        DOMElements.uploadConfigModal.classList.add('hidden');
+    });
+    
+    // Gestion des formulaires
+    document.getElementById('createHotelForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        createHotel();
+    });
+    document.getElementById('uploadTariffForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        uploadTariff();
+    });
+    document.getElementById('uploadConfigForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        uploadConfig();
+    });
+    
+    // Gestion des filtres
+    if (DOMElements.searchHotels) DOMElements.searchHotels.addEventListener('input', loadHotels);
+    if (DOMElements.filterHotels) DOMElements.filterHotels.addEventListener('change', loadHotels);
+    if (DOMElements.searchAudit) DOMElements.searchAudit.addEventListener('input', loadAuditLog);
+    if (DOMElements.filterAudit) DOMElements.filterAudit.addEventListener('change', loadAuditLog);
+    
+    // Gestion des onglets
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchTab(btn.dataset.tab);
+        });
+    });
+    
+    // Vérifier l'authentification au chargement de la page
+    checkAuth();
+    feather.replace();
+});
+</script>
+</body>
+</html>

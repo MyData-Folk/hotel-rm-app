@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HotelVision RM v2.0 - Connexion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        
+        .form-input {
+            transition: all 0.3s ease;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .form-input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(79, 70, 229, 0.6);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #4f46e5;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full space-y-8 p-8">
+        <div class="text-center">
+            <div class="flex justify-center">
+                <div class="gradient-bg p-3 rounded-full">
+                    <i data-feather="home" class="w-8 h-8 text-white"></i>
+                </div>
+            </div>
+            <h2 class="mt-6 text-3xl font-bold text-gray-900">HotelVision RM v2.0</h2>
+            <p class="mt-2 text-sm text-gray-600">Connectez-vous à votre compte</p>
+        </div>
+        
+        <form id="loginForm" class="mt-8 space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Adresse e-mail</label>
+                    <input id="email" name="email" type="email" autocomplete="email" required 
+                           class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+                    <input id="password" name="password" type="password" autocomplete="current-password" required 
+                           class="form-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+            
+            <div>
+                <button type="submit" id="loginBtn" class="btn-gradient-primary w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <span id="loginBtnText">Se connecter</span>
+                    <div id="loginSpinner" class="spinner ml-2 hidden"></div>
+                </button>
+            </div>
+            
+            <div class="text-center">
+                <a href="#" id="forgotPasswordLink" class="text-sm text-indigo-600 hover:text-indigo-500">Mot de passe oublié?</a>
+            </div>
+        </form>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        // Configuration Supabase
+        const { supabase } = createClient('https://yourproject.supabase.co', 'your-anon-key');
+        
+        // Éléments DOM
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginBtnText = document.getElementById('loginBtnText');
+        const loginSpinner = document.getElementById('loginSpinner');
+        const toast = document.getElementById('toast');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        
+        // Initialiser les icônes Feather
+        feather.replace();
+        
+        // Afficher un message toast
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+        
+        // Gérer la soumission du formulaire de connexion
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showToast('Veuillez remplir tous les champs', true);
+                return;
+            }
+            
+            // Afficher le spinner
+            loginBtnText.textContent = 'Connexion en cours...';
+            loginSpinner.classList.remove('hidden');
+            loginBtn.disabled = true;
+            
+            try {
+                // Connexion avec Supabase
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Stocker le token dans localStorage
+                localStorage.setItem('hotelvision_token', data.session.access_token);
+                localStorage.setItem('hotelvision_user', JSON.stringify(data.user));
+                
+                showToast('Connexion réussie');
+                
+                // Rediriger vers le tableau de bord
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Erreur de connexion:', error);
+                showToast(error.message || 'Erreur lors de la connexion', true);
+                
+                // Réinitialiser le bouton
+                loginBtnText.textContent = 'Se connecter';
+                loginSpinner.classList.add('hidden');
+                loginBtn.disabled = false;
+            }
+        });
+        
+        // Gérer le mot de passe oublié
+        forgotPasswordLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showToast('Veuillez entrer votre adresse e-mail', true);
+                return;
+            }
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email);
+                
+                if (error) {
+                    throw error;
+                }
+                
+                showToast('Un e-mail de réinitialisation a été envoyé');
+                
+            } catch (error) {
+                console.error('Erreur de réinitialisation:', error);
+                showToast(error.message || 'Erreur lors de l\'envoi de l\'e-mail', true);
+            }
+        });
+        
+        // Vérifier si l'utilisateur est déjà connecté
+        async function checkAuth() {
+            const { data } = await supabase.auth.getSession();
+            
+            if (data.session) {
+                // L'utilisateur est déjà connecté, rediriger vers le tableau de bord
+                window.location.href = '/';
+            }
+        }
+        
+        // Vérifier l'authentification au chargement de la page
+        checkAuth();
+    </script>
+</body>
+</html>
