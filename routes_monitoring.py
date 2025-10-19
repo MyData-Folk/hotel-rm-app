@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from datetime import datetime
 
-router = APIRouter(tags=["Monitoring"])
+router = APIRouter(prefix="/monitor", tags=["Monitoring"])
 
 fake_hotels = [
     {"id": "folkestone", "name": "Folkestone Opera", "stars": 4},
