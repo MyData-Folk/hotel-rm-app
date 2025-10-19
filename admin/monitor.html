@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Folkestone — Maintenance & Monitoring</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --card-hover:#0f1a2e;
+    --muted:#9aa6b2; --accent:#60a5fa; --accent-hover:#3b82f6;
+    --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
+    --glass: rgba(255,255,255,0.03);
+    --glass-hover: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.1);
+    --shadow: 0 6px 18px rgba(2,6,23,0.6);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+  }
+  
+  *{box-sizing:border-box}
+  
+  html,body{
+    height:100%;margin:0;
+    background:linear-gradient(135deg, #07102a 0%, #071a2e 50%, #0f2347 100%);
+    color:#e6eef6;overflow-x:hidden
+  }
+  
+  .container{
+    max-width:1400px;margin:0 auto;padding:20px;
+    display:flex;flex-direction:column;min-height:100vh;
+    gap:20px
+  }
+  
+  .header{
+    text-align:center;margin-bottom:10px;
+  }
+  
+  .header h1{
+    font-size:28px;font-weight:700;margin:0;
+    background:linear-gradient(90deg,var(--accent),#3b82f6);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    background-clip:text
+  }
+  
+  .header p{
+    color:var(--muted);margin:8px 0 0;font-size:14px;
+  }
+  
+  .main-layout{
+    display:grid;grid-template-columns:320px 1fr;gap:20px;
+    flex:1
+  }
+  
+  @media (max-width:768px){
+    .main-layout{grid-template-columns:1fr}
+    .sidebar{position:static !important}
+  }
+  
+  .card{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:16px;padding:20px;
+    box-shadow:var(--shadow);border:1px solid var(--border);
+    transition:var(--transition);position:relative;
+    overflow:hidden
+  }
+  
+  .card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:2px;
+    background:linear-gradient(90deg,var(--accent),#3b82f6);
+    transform:scaleX(0);transition:transform 0.3s
+  }
+  
+  .card:hover::before{transform:scaleX(1)}
+  
+  .card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(2,6,23,0.8)}
+  
+  .sidebar .card{position:sticky;top:20px}
+  
+  header.card{display:flex;align-items:center;gap:16px;padding:20px}
+  
+  .logo{
+    width:56px;height:56px;border-radius:12px;
+    background:linear-gradient(135deg,#06263f,#0a1b2a);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:20px;color:var(--accent);
+    box-shadow:0 4px 12px rgba(96,165,250,0.2)
+  }
+  
+  .logo.admin{background:linear-gradient(135deg,#06263f,#0a1b2a)}
+  .logo.monitor{background:linear-gradient(135deg,#1e3a5f,#2d4a7a)}
+  
+  h1{font-size:20px;margin:0;font-weight:600}
+  h2{font-size:16px;margin:0 0 12px 0;font-weight:600;color:#e6eef6}
+  h3{font-size:14px;margin:0 0 8px 0;font-weight:600;color:#cbd5e1}
+  
+  p.small{margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
+  
+  label{font-size:13px;color:var(--muted);display:block;margin-top:12px;
+    font-weight:500;letter:0.5px}
+  
+  input[type=text], textarea, select{
+    width:100%;padding:12px 16px;border-radius:10px;
+    border:1px solid var(--border);background:var(--glass);
+    color:inherit;font-size:14px;transition:var(--transition);
+    font-family:inherit
+  }
+  
+  input[type=text]:focus, textarea:focus, select:focus{
+    outline:none;border-color:var(--accent);
+    background:var(--glass);box-shadow:0 0 0 3px rgba(96,165,250,0.1)
+  }
+  
+  input[type=text]::placeholder, textarea::placeholder{
+    color:var(--muted);opacity:0.7
+  }
+  
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;padding:12px 20px;
+    border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent),#3b82f6);
+    color:#04263b;cursor:pointer;font-weight:600;font-size:14px;
+    transition:var(--transition);position:relative;overflow:hidden
+  }
+  
+  .btn::before{
+    content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+    transition:left 0.5s
+  }
+  
+  .btn:hover::before{left:100%}
+  
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(96,165,250,0.3)}
+  .btn:active{transform:translateY(0)}
+  
+  .btn.secondary{
+    background:transparent;border:1px solid var(--border);
+    color:var(--muted);background:var(--glass);
+  }
+  
+  .btn.secondary:hover{
+    background:var(--glass-hover);border-color:var(--accent);
+    color:var(--accent)
+  }
+  
+  .btn:disabled{
+    opacity:0.5;cursor:not-allowed;transform:none
+  }
+  
+  .btn-group{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  
+  .btn-group .btn{flex:1;min-width:120px}
+  
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  
+  .row > *{flex:1;min-width:200px}
+  
+  pre{
+    white-space:pre-wrap;background:#031024;padding:16px;
+    border-radius:10px;color:#cde7ff;font-size:13px;
+    max-height:400px;overflow:auto;border:1px solid var(--border);
+    font-family:'Monaco', 'Menlo', monospace;line-height:1.5;
+    margin:12px 0
+  }
+  
+  small.hint{color:var(--muted);font-size:11px;line-height:1.4;
+    display:block;margin-top:8px;padding:8px;
+    background:rgba(96,165,250,0.05);border-radius:6px;
+    border-left:3px solid var(--accent)}
+  
+  .status{display:flex;align-items:center;gap:10px;padding:12px;
+    background:rgba(255,255,255,0.02);border-radius:8px}
+  
+  .dot{width:12px;height:12px;border-radius:50%;
+    box-shadow:0 0 0 3px rgba(255,255,255,0.1)}
+  .dot.ok{background:var(--ok);box-shadow:0 0 0 3px rgba(16,185,129,0.2)}
+  .dot.warn{background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,0.2)}
+  .dot.err{background:var(--err);box-shadow:0 0 0 3px rgba(239,68,68,0.2)}
+  
+  .section-title{font-weight:600;margin:16px 0 12px 0;
+    color:#e6eef6;font-size:14px;letter:0.5px;
+    text-transform:uppercase;opacity:0.9}
+  
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  
+  @media (max-width:768px){
+    .grid-2, .grid-3{grid-template-columns:1fr}
+    .row{flex-direction:column}
+    .row > *{width:100%}
+  }
+  
+  footer{margin-top:16px;color:var(--muted);font-size:11px;
+    padding:16px;background:rgba(255,255,255,0.02);border-radius:10px}
+  
+  .link{color:var(--accent);cursor:pointer;text-decoration:underline;
+    transition:var(--transition)}
+  .link:hover{color:var(--accent-hover)}
+  
+  .form-row{display:flex;gap:12px;align-items:center}
+  
+  /* Tab styles */
+  .tab-container{margin-bottom:20px}
+  .tab-buttons{display:flex;gap:8px;margin-bottom:20px;
+    background:var(--card);border-radius:12px;padding:4px}
+  
+  .tab-btn{
+    flex:1;padding:12px 20px;border-radius:8px;
+    background:transparent;border:none;color:var(--muted);
+    cursor:pointer;font-weight:500;transition:var(--transition);
+    font-size:14px;position:relative
+  }
+  
+  .tab-btn::after{
+    content:'';position:absolute;bottom:0;left:50%;width:0;height:3px;
+    background:var(--accent);transform:translateX(-50%);
+    transition:width 0.3s
+  }
+  
+  .tab-btn.active{
+    background:linear-gradient(90deg,var(--accent),#3b82f6);
+    color:#04263b;box-shadow:0 4px 12px rgba(96,165,250,0.2)
+  }
+  
+  .tab-btn.active::after{width:80%}
+  
+  .tab-btn:hover:not(.active){
+    background:var(--glass-hover);color:var(--accent)
+  }
+  
+  .tab-content{display:none;animation:fadeIn 0.3s ease-in-out}
+  .tab-content.active{display:block}
+  
+  @keyframes fadeIn{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  
+  /* Loading spinner */
+  .spinner{
+    display:inline-block;width:16px;height:16px;
+    border:2px solid rgba(255,255,255,0.3);
+    border-radius:50%;border-top-color:var(--accent);
+    animation:spin 1s linear infinite;margin-right:8px
+  }
+  
+  @keyframes spin{
+    to{transform:rotate(360deg)}
+  }
+  
+  /* Toast notifications */
+  .toast-container{
+    position:fixed;top:20px;right:20px;z:1000;
+    display:flex;flex-direction:column;gap:10px
+  }
+  
+  .toast{
+    background:var(--card);border-radius:10px;padding:16px 20px;
+    box-shadow:var(--shadow);border:1px solid var(--border);
+    min-width:300px;max-width:400px;animation:slideIn 0.3s ease-out;
+    display:flex;align-items:center;gap:12px
+  }
+  
+  .toast.success{border-left:4px solid var(--ok)}
+  .toast.error{border-left:4px solid var(--err)}
+  .toast.warning{border-left:4px solid var(--warn)}
+  
+  .toast-icon{width:20px;height:20px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:bold;color:white
+  }
+  
+  .toast.success .toast-icon{background:var(--ok)}
+  .toast.error .toast-icon{background:var(--err)}
+  .toast.warning .toast-icon{background:var(--warn)}
+  
+  @keyframes slideIn{
+    from{transform:translateX(100%);opacity:0}
+    to{transform:translateX(0);opacity:1}
+  }
+  
+  /* Input groups */
+  .input-group{display:flex;gap:8px;align-items:center}
+  .input-group input{flex:1}
+  .input-group .btn{flex:none}
+  
+  /* Status badges */
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:20px;font-size:12px;
+    font-weight:500;letter:0.5px
+  }
+  
+  .badge.success{background:rgba(16,185,129,0.1);color:var(--ok)}
+  .badge.error{background:rgba(239,68,68,0.1);color:var(--err)}
+  .badge.warning{background:rgba(245,158,11,0.1);color:var(--warn)}
+  .badge.info{background:rgba(96,165,250,0.1);color:var(--accent)}
+  
+  /* Code blocks */
+  .code-block{
+    background:#031024;border:1px solid var(--border);
+    border-radius:10px;padding:16px;margin:12px 0;
+    font-family:'Monaco', 'Menlo', monospace;font-size:13px;
+    line-height:1.5;overflow-x:auto
+  }
+  
+  .code-block code{color:#cde7ff}
+  
+  /* Hotel selection styles */
+  .hotel-select-container{
+    margin-top:12px;
+  }
+  
+  .hotel-select{
+    width:100%;padding:12px 16px;border-radius:10px;
+    border:1px solid var(--border);background:var(--glass);
+    color:inherit;font-size:14px;cursor:pointer;
+    transition:var(--transition);font-family:inherit
+  }
+  
+  .hotel-select:focus{
+    outline:none;border-color:var(--accent);
+    background:var(--glass);box-shadow:0 0 0 3px rgba(96,165,250,0.1)
+  }
+  
+  .hotel-list{
+    background:var(--card);border-radius:10px;border:1px solid var(--border);
+    margin-top:8px;max-height:200px;overflow-y:auto
+  }
+  
+  .hotel-item{
+    padding:12px 16px;border-bottom:1px solid var(--border);
+    cursor:pointer;transition:var(--transition);display:flex;
+    align-items:center;gap:12px
+  }
+  
+  .hotel-item:last-child{border-bottom:none}
+  
+  .hotel-item:hover{
+    background:var(--glass-hover);border-left:3px solid var(--accent)
+  }
+  
+  .hotel-item.selected{
+    background:rgba(96,165,250,0.1);border-left:3px solid var(--accent)
+  }
+  
+  .hotel-info{
+    flex:1
+  }
+  
+  .hotel-name{
+    font-weight:600;color:#e6eef6;margin-bottom:2px
+  }
+  
+  .hotel-stars{
+    color:var(--warn);font-size:12px
+  }
+  
+  .hotel-id{
+    color:var(--muted);font-size:11px;font-family:monospace
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width:640px){
+    .container{padding:12px}
+    .main-layout{grid-template-columns:1fr;gap:12px}
+    .card{padding:16px}
+    .header h1{font-size:24px}
+    .tab-buttons{flex-direction:column}
+    .toast{min-width:280px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Folkestone Dashboard</h1>
+    <p>Surveillance & outils de maintenance pour l'application hotel RM</p>
+  </div>
+
+  <div class="tab-container">
+    <div class="tab-buttons">
+      <button class="tab-btn active" onclick="switchTab('admin')">
+        <span>🔧 Admin</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('monitoring')">
+        <span>📊 Monitoring App</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <!-- Sidebar Admin -->
+    <nav id="adminNav" class="sidebar">
+      <div class="card">
+        <header style="align-items:center">
+          <div class="logo admin">FO</div>
+          <div>
+            <h1>Admin Panel</h1>
+            <p class="small">Maintenance & surveillance</p>
+          </div>
+        </header>
+
+        <div class="section-title">Configuration</div>
+        <label>API Base URL</label>
+        <input id="baseUrl" type="text" value="https://api-folkestone.e-hotelmanager.com" />
+
+        <label>Admin Token (X-Admin-Token)</label>
+        <input id="adminToken" type="text" placeholder="optionnel — sécurisé pour actions admin"/>
+
+        <div class="section-title">Quick Actions</div>
+        <div class="btn-group">
+          <button class="btn" id="btnHealth">
+            <span>❤️</span> Health Check
+          </button>
+          <button class="btn secondary" id="btnHeaders">
+            <span>📋</span> Headers
+          </button>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn" id="btnLogs">
+            <span>📄</span> Get Logs
+          </button>
+          <button class="btn" id="btnTriggerBackup">
+            <span>💾</span> Backup
+          </button>
+          <button class="btn" id="btnRedeploy">
+            <span>🔄</span> Redeploy
+          </button>
+        </div>
+
+        <div class="row">
+          <label style="margin:0">Log Lines</label>
+          <input id="logLines" type="text" value="200" style="width:80px"/>
+        </div>
+
+        <div class="section-title">Utilities</div>
+        <div class="btn-group">
+          <button class="btn secondary" id="btnShowCli">
+            <span>💻</span> CLI Commands
+          </button>
+          <button class="btn secondary" id="btnDownloadLatestBackup">
+            <span>⬇️</span> Download Backup
+          </button>
+        </div>
+
+        <footer>
+          <div>📚 Documentation: health, files/status, simulate, admin endpoints</div>
+          <div class="hint">Actions sensibles nécessitent des endpoints admin sécurisés côté backend.</div>
+        </footer>
+      </div>
+    </nav>
+
+    <!-- Sidebar Monitoring -->
+    <nav id="monitoringNav" class="sidebar" style="display:none">
+      <div class="card">
+        <header style="align-items:center">
+          <div class="logo monitor">MO</div>
+          <div>
+            <h1>Monitoring App</h1>
+            <p class="small">Surveillance de l'application hotel RM</p>
+          </div>
+        </header>
+
+        <label>API Base URL</label>
+        <input id="monitoringBaseUrl" type="text" value="https://api-folkestone.e-hotelmanager.com" />
+
+        <div class="section-title">Quick Actions</div>
+        <div class="btn-group">
+          <button class="btn" id="btnGetHotels">
+            <span>🏨</span> Get Hotels
+          </button>
+          <button class="btn secondary" id="btnCheckFiles">
+            <span>📁</span> Check Files
+          </button>
+          <button class="btn secondary" id="btnSimulate">
+            <span>🎯</span> Simulate
+          </button>
+        </div>
+
+        <div class="section-title">Parameters</div>
+        <label>Hotel ID</label>
+        <input id="hotelId" type="text" placeholder="ex: folkestone" />
+
+        <div class="hotel-select-container" id="hotelSelectContainer" style="display:none">
+          <label>ou sélectionnez un hôtel depuis la liste</label>
+          <select id="hotelSelect" class="hotel-select" onchange="onHotelSelect()">
+            <option value="">-- Sélectionnez un hôtel --</option>
+          </select>
+        </div>
+
+        <label>Simulation Parameters (JSON)</label>
+        <textarea id="simParams" rows="4" placeholder='{"hotel": "folkestone", "arrival": "2025-10-20", "departure": "2025-10-25", "plan": "standard", "category": "double"}'></textarea>
+
+        <footer>
+          <div>🔍 Monitoring: hotels, files status, simulation</div>
+          <div class="hint">Outils de surveillance pour l'application hotel RM.</div>
+        </footer>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+      <!-- Admin Content -->
+      <div id="adminContent" class="tab-content active">
+        <div class="card" id="panelStatus">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2>📊 Overview</h2>
+              <div id="statusSummary" class="status">
+                <div class="dot warn"></div>
+                <div>
+                  <div id="statusText">Aucune vérification</div>
+                  <small id="lastChecked" style="color:var(--muted);font-size:11px;margin-top:4px">—</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <h3>🏥 Health Check</h3>
+              <pre id="healthOut">Appuyez sur "Health Check" pour lancer...</pre>
+            </div>
+            <div>
+              <h3>🔐 Headers / TLS</h3>
+              <pre id="headersOut">Cliquez "Headers" pour voir les en-têtes de réponse</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>📝 Logs & Actions</h2>
+          <div class="row">
+            <label style="margin:0">Logs (last N lines)</label>
+            <input id="linesTop" type="text" value="200" style="width:80px"/>
+            <div class="btn-group">
+              <button class="btn" id="btnFetchLogs">
+                <span>📄</span> Fetch Logs
+              </button>
+              <button class="btn secondary" id="btnClearLogs">
+                <span>🗑️</span> Clear
+              </button>
+            </div>
+          </div>
+          <pre id="logsOut">Logs will appear here...</pre>
+        </div>
+
+        <div class="card">
+          <h2>🗄️ Execute SQL (admin)</h2>
+          <p class="small">Exécute une requête SELECT (ex: <code>SELECT * FROM hotel LIMIT 10;</code>)</p>
+          <textarea id="sqlQuery" rows="4" placeholder="SELECT now();"></textarea>
+          <div class="btn-group">
+            <button class="btn" id="btnRunSql">
+              <span>▶️</span> Run SQL
+            </button>
+            <button class="btn secondary" id="btnExplainSql">
+              <span>📖</span> Explain (no exec)
+            </button>
+          </div>
+          <pre id="sqlOut">Résultat SQL / erreurs</pre>
+        </div>
+
+        <div class="card">
+          <h2>💾 Backup & Restore</h2>
+          <p class="small">Trigger a server-side pg_dump backup. The backend must provide <code>POST /admin/backup</code> that returns JSON `{ "url": "/backups/latest.sql" }`</p>
+          <div class="btn-group">
+            <button class="btn" id="btnBackupNow">
+              <span>💾</span> Trigger Backup
+            </button>
+            <button class="btn secondary" id="btnListBackups">
+              <span>📋</span> List Backups
+            </button>
+          </div>
+          <pre id="backupOut">Backup actions output</pre>
+        </div>
+
+        <div class="card">
+          <h2>📚 Backend Helper / Required Admin Endpoints</h2>
+          <div class="code-block">
+            <code>
+Recommended minimal admin endpoints (FastAPI) — secure with token (X-Admin-Token):
+POST /admin/backup → triggers pg_dump, returns JSON { "status":"ok", "url":"/backups/hoteldb_2025-10-19.sql" }
+GET /admin/backups → returns list of backups { "files": [ "/backups/..." ] }
+GET /logs?lines=N → returns last N lines of app logs
+POST /admin/sql → Body: { "sql":"SELECT ...", "readonly":true } → runs query (readonly recommended) and returns results
+Security: require header X-Admin-Token: <secret>. Use HTTPS and limit exposure to admin network.
+            </code>
+          </div>
+          <div class="hint">Je peux générer des snippets FastAPI pour ces endpoints si tu veux.</div>
+        </div>
+      </div>
+
+      <!-- Monitoring Content -->
+      <div id="monitoringContent" class="tab-content">
+        <div class="card" id="panelStatusMonitoring">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h2>📊 Overview</h2>
+              <div id="statusSummaryMonitoring" class="status">
+                <div class="dot warn"></div>
+                <div>
+                  <div id="statusTextMonitoring">Aucune vérification</div>
+                  <small id="lastCheckedMonitoring" style="color:var(--muted);font-size:11px;margin-top:4px">—</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <h3>🏨 Hotels List</h3>
+              <div id="hotelsContainer">
+                <pre id="hotelsOut">Cliquez "Get Hotels" pour voir la liste...</pre>
+                <div id="hotelList" class="hotel-list" style="display:none"></div>
+              </div>
+            </div>
+            <div>
+              <h3>📁 Files Status</h3>
+              <pre id="filesOut">Sélectionnez un hôtel et cliquez "Check Files Status"</pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>🎯 Simulation Results</h2>
+          <p class="small">Exécute une simulation de réservation avec les paramètres spécifiés</p>
+          <pre id="simulateOut">Résultats de la simulation apparaîtront ici...</pre>
+        </div>
+
+        <div class="card">
+          <h2>📚 Monitoring App Endpoints</h2>
+          <div class="code-block">
+            <code>
+Available monitoring endpoints:
+GET /hotels → returns list of hotels { "count": 3, "hotels": [...] }
+GET /files/status?hotel_id=xxx → returns file status for specific hotel
+POST /simulate → Body: { "hotel": "xxx", "arrival": "date", "departure": "date", "plan": "xxx", "category": "xxx" } → runs price simulation and returns results
+            </code>
+          </div>
+          <div class="hint">Ces endpoints sont spécifiques à l'application hotel RM.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+// Global variables
+let currentTab = 'admin';
+let hotelsData = [];
+const $ = id => document.getElementById(id);
+const baseEl = $('baseUrl'), tokenEl = $('adminToken');
+const monitoringBaseEl = $('monitoringBaseUrl');
+
+// Toast notification system
+function showToast(message, type = 'info', duration = 5000) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : type === 'warning' ? '⚠' : 'ℹ';
+  
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div class="toast-content">
+      <div class="toast-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;margin-left:auto">✕</button>
+  `;
+  
+  $('toastContainer').appendChild(toast);
+  
+  if (duration > 0) {
+    setTimeout(() => toast.remove(), duration);
+  }
+  
+  return toast;
+}
+
+// Tab switching with animation
+function switchTab(tabName) {
+  currentTab = tabName;
+  
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.closest('.tab-btn').classList.add('active');
+  
+  // Update content with animation
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+    content.style.animation = 'none';
+    setTimeout(() => {
+      content.style.animation = '';
+    }, 10);
+  });
+  
+  document.getElementById(`${tabName}Content`).classList.add('active');
+  
+  // Update navigation
+  document.getElementById('adminNav').style.display = tabName === 'admin' ? 'block' : 'none';
+  document.getElementById('monitoringNav').style.display = tabName === 'monitoring' ? 'block' : 'none';
+  
+  // Initialize tab-specific content
+  if (tabName === 'monitoring') {
+    initializeMonitoringTab();
+  }
+}
+
+// Initialize monitoring tab
+function initializeMonitoringTab() {
+  // Clear previous results
+  $('hotelsOut').textContent = 'Cliquez "Get Hotels" pour voir la liste...';
+  $('filesOut').textContent = 'Sélectionnez un hôtel et cliquez "Check Files Status"';
+  $('simulateOut').textContent = 'Résultats de la simulation apparaîtront ici...';
+  $('hotelList').style.display = 'none';
+  $('hotelSelectContainer').style.display = 'none';
+}
+
+// Enhanced status display
+function setStatus(stateText, stateClass, panel = 'admin') {
+  const statusText = panel === 'admin' ? $('statusText') : $('statusTextMonitoring');
+  const lastChecked = panel === 'admin' ? $('lastChecked') : $('lastCheckedMonitoring');
+  const dot = document.querySelector(`#${panel === 'admin' ? 'panelStatus' : 'panelStatusMonitoring'} .dot`);
+  
+  statusText.textContent = stateText;
+  dot.className = `dot ${stateClass}`;
+  lastChecked.textContent = `Dernière vérification: ${new Date().toLocaleString('fr-FR')}`;
+}
+
+// Enhanced API fetch with loading states
+async function apiFetch(path, opts = {}, useMonitoringApi = false) {
+  const base = (useMonitoringApi ? monitoringBaseEl : baseEl).value.replace(/\/+$/, '');
+  const url = path.startsWith('http') ? path : base + path;
+  opts.headers = opts.headers || {};
+  
+  if (tokenEl.value) opts.headers['X-Admin-Token'] = tokenEl.value;
+  
+  if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(opts.body);
+  }
+  
+  try {
+    const r = await fetch(url, opts);
+    const contentType = r.headers.get('content-type') || '';
+    let data;
+    
+    if (contentType.includes('application/json')) data = await r.json();
+    else data = await r.text();
+    
+    return { ok: r.ok, status: r.status, headers: r.headers, data, raw: r };
+  } catch (e) {
+    return { ok: false, status: 0, error: String(e) };
+  }
+}
+
+// Enhanced button loading states
+function setButtonLoading(buttonId, loading = true) {
+  const button = $(buttonId);
+  if (loading) {
+    const originalContent = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = `<span class="spinner"></span>Chargement...`;
+    button.dataset.originalContent = originalContent;
+  } else {
+    button.disabled = false;
+    button.innerHTML = button.dataset.originalContent || button.innerHTML;
+  }
+}
+
+// Hotel selection functions
+function onHotelSelect() {
+  const select = $('hotelSelect');
+  const selectedHotel = select.value;
+  
+  if (selectedHotel) {
+    // Update the hotel ID input
+    $('hotelId').value = selectedHotel;
+    
+    // Update the select to show the selected option
+    Array.from(select.options).forEach(option => {
+      option.selected = option.value === selectedHotel;
+    });
+    
+    showToast(`Hôtel "${selectedHotel}" sélectionné`, 'success');
+    
+    // Auto-fill simulation parameters for the selected hotel
+    autoFillSimulationParams(selectedHotel);
+  }
+}
+
+function autoFillSimulationParams(hotelId) {
+  const simParams = $('simParams');
+  const defaultParams = {
+    hotel: hotelId,
+    arrival: "2025-10-20",
+    departure: "2025-10-25",
+    plan: "standard",
+    category: "double"
+  };
+  
+  simParams.value = JSON.stringify(defaultParams, null, 2);
+}
+
+function displayHotelList(hotels) {
+  const hotelList = $('hotelList');
+  const hotelSelect = $('hotelSelect');
+  const hotelSelectContainer = $('hotelSelectContainer');
+  
+  // Clear existing content
+  hotelList.innerHTML = '';
+  hotelSelect.innerHTML = '<option value="">-- Sélectionnez un hôtel --</option>';
+  
+  hotels.forEach(hotel => {
+    // Add to dropdown
+    const option = document.createElement('option');
+    option.value = hotel.id;
+    option.textContent = `${hotel.name} (${hotel.id})`;
+    hotelSelect.appendChild(option);
+    
+    // Add to visual list
+    const hotelItem = document.createElement('div');
+    hotelItem.className = 'hotel-item';
+    hotelItem.onclick = () => selectHotel(hotel.id, hotel.name);
+    
+    const stars = '⭐'.repeat(hotel.stars || 3);
+    
+    hotelItem.innerHTML = `
+      <div class="hotel-info">
+        <div class="hotel-name">${hotel.name}</div>
+        <div class="hotel-stars">${stars}</div>
+      </div>
+      <div class="hotel-id">${hotel.id}</div>
+    `;
+    
+    hotelList.appendChild(hotelItem);
+  });
+  
+  // Show the hotel selection UI
+  hotelList.style.display = 'block';
+  hotelSelectContainer.style.display = 'block';
+  
+  // Hide the original pre element
+  $('hotelsOut').style.display = 'none';
+}
+
+function selectHotel(hotelId, hotelName) {
+  // Update the input field
+  $('hotelId').value = hotelId;
+  
+  // Update the dropdown
+  $('hotelSelect').value = hotelId;
+  
+  // Update visual selection
+  document.querySelectorAll('.hotel-item').forEach(item => {
+    item.classList.remove('selected');
+  });
+  event.currentTarget.classList.add('selected');
+  
+  showToast(`Hôtel "${hotelName}" sélectionné`, 'success');
+  
+  // Auto-fill simulation parameters
+  autoFillSimulationParams(hotelId);
+}
+
+// Admin functions
+$('btnHealth').addEventListener('click', async () => {
+  setButtonLoading('btnHealth', true);
+  $('healthOut').textContent = 'Vérification de la santé...';
+  
+  try {
+    const res = await apiFetch('/health');
+    if (res.ok) {
+      $('healthOut').textContent = JSON.stringify(res.data, null, 2);
+      setStatus('Système sain', 'ok');
+      showToast('Système sain', 'success');
+    } else if (res.status === 401) {
+      $('healthOut').textContent = '401 Non autorisé (authentification requise)';
+      setStatus('Non autorisé', 'warn');
+      showToast('Authentification requise', 'warning');
+    } else if (res.status === 405) {
+      $('healthOut').textContent = '405 Méthode non autorisée (HEAD non supporté) — essayez GET';
+      setStatus('Avertissement', 'warn');
+    } else {
+      $('healthOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}`;
+      setStatus('Système défaillant', 'err');
+      showToast('Erreur système', 'error');
+    }
+  } catch (e) {
+    $('healthOut').textContent = `Erreur réseau: ${e.message}`;
+    setStatus('Erreur réseau', 'err');
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnHealth', false);
+  }
+});
+
+$('btnHeaders').addEventListener('click', async () => {
+  setButtonLoading('btnHeaders', true);
+  $('headersOut').textContent = 'Récupération des en-têtes...';
+  
+  try {
+    const res = await apiFetch('/health', { method: 'GET' });
+    if (res.raw) {
+      let out = [];
+      for (const [k, v] of res.raw.headers.entries()) {
+        out.push(`${k}: ${v}`);
+      }
+      $('headersOut').textContent = out.join('\n');
+      showToast('En-têtes récupérés', 'success');
+    } else {
+      $('headersOut').textContent = 'Erreur lors de la récupération des en-têtes';
+      showToast('Erreur récupération', 'error');
+    }
+  } catch (e) {
+    $('headersOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnHeaders', false);
+  }
+});
+
+async function fetchLogs(lines) {
+  setButtonLoading('btnFetchLogs', true);
+  $('logsOut').textContent = 'Récupération des logs...';
+  
+  try {
+    const r = await apiFetch('/logs?lines=' + (lines || 200));
+    if (r.ok) {
+      const logs = typeof r.data === 'string' ? r.data : JSON.stringify(r.data, null, 2);
+      $('logsOut').textContent = logs;
+      showToast(`${logs.split('\n').length} lignes de logs récupérées`, 'success');
+    } else {
+      $('logsOut').textContent = 'Endpoint /logs non disponible.\n\nCLI de secours à exécuter sur le serveur:\n' +
+        'docker ps --format "table {{.Names}}\\t{{.Image}}\\t{{.Status}}"\n' +
+        'docker logs <api-container-name> --tail ' + (lines || 200) + '\n' +
+        'tail -n ' + (lines || 200) + ' /var/log/<your-app-log>.log';
+      showToast('Endpoint logs non disponible', 'warning');
+    }
+  } catch (e) {
+    $('logsOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnFetchLogs', false);
+  }
+}
+
+$('btnFetchLogs').addEventListener('click', () => fetchLogs($('linesTop').value || 200));
+$('btnLogs').addEventListener('click', () => fetchLogs($('logLines').value || 200));
+$('btnClearLogs').addEventListener('click', () => {
+  $('logsOut').textContent = 'Logs effacés';
+  showToast('Logs effacés', 'success');
+});
+
+$('btnRunSql').addEventListener('click', async () => {
+  const q = $('sqlQuery').value.trim();
+  if (!q) {
+    showToast('Veuillez saisir une requête SQL', 'warning');
+    return;
+  }
+  
+  setButtonLoading('btnRunSql', true);
+  $('sqlOut').textContent = 'Exécution de la requête...';
+  
+  try {
+    const r = await apiFetch('/admin/sql', { method: 'POST', body: { sql: q, readonly: true } });
+    if (r.ok) {
+      $('sqlOut').textContent = JSON.stringify(r.data, null, 2);
+      showToast('Requête exécutée avec succès', 'success');
+    } else {
+      $('sqlOut').textContent = `Erreur: ${r.error || r.status}\n\nCLI de secours:\n` +
+        'docker exec -it <db-container> psql -U postgres -d hoteldb -c "' + q.replace(/"/g, '\\"') + '"';
+      showToast('Erreur exécution SQL', 'error');
+    }
+  } catch (e) {
+    $('sqlOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnRunSql', false);
+  }
+});
+
+$('btnExplainSql').addEventListener('click', () => {
+  const q = $('sqlQuery').value.trim();
+  $('sqlOut').textContent = 'Mode Explain (exécution non effectuée)\nCLI de secours:\n' +
+    'docker exec -it <db-container> psql -U postgres -d hoteldb -c "EXPLAIN ' + (q || 'SELECT ...') + '"';
+});
+
+$('btnBackupNow').addEventListener('click', async () => {
+  setButtonLoading('btnBackupNow', true);
+  $('backupOut').textContent = 'Déclenchement de la sauvegarde...';
+  
+  try {
+    const r = await apiFetch('/admin/backup', { method: 'POST' });
+    if (r.ok) {
+      $('backupOut').textContent = JSON.stringify(r.data, null, 2);
+      if (r.data && r.data.url) {
+        $('backupOut').textContent += '\n\nTéléchargement: ' + r.data.url;
+        showToast('Sauvegarde créée avec succès', 'success');
+      }
+    } else {
+      $('backupOut').textContent = 'Endpoint de sauvegarde admin non disponible.\nCLI de secours:\n' +
+        'docker exec -t <db-container> pg_dump -U postgres hoteldb > /root/backups/hoteldb_$(date +%F).sql';
+      showToast('Endpoint backup non disponible', 'warning');
+    }
+  } catch (e) {
+    $('backupOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur sauvegarde', 'error');
+  } finally {
+    setButtonLoading('btnBackupNow', false);
+  }
+});
+
+$('btnListBackups').addEventListener('click', async () => {
+  setButtonLoading('btnListBackups', true);
+  
+  try {
+    const r = await apiFetch('/admin/backups');
+    if (r.ok) {
+      $('backupOut').textContent = JSON.stringify(r.data, null, 2);
+      showToast(`${r.data.count} sauvegardes trouvées`, 'success');
+    } else {
+      $('backupOut').textContent = 'Endpoint /admin/backups non disponible.';
+      showToast('Endpoint backups non disponible', 'warning');
+    }
+  } catch (e) {
+    $('backupOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnListBackups', false);
+  }
+});
+
+$('btnDownloadLatestBackup').addEventListener('click', async () => {
+  try {
+    const r = await apiFetch('/admin/backups');
+    if (r.ok && r.data && Array.isArray(r.data.files) && r.data.files.length) {
+      const file = r.data.files[0];
+      window.open(file, '_blank');
+      showToast('Téléchargement démarré', 'success');
+    } else {
+      showToast('Aucune sauvegarde disponible ou endpoint non trouvé', 'warning');
+    }
+  } catch (e) {
+    showToast('Erreur de téléchargement', 'error');
+  }
+});
+
+$('btnRedeploy').addEventListener('click', async () => {
+  if (!confirm('Êtes-vous sûr de vouloir déclencher un redéploiement ?')) return;
+  
+  setButtonLoading('btnRedeploy', true);
+  $('logsOut').textContent = 'Redéploiement en cours...';
+  
+  try {
+    const r = await apiFetch('/admin/redeploy', { method: 'POST' });
+    if (r.ok) {
+      $('logsOut').textContent = 'Redéploiement déclenché: ' + JSON.stringify(r.data);
+      showToast('Redéploiement déclenché', 'success');
+    } else {
+      $('logsOut').textContent = 'Endpoint /admin/redeploy non disponible. Alternative: redéploiement via dashboard Coolify.';
+      showToast('Endpoint redeploy non disponible', 'warning');
+    }
+  } catch (e) {
+    $('logsOut').textContent = `Erreur: ${e.message}`;
+    showToast('Erreur redéploiement', 'error');
+  } finally {
+    setButtonLoading('btnRedeploy', false);
+  }
+});
+
+$('btnShowCli').addEventListener('click', () => {
+  const txt = [
+    '🔧 Commandes CLI utiles (à exécuter sur le serveur):',
+    '',
+    '# Lister les conteneurs',
+    'docker ps --format "table {{.Names}}\\t{{.Image}}\\t{{.Status}}"',
+    '',
+    '# Voir les logs du backend (ajuster le nom)',
+    'docker logs <api-container-name> --tail 200',
+    '',
+    '# Sauvegarder la base de données',
+    'docker exec -t <db-container> pg_dump -U postgres hoteldb > /root/backups/hoteldb_$(date +%F).sql',
+    '',
+    '# Restaurer la base de données',
+    'cat /root/backups/hoteldb_2025-10-19.sql | docker exec -i <db-container> psql -U postgres -d hoteldb'
+  ].join('\n');
+  
+  // Create a modal-like display
+  const modal = document.createElement('div');
+  modal.style.cssText = `
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,0.8);display:flex;align-items:center;
+    justify-content:center;z:9999;padding:20px;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background:var(--card);border-radius:16px;padding:24px;max-width:600px;width:100%;max-height:80vh;overflow:auto">
+      <h3 style="margin:0 0 16px 0">🔧 Commandes CLI</h3>
+      <pre style="background:#031024;padding:16px;border-radius:8px;font-size:13px;white-space:pre-wrap;margin:0">${txt}</pre>
+      <button onclick="this.parentElement.parentElement.remove()" style="
+        margin-top:16px;padding:12px 24px;background:var(--accent);
+        border:none;border-radius:8px;color:#04263b;cursor:pointer;font-weight:600;
+        width:100%
+      ">Fermer</button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.remove();
+  });
+});
+
+// Monitoring functions with enhanced hotel selection
+$('btnGetHotels').addEventListener('click', async () => {
+  setButtonLoading('btnGetHotels', true);
+  $('hotelsOut').textContent = 'Récupération des hôtels...';
+  
+  try {
+    const res = await apiFetch('/hotels', {}, true);
+    if (res.ok) {
+      hotelsData = res.data.hotels || [];
+      const count = res.data.count || hotelsData.length;
+      
+      // Display hotel list in both dropdown and visual list
+      displayHotelList(hotelsData);
+      
+      setStatus(`${count} hôtels chargés`, 'ok', 'monitoring');
+      showToast(`${count} hôtels récupérés`, 'success');
+    } else {
+      $('hotelsOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}`;
+      setStatus('Erreur chargement hôtels', 'err', 'monitoring');
+      showToast('Erreur chargement hôtels', 'error');
+    }
+  } catch (e) {
+    $('hotelsOut').textContent = `Erreur réseau: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnGetHotels', false);
+  }
+});
+
+$('btnCheckFiles').addEventListener('click', async () => {
+  const hotelId = $('hotelId').value.trim();
+  if (!hotelId) {
+    showToast('Veuillez entrer un ID d\'hôtel ou sélectionner-en un depuis la liste', 'warning');
+    return;
+  }
+  
+  setButtonLoading('btnCheckFiles', true);
+  $('filesOut').textContent = 'Vérification des fichiers...';
+  
+  try {
+    const res = await apiFetch('/files/status?hotel_id=' + encodeURIComponent(hotelId), {}, true);
+    if (res.ok) {
+      $('filesOut').textContent = JSON.stringify(res.data, null, 2);
+      setStatus('Fichiers vérifiés', 'ok', 'monitoring');
+      showToast('Statut des fichiers vérifié', 'success');
+    } else {
+      $('filesOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}`;
+      setStatus('Erreur vérification fichiers', 'err', 'monitoring');
+      showToast('Erreur vérification fichiers', 'error');
+    }
+  } catch (e) {
+    $('filesOut').textContent = `Erreur réseau: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnCheckFiles', false);
+  }
+});
+
+$('btnSimulate').addEventListener('click', async () => {
+  const hotelId = $('hotelId').value.trim();
+  if (!hotelId) {
+    showToast('Veuillez entrer un ID d\'hôtel ou sélectionner-en un depuis la liste', 'warning');
+    return;
+  }
+  
+  let params;
+  try {
+    params = JSON.parse($('simParams').value || '{}');
+  } catch (e) {
+    showToast('Paramètres JSON invalides', 'error');
+    return;
+  }
+  
+  setButtonLoading('btnSimulate', true);
+  $('simulateOut').textContent = 'Exécution de la simulation...';
+  
+  try {
+    const res = await apiFetch('/simulate', { method: 'POST', body: params }, true);
+    if (res.ok) {
+      $('simulateOut').textContent = JSON.stringify(res.data, null, 2);
+      setStatus('Simulation terminée', 'ok', 'monitoring');
+      showToast('Simulation terminée avec succès', 'success');
+    } else {
+      $('simulateOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}`;
+      setStatus('Erreur simulation', 'err', 'monitoring');
+      showToast('Erreur simulation', 'error');
+    }
+  } catch (e) {
+    $('simulateOut').textContent = `Erreur réseau: ${e.message}`;
+    showToast('Erreur réseau', 'error');
+  } finally {
+    setButtonLoading('btnSimulate', false);
+  }
+});
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+  // Add smooth scrolling
+  document.documentElement.style.scrollBehavior = 'smooth';
+  
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      switch(e.key) {
+        case '1':
+          e.preventDefault();
+          switchTab('admin');
+          break;
+        case '2':
+          e.preventDefault();
+          switchTab('monitoring');
+          break;
+      }
+    }
+  });
+  
+  // Auto-resize textareas
+  document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    });
+  });
+  
+  showToast('Dashboard chargé avec succès', 'success', 3000);
+});
+</script>
+</body>
+</html>

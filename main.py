@@ -14,6 +14,10 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
+# Import des routers
+from admin_endpoints import router as admin_router
+from routes_monitoring import router as monitor_router
+
 # --- 1. CONFIGURATION ---
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///local.db")
 DATA_DIR = os.getenv("DATA_DIR", "/app/data")
@@ -26,9 +30,13 @@ logger = logging.getLogger(__name__)
 engine = create_engine(DATABASE_URL.replace("postgres://", "postgresql+psycopg2://"), echo=False)
 
 app = FastAPI(
-    title="Hotel RM API - v8.0 (Multi-Hotel)",
+    title="API Folkestone",
     description="API complète pour la gestion des données hôtelières et la simulation tarifaire."
 )
+
+# Inclusion des routers
+app.include_router(admin_router)
+app.include_router(monitor_router)
 
 # --- 2. MIDDLEWARE CORS CORRIGÉ ---
 origins = [
