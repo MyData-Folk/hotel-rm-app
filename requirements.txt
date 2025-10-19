@@ -7,3 +7,5 @@ openpyxl
 python-multipart
 aiofiles
 python-dotenv
+requests
+reportlab
