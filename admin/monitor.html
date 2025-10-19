@@ -806,7 +806,7 @@ function autoFillSimulationParams(hotelId) {
   simParams.value = JSON.stringify(defaultParams, null, 2);
 }
 
-function displayHotelList(hotels) {
+function displayHotelList(data) {
   const hotelList = $('hotelList');
   const hotelSelect = $('hotelSelect');
   const hotelSelectContainer = $('hotelSelectContainer');
@@ -815,26 +815,68 @@ function displayHotelList(hotels) {
   hotelList.innerHTML = '';
   hotelSelect.innerHTML = '<option value="">-- Sélectionnez un hôtel --</option>';
   
-  hotels.forEach(hotel => {
+  // Debug: show what we received
+  console.log('API Response:', data);
+  
+  // Try different possible structures for the hotels data
+  let hotels = [];
+  
+  if (Array.isArray(data)) {
+    // Direct array response
+    hotels = data;
+  } else if (data && data.hotels && Array.isArray(data.hotels)) {
+    // { hotels: [...] } structure
+    hotels = data.hotels;
+  } else if (data && data.data && Array.isArray(data.data)) {
+    // { data: [...] } structure
+    hotels = data.data;
+  } else if (data && data.results && Array.isArray(data.results)) {
+    // { results: [...] } structure
+    hotels = data.results;
+  } else {
+    // Try to extract hotels from any array in the response
+    for (const key in data) {
+      if (Array.isArray(data[key])) {
+        hotels = data[key];
+        break;
+      }
+    }
+  }
+  
+  console.log('Extracted hotels:', hotels);
+  
+  if (hotels.length === 0) {
+    $('hotelsOut').textContent = 'Aucun hôtel trouvé dans la réponse API.';
+    showToast('Aucun hôtel trouvé', 'warning');
+    return;
+  }
+  
+  // Process each hotel
+  hotels.forEach((hotel, index) => {
+    // Ensure hotel has required properties
+    const hotelId = hotel.id || hotel.hotel_id || `hotel_${index}`;
+    const hotelName = hotel.name || hotel.hotel_name || `Hôtel ${index + 1}`;
+    const hotelStars = hotel.stars || hotel.rating || 3;
+    
     // Add to dropdown
     const option = document.createElement('option');
-    option.value = hotel.id;
-    option.textContent = `${hotel.name} (${hotel.id})`;
+    option.value = hotelId;
+    option.textContent = `${hotelName} (${hotelId})`;
     hotelSelect.appendChild(option);
     
     // Add to visual list
     const hotelItem = document.createElement('div');
     hotelItem.className = 'hotel-item';
-    hotelItem.onclick = () => selectHotel(hotel.id, hotel.name);
+    hotelItem.onclick = () => selectHotel(hotelId, hotelName);
     
-    const stars = '⭐'.repeat(hotel.stars || 3);
+    const stars = '⭐'.repeat(hotelStars);
     
     hotelItem.innerHTML = `
       <div class="hotel-info">
-        <div class="hotel-name">${hotel.name}</div>
+        <div class="hotel-name">${hotelName}</div>
         <div class="hotel-stars">${stars}</div>
       </div>
-      <div class="hotel-id">${hotel.id}</div>
+      <div class="hotel-id">${hotelId}</div>
     `;
     
     hotelList.appendChild(hotelItem);
@@ -846,6 +888,8 @@ function displayHotelList(hotels) {
   
   // Hide the original pre element
   $('hotelsOut').style.display = 'none';
+  
+  showToast(`${hotels.length} hôtels chargés`, 'success');
 }
 
 function selectHotel(hotelId, hotelName) {
@@ -1124,21 +1168,21 @@ $('btnGetHotels').addEventListener('click', async () => {
   try {
     const res = await apiFetch('/hotels', {}, true);
     if (res.ok) {
-      hotelsData = res.data.hotels || [];
-      const count = res.data.count || hotelsData.length;
+      hotelsData = res.data || [];
+      console.log('Hotels data received:', hotelsData);
       
-      // Display hotel list in both dropdown and visual list
+      // Display hotel list with robust data extraction
       displayHotelList(hotelsData);
       
-      setStatus(`${count} hôtels chargés`, 'ok', 'monitoring');
-      showToast(`${count} hôtels récupérés`, 'success');
+      setStatus('Hôtels chargés', 'ok', 'monitoring');
     } else {
-      $('hotelsOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}`;
+      $('hotelsOut').textContent = `Erreur: ${res.error || ('HTTP ' + res.status)}\n\nRéponse brute:\n${JSON.stringify(res.data, null, 2)}`;
       setStatus('Erreur chargement hôtels', 'err', 'monitoring');
       showToast('Erreur chargement hôtels', 'error');
     }
   } catch (e) {
     $('hotelsOut').textContent = `Erreur réseau: ${e.message}`;
+    setStatus('Erreur réseau', 'err', 'monitoring');
     showToast('Erreur réseau', 'error');
   } finally {
     setButtonLoading('btnGetHotels', false);
