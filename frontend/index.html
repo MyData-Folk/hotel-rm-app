@@ -8,9 +8,6 @@
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-KXzm7rMOLp38SaVRtMH9p3NkJ+1IPhq0KXi9Drqbos4I3GQpbb0rjoS6ywFbzpoyVvqmWsOBGZutJKyidSfa1Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/vZs+ukgfK0Vwsn0u40GuFxZgYVmEvh2n4IxziiYfmFcWPo3UQ/7Lb9uWvPp/HP5SKSPC3dHVA0C0M6Rn0SDSw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js" integrity="sha512-7FXrru+hPXXLN3YPVt9NuJIB2EGP16S2nEUKduSA7mAJON9r7JXkBXZNmGU1g6QBhqGZmOM8LUM/9++klFto5w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body {
@@ -257,14 +254,6 @@
                         <h2 class="text-xl font-bold text-gray-800 flex items-center">
                             <i data-feather="list" class="mr-2 w-5 h-5"></i> Tableau des Disponibilités
                         </h2>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button id="availabilityExcelBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                                <i data-feather="download" class="mr-2 w-4 h-4"></i> Excel
-                            </button>
-                            <button id="availabilityPdfBtn" class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-50 flex items-center justify-center">
-                                <i data-feather="file-text" class="mr-2 w-4 h-4"></i> PDF
-                            </button>
-                        </div>
                     </div>
                     <div id="availabilityTableContainer" class="overflow-x-auto relative max-h-[500px] overflow-y-auto"></div>
                 </div>
@@ -321,18 +310,13 @@
                     <div id="totalNetFinal" class="text-2xl font-bold text-indigo-700">- €</div>
                 </div>
             </div>
-            <div class="mt-6 flex flex-col lg:flex-row justify-between gap-4">
-                <button id="newSimulationBtn" class="btn btn-secondary px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center self-start">
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-4">
+                <button id="newSimulationBtn" class="btn btn-secondary px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
                     <i data-feather="plus" class="mr-2 w-4 h-4"></i> Nouvelle Simulation
                 </button>
-                <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
-                    <button id="exportSimulationExcelBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                        <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter en Excel
-                    </button>
-                    <button id="exportSimulationPdfBtn" class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-50 flex items-center justify-center">
-                        <i data-feather="file-text" class="mr-2 w-4 h-4"></i> Exporter en PDF
-                    </button>
-                </div>
+                <button id="exportBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                    <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter en Excel
+                </button>
             </div>
         </div>
     </main>
@@ -375,8 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         applyCommission: document.getElementById('applyCommission'),
         applyPartnerDiscount: document.getElementById('applyPartnerDiscount'),
         promoDiscount: document.getElementById('promoDiscount'),
-        exportSimulationExcelBtn: document.getElementById('exportSimulationExcelBtn'),
-        exportSimulationPdfBtn: document.getElementById('exportSimulationPdfBtn'),
+        exportBtn: document.getElementById('exportBtn'),
         newSimulationBtn: document.getElementById('newSimulationBtn'),
         availabilityForm: document.getElementById('availabilityForm'),
         availRoomTypesContainer: document.getElementById('availRoomTypesContainer'),
@@ -384,15 +367,11 @@ document.addEventListener('DOMContentLoaded', () => {
         availEndDate: document.getElementById('availEndDate'),
         availabilityResults: document.getElementById('availabilityResults'),
         availabilityTableContainer: document.getElementById('availabilityTableContainer'),
-        availabilityExcelBtn: document.getElementById('availabilityExcelBtn'),
-        availabilityPdfBtn: document.getElementById('availabilityPdfBtn'),
         selectAllRoomsBtn: document.getElementById('selectAllRoomsBtn'),
         deselectAllRoomsBtn: document.getElementById('deselectAllRoomsBtn'),
         commissionLabel: document.getElementById('commissionLabel'),
         partnerDiscountLabel: document.getElementById('partnerDiscountLabel')
     };
-
-    let currentAvailabilityData = null;
 
     const showSpinner = () => {
         if (DOMElements.spinner) DOMElements.spinner.classList.remove('hidden');
@@ -413,15 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatCurrency = (val) => {
         if (val === null || val === undefined) return '–';
-        const num = Number(val);
-        if (Number.isNaN(num)) return `${val}`;
-        return `${num.toFixed(2).replace('.', ',')} €`;
-    };
-
-    const toNumberOrEmpty = (val) => {
-        if (val === null || val === undefined) return '';
-        const num = Number(val);
-        return Number.isNaN(num) ? '' : num;
+        return `${val.toFixed(2).replace('.', ',')} €`;
     };
 
     const fetchHotels = async () => {
@@ -446,11 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const hotelId = DOMElements.hotelIdSelect?.value;
         if (!hotelId) return showToast("Veuillez sélectionner un hôtel.", true);
         
-        currentSimulationData = null;
-        currentAvailabilityData = null;
-        DOMElements.resultsContainer?.classList.add('hidden');
-        DOMElements.availabilityResults?.classList.add('hidden');
-
         showSpinner();
         if (DOMElements.statusMessage) {
             DOMElements.statusMessage.textContent = 'Chargement des données...';
@@ -680,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             displayAvailabilityResults(result);
             showToast('Disponibilités chargées avec succès');
-
+            
         } catch (error) {
             console.error('Erreur disponibilités:', error);
             showToast(error.message, true);
@@ -690,9 +656,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const displayAvailabilityResults = (data) => {
-        currentAvailabilityData = data;
         DOMElements.availabilityResults.classList.remove('hidden');
-
+        
         let tableHTML = `
             <table class="w-full text-sm sticky-table-header">
                 <thead>
@@ -724,212 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHTML += '</tbody></table>';
         DOMElements.availabilityTableContainer.innerHTML = tableHTML;
     };
-
-    const ensureExcelLib = () => {
-        if (typeof XLSX === 'undefined') {
-            showToast("La librairie d'export Excel est indisponible.", true);
-            return false;
-        }
-        return true;
-    };
-
-    const buildSimulationMetadata = () => {
-        const info = currentSimulationData?.simulation_info || {};
-        const hotelId = DOMElements.hotelIdSelect?.value || '';
-        const period = info.start_date && info.end_date ? `${info.start_date} → ${info.end_date}` : '';
-        return [
-            ['Hôtel', hotelId],
-            ['Type de chambre', info.room || ''],
-            ['Source', info.source || ''],
-            ['Période', period]
-        ];
-    };
-
-    const exportSimulationToExcel = () => {
-        if (!currentSimulationData) {
-            showToast('Aucune simulation à exporter.', true);
-            return;
-        }
-        if (!ensureExcelLib()) return;
-
-        const { results = [], summary = {} } = currentSimulationData;
-        const worksheetData = [
-            ...buildSimulationMetadata(),
-            [],
-            ['Date', 'Prix Brut (€)', 'Prix Net (€)', 'Stock', 'Disponibilité'],
-            ...results.map(day => [
-                day.date_display || day.date || '',
-                typeof day.gross_price === 'number' ? day.gross_price : (day.gross_price ?? ''),
-                typeof day.net_price === 'number' ? day.net_price : (day.net_price ?? ''),
-                day.stock ?? '',
-                day.availability ?? ''
-            ]),
-            [],
-            ['Sous-Total Brut', toNumberOrEmpty(summary.subtotal_brut)],
-            ['Remises & Promos', toNumberOrEmpty(summary.total_discount)],
-            ['Total Commission', toNumberOrEmpty(summary.total_commission)],
-            ['Total Net Final', toNumberOrEmpty(summary.total_net)]
-        ];
-
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Simulation');
-
-        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
-        const timestamp = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `simulation_${hotelId}_${timestamp}.xlsx`);
-        showToast('Export Excel généré.');
-    };
-
-    const exportSimulationToPdf = () => {
-        if (!currentSimulationData) {
-            showToast('Aucune simulation à exporter.', true);
-            return;
-        }
-        if (!window.jspdf || typeof window.jspdf.jsPDF === 'undefined') {
-            showToast("La librairie d'export PDF est indisponible.", true);
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
-        if (typeof doc.autoTable !== 'function') {
-            showToast("Le module PDF ne supporte pas les tableaux.", true);
-            return;
-        }
-        const metadata = buildSimulationMetadata().filter(([, value]) => value);
-
-        doc.setFontSize(18);
-        doc.text('Simulation de réservation', 40, 40);
-        doc.setFontSize(11);
-
-        let currentY = 60;
-        metadata.forEach(([label, value]) => {
-            doc.text(`${label} : ${value}`, 40, currentY);
-            currentY += 16;
-        });
-
-        const headers = [['Date', 'Prix Brut (€)', 'Prix Net (€)', 'Stock', 'Disponibilité']];
-        const rows = (currentSimulationData.results || []).map(day => [
-            day.date_display || day.date || '',
-            typeof day.gross_price === 'number' ? day.gross_price.toFixed(2) : (day.gross_price ?? ''),
-            typeof day.net_price === 'number' ? day.net_price.toFixed(2) : (day.net_price ?? ''),
-            day.stock ?? '',
-            day.availability ?? ''
-        ]);
-
-        doc.autoTable({
-            head: headers,
-            body: rows,
-            startY: currentY + 10,
-            styles: { fontSize: 10 },
-            headStyles: { fillColor: [79, 70, 229] }
-        });
-
-        const summary = currentSimulationData.summary || {};
-        const summaryOrDash = (value, prefix = '') => {
-            if (value === null || value === undefined) return '–';
-            const formatted = formatCurrency(value);
-            return prefix ? `${prefix} ${formatted}` : formatted;
-        };
-
-        let summaryY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : currentY + 40;
-        doc.text(`Sous-Total Brut : ${summaryOrDash(summary.subtotal_brut)}`, 40, summaryY);
-        summaryY += 16;
-        doc.text(`Remises & Promos : ${summaryOrDash(summary.total_discount, '-')}`, 40, summaryY);
-        summaryY += 16;
-        doc.text(`Total Commission : ${summaryOrDash(summary.total_commission, '-')}`, 40, summaryY);
-        summaryY += 16;
-        doc.text(`Total Net Final : ${summaryOrDash(summary.total_net)}`, 40, summaryY);
-
-        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
-        const timestamp = new Date().toISOString().split('T')[0];
-        doc.save(`simulation_${hotelId}_${timestamp}.pdf`);
-        showToast('Export PDF généré.');
-    };
-
-    const exportAvailabilityToExcel = () => {
-        if (!currentAvailabilityData) {
-            showToast('Aucune disponibilité à exporter.', true);
-            return;
-        }
-        if (!ensureExcelLib()) return;
-
-        const { period, availability } = currentAvailabilityData;
-        const dates = period?.dates || [];
-        const headerRow = ['Type de chambre', ...dates.map(date => period?.date_display?.[date] || date)];
-        const rows = Object.entries(availability || {}).map(([roomName, values]) => [
-            roomName,
-            ...dates.map(date => toNumberOrEmpty(values?.[date]))
-        ]);
-
-        const worksheetData = [
-            ['Hôtel', DOMElements.hotelIdSelect?.value || ''],
-            ['Période', dates.length ? `${dates[0]} → ${dates[dates.length - 1]}` : ''],
-            [],
-            headerRow,
-            ...rows
-        ];
-
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Disponibilites');
-
-        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
-        const timestamp = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `disponibilites_${hotelId}_${timestamp}.xlsx`);
-        showToast('Export Excel des disponibilités généré.');
-    };
-
-    const exportAvailabilityToPdf = () => {
-        if (!currentAvailabilityData) {
-            showToast('Aucune disponibilité à exporter.', true);
-            return;
-        }
-        if (!window.jspdf || typeof window.jspdf.jsPDF === 'undefined') {
-            showToast("La librairie d'export PDF est indisponible.", true);
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
-        if (typeof doc.autoTable !== 'function') {
-            showToast("Le module PDF ne supporte pas les tableaux.", true);
-            return;
-        }
-        const { period, availability } = currentAvailabilityData;
-        const dates = period?.dates || [];
-
-        doc.setFontSize(18);
-        doc.text('Tableau des disponibilités', 40, 40);
-        doc.setFontSize(11);
-        const hotelId = DOMElements.hotelIdSelect?.value || '';
-        if (hotelId) doc.text(`Hôtel : ${hotelId}`, 40, 60);
-        if (dates.length) doc.text(`Période : ${dates[0]} → ${dates[dates.length - 1]}`, 40, 76);
-
-        const headers = [['Type de chambre', ...dates.map(date => period?.date_display?.[date] || date)]];
-        const rows = Object.entries(availability || {}).map(([roomName, values]) => [
-            roomName,
-            ...dates.map(date => {
-                const cellValue = values?.[date];
-                if (cellValue === null || cellValue === undefined) return '';
-                const num = Number(cellValue);
-                return Number.isNaN(num) ? `${cellValue}` : num;
-            })
-        ]);
-
-        doc.autoTable({
-            head: headers,
-            body: rows,
-            startY: 96,
-            styles: { fontSize: 9 },
-            headStyles: { fillColor: [79, 70, 229] }
-        });
-
-        const timestamp = new Date().toISOString().split('T')[0];
-        doc.save(`disponibilites_${hotelId || 'hotel'}_${timestamp}.pdf`);
-        showToast('Export PDF des disponibilités généré.');
-    };
     
     // Event listeners
     DOMElements.refreshDataBtn.addEventListener('click', loadData);
@@ -937,15 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     DOMElements.simPartnerSelect.addEventListener('change', updateRatePlans);
     DOMElements.simulationForm.addEventListener('submit', handleSimulation);
     DOMElements.availabilityForm.addEventListener('submit', handleAvailability);
-    DOMElements.newSimulationBtn.addEventListener('click', () => {
-        DOMElements.resultsContainer.classList.add('hidden');
-        currentSimulationData = null;
-    });
-
-    DOMElements.exportSimulationExcelBtn?.addEventListener('click', exportSimulationToExcel);
-    DOMElements.exportSimulationPdfBtn?.addEventListener('click', exportSimulationToPdf);
-    DOMElements.availabilityExcelBtn?.addEventListener('click', exportAvailabilityToExcel);
-    DOMElements.availabilityPdfBtn?.addEventListener('click', exportAvailabilityToPdf);
+    DOMElements.newSimulationBtn.addEventListener('click', () => DOMElements.resultsContainer.classList.add('hidden'));
     
     DOMElements.selectAllRoomsBtn.addEventListener('click', () => {
         document.querySelectorAll('.room-checkbox').forEach(cb => cb.checked = true);
