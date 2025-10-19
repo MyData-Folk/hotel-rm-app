@@ -8,6 +8,9 @@
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body {
@@ -420,313 +423,38 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     };
 
-    const TEXT_ENCODER = new TextEncoder();
-
-    const CRC32_TABLE = (() => {
-        const table = new Uint32Array(256);
-        for (let i = 0; i < 256; i += 1) {
-            let crc = i;
-            for (let j = 0; j < 8; j += 1) {
-                crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1);
-            }
-            table[i] = crc >>> 0;
-        }
-        return table;
-    })();
-
-    const crc32 = (input) => {
-        const data = input instanceof Uint8Array ? input : TEXT_ENCODER.encode(String(input));
-        let crc = -1;
-        for (let i = 0; i < data.length; i += 1) {
-            crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ data[i]) & 0xFF];
-        }
-        return (crc ^ -1) >>> 0;
-    };
-
-    const createZip = (files) => {
-        const localParts = [];
-        const centralParts = [];
-        let offset = 0;
-        const now = new Date();
-        const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2)) & 0xFFFF;
-        const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
-
-        files.forEach(file => {
-            const nameBytes = TEXT_ENCODER.encode(file.name);
-            const dataBytes = file.binary instanceof Uint8Array ? file.binary : TEXT_ENCODER.encode(file.data);
-            const crc = crc32(dataBytes);
-
-            const localHeader = new Uint8Array(30 + nameBytes.length);
-            const localView = new DataView(localHeader.buffer);
-            localView.setUint32(0, 0x04034b50, true);
-            localView.setUint16(4, 20, true);
-            localView.setUint16(6, 0, true);
-            localView.setUint16(8, 0, true);
-            localView.setUint16(10, dosTime, true);
-            localView.setUint16(12, dosDate, true);
-            localView.setUint32(14, crc, true);
-            localView.setUint32(18, dataBytes.length, true);
-            localView.setUint32(22, dataBytes.length, true);
-            localView.setUint16(26, nameBytes.length, true);
-            localView.setUint16(28, 0, true);
-            localHeader.set(nameBytes, 30);
-
-            localParts.push(localHeader, dataBytes);
-
-            const centralHeader = new Uint8Array(46 + nameBytes.length);
-            const centralView = new DataView(centralHeader.buffer);
-            centralView.setUint32(0, 0x02014b50, true);
-            centralView.setUint16(4, 20, true);
-            centralView.setUint16(6, 20, true);
-            centralView.setUint16(8, 0, true);
-            centralView.setUint16(10, 0, true);
-            centralView.setUint16(12, dosTime, true);
-            centralView.setUint16(14, dosDate, true);
-            centralView.setUint32(16, crc, true);
-            centralView.setUint32(20, dataBytes.length, true);
-            centralView.setUint32(24, dataBytes.length, true);
-            centralView.setUint16(28, nameBytes.length, true);
-            centralView.setUint16(30, 0, true);
-            centralView.setUint16(32, 0, true);
-            centralView.setUint16(34, 0, true);
-            centralView.setUint16(36, 0, true);
-            centralView.setUint32(38, 0, true);
-            centralView.setUint32(42, offset, true);
-            centralHeader.set(nameBytes, 46);
-
-            centralParts.push(centralHeader);
-
-            offset += localHeader.length + dataBytes.length;
-        });
-
-        const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
-        const localSize = localParts.reduce((sum, part) => sum + part.length, 0);
-
-        const endRecord = new Uint8Array(22);
-        const endView = new DataView(endRecord.buffer);
-        endView.setUint32(0, 0x06054b50, true);
-        endView.setUint16(4, 0, true);
-        endView.setUint16(6, 0, true);
-        endView.setUint16(8, files.length, true);
-        endView.setUint16(10, files.length, true);
-        endView.setUint32(12, centralSize, true);
-        endView.setUint32(16, localSize, true);
-        endView.setUint16(20, 0, true);
-
-        const output = new Uint8Array(localSize + centralSize + endRecord.length);
-        let cursor = 0;
-        localParts.forEach(part => {
-            output.set(part, cursor);
-            cursor += part.length;
-        });
-        centralParts.forEach(part => {
-            output.set(part, cursor);
-            cursor += part.length;
-        });
-        output.set(endRecord, cursor);
-
-        return output;
-    };
-
-    const escapeXml = (value) => String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&apos;');
-
-    const columnNumberToName = (num) => {
-        let columnName = '';
-        let n = num;
-        while (n > 0) {
-            const remainder = (n - 1) % 26;
-            columnName = String.fromCharCode(65 + remainder) + columnName;
-            n = Math.floor((n - 1) / 26);
-        }
-        return columnName || 'A';
-    };
-
-    const buildWorksheetXml = (rows) => {
-        const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
-            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
-            '<sheetData>'];
-
-        rows.forEach((row, rowIndex) => {
-            const cells = [];
-            row.forEach((value, cellIndex) => {
-                if (value === null || value === undefined || value === '') return;
-                const cellRef = `${columnNumberToName(cellIndex + 1)}${rowIndex + 1}`;
-                let cellType = '';
-                let cellValue = value;
-                let isInlineStr = false;
-
-                if (typeof value === 'number') {
-                    cellValue = value;
-                } else if (value instanceof Date) {
-                    cellValue = Math.round((value.getTime() / 86400000) + 25569);
-                } else if (typeof value === 'boolean') {
-                    cellType = ' t="b"';
-                    cellValue = value ? 1 : 0;
-                } else {
-                    const numeric = Number(value);
-                    if (String(value).trim() !== '' && Number.isFinite(numeric) && !Number.isNaN(numeric)) {
-                        cellValue = numeric;
-                    } else {
-                        isInlineStr = true;
-                        cellValue = escapeXml(String(value));
-                    }
-                }
-
-                if (isInlineStr) {
-                    cells.push(`<c r="${cellRef}" t="inlineStr"><is><t>${cellValue}</t></is></c>`);
-                } else {
-                    cells.push(`<c r="${cellRef}"${cellType}><v>${escapeXml(String(cellValue))}</v></c>`);
-                }
-            });
-            lines.push(`<row r="${rowIndex + 1}">${cells.join('')}</row>`);
-        });
-
-        lines.push('</sheetData>');
-        lines.push('</worksheet>');
-        return lines.join('');
-    };
-
     const sanitizeSheetName = (name) => {
-        const cleaned = (name || 'Feuille1').replace(/[\\/:*?\[\]]/g, ' ').trim().slice(0, 31);
+        const cleaned = String(name || 'Feuille1').replace(/[\\/:*?\[\]]/g, ' ').trim().slice(0, 31);
         return cleaned || 'Feuille1';
     };
 
-    const createXlsmBlob = (sheetName, rows) => {
-        const worksheetXml = buildWorksheetXml(rows);
-        const safeSheetName = sanitizeSheetName(sheetName);
-        const created = new Date().toISOString();
-
-        const files = [
-            {
-                name: '[Content_Types].xml',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n  <Default Extension="xml" ContentType="application/xml"/>\n  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/>\n  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.ms-excel.worksheet+xml"/>\n  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>\n  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>\n</Types>`
-            },
-            {
-                name: '_rels/.rels',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\n</Relationships>`
-            },
-            {
-                name: 'docProps/app.xml',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">\n  <Application>HotelVision</Application>\n</Properties>`
-            },
-            {
-                name: 'docProps/core.xml',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:creator>HotelVision</dc:creator>\n  <cp:lastModifiedBy>HotelVision</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${created}</dcterms:modified>\n</cp:coreProperties>`
-            },
-            {
-                name: 'xl/workbook.xml',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">\n  <sheets>\n    <sheet name="${escapeXml(safeSheetName)}" sheetId="1" r:id="rId1"/>\n  </sheets>\n</workbook>`
-            },
-            {
-                name: 'xl/_rels/workbook.xml.rels',
-                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>\n</Relationships>`
-            },
-            {
-                name: 'xl/worksheets/sheet1.xml',
-                data: worksheetXml
-            }
-        ];
-
-        const zipBytes = createZip(files);
-        return new Blob([zipBytes], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+    const ensureExcelLibAvailable = () => {
+        if (typeof XLSX === 'undefined' || !XLSX.utils || !XLSX.write) {
+            showToast("La librairie d'export Excel est indisponible.", true);
+            return false;
+        }
+        return true;
     };
 
-    const normalizeForPdf = (value) => String(value ?? '')
-        .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '')
-        .replace(/€/g, 'EUR')
-        .replace(/[–—]/g, '-')
-        .replace(/œ/g, 'oe')
-        .replace(/Œ/g, 'OE');
-
-    const escapePdfString = (value) => normalizeForPdf(value)
-        .replace(/\\/g, '\\\\')
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)');
-
-    const createPdfBlob = ({ lines, orientation = 'portrait', margin = 40 }) => {
-        const width = orientation === 'landscape' ? 842 : 595;
-        const height = orientation === 'landscape' ? 595 : 842;
-        const startX = margin;
-        const startY = height - margin;
-
-        const commands = ['BT'];
-        let currentFont = null;
-        let isFirstLine = true;
-
-        lines.forEach(rawLine => {
-            const size = rawLine?.size || 12;
-            const lineHeight = rawLine?.lineHeight || size + 4;
-            const text = rawLine?.text ? escapePdfString(rawLine.text) : '';
-
-            if (isFirstLine) {
-                commands.push(`/F1 ${size} Tf`);
-                commands.push(`1 0 0 1 ${startX} ${startY} Tm`);
-                isFirstLine = false;
-            } else {
-                commands.push(`0 -${lineHeight.toFixed(2)} Td`);
-                if (currentFont !== size) {
-                    commands.push(`/F1 ${size} Tf`);
-                }
-            }
-
-            currentFont = size;
-            if (text) {
-                commands.push(`(${text}) Tj`);
-            }
-        });
-
-        commands.push('ET');
-        const content = `${commands.join('\n')}\n`;
-        const contentBytes = TEXT_ENCODER.encode(content);
-
-        const objects = [
-            '<< /Type /Catalog /Pages 2 0 R >>',
-            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-            `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>`,
-            `<< /Length ${contentBytes.length} >>\nstream\n${content}endstream`,
-            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
-        ];
-
-        const header = TEXT_ENCODER.encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
-        const objectBytes = [];
-        const offsets = [0];
-        let offset = header.length;
-
-        objects.forEach((obj, index) => {
-            offsets.push(offset);
-            const bytes = TEXT_ENCODER.encode(`${index + 1} 0 obj\n${obj}\nendobj\n`);
-            objectBytes.push(bytes);
-            offset += bytes.length;
-        });
-
-        const xrefOffset = offset;
-        let xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-        for (let i = 1; i <= objects.length; i += 1) {
-            xref += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    const ensurePdfLibAvailable = () => {
+        const jsPdfNamespace = window.jspdf;
+        if (!jsPdfNamespace || !jsPdfNamespace.jsPDF) {
+            showToast("La librairie d'export PDF est indisponible.", true);
+            return false;
         }
-        const xrefBytes = TEXT_ENCODER.encode(xref);
-        const trailer = TEXT_ENCODER.encode(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+        if (!jsPdfNamespace.jsPDF.API || typeof jsPdfNamespace.jsPDF.API.autoTable !== 'function') {
+            showToast("La librairie d'export PDF est indisponible.", true);
+            return false;
+        }
+        return true;
+    };
 
-        const totalLength = header.length + objectBytes.reduce((sum, bytes) => sum + bytes.length, 0) + xrefBytes.length + trailer.length;
-        const output = new Uint8Array(totalLength);
-        let cursor = 0;
-        output.set(header, cursor);
-        cursor += header.length;
-        objectBytes.forEach(bytes => {
-            output.set(bytes, cursor);
-            cursor += bytes.length;
-        });
-        output.set(xrefBytes, cursor);
-        cursor += xrefBytes.length;
-        output.set(trailer, cursor);
-
-        return new Blob([output], { type: 'application/pdf' });
+    const createExcelBlob = (sheetName, rows) => {
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, sanitizeSheetName(sheetName));
+        const arrayBuffer = XLSX.write(workbook, { bookType: 'xlsm', type: 'array' });
+        return new Blob([arrayBuffer], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
     };
 
     const formatCurrency = (val) => {
@@ -1060,6 +788,9 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('Aucune simulation à exporter.', true);
             return;
         }
+        if (!ensureExcelLibAvailable()) {
+            return;
+        }
         const { results = [], summary = {} } = currentSimulationData;
         const worksheetData = [
             ...buildSimulationMetadata(),
@@ -1081,7 +812,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
         const timestamp = new Date().toISOString().split('T')[0];
-        const blob = createXlsmBlob('Simulation', worksheetData);
+        const blob = createExcelBlob('Simulation', worksheetData);
         downloadBlob(blob, `simulation_${hotelId}_${timestamp}.xlsm`);
         showToast('Export Excel généré.');
     };
@@ -1089,6 +820,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportSimulationToPdf = () => {
         if (!currentSimulationData) {
             showToast('Aucune simulation à exporter.', true);
+            return;
+        }
+        if (!ensurePdfLibAvailable()) {
             return;
         }
         const summary = currentSimulationData.summary || {};
@@ -1108,20 +842,45 @@ document.addEventListener('DOMContentLoaded', () => {
             day.availability ?? ''
         ]);
 
-        const lines = [
-            { text: 'Simulation de reservation', size: 18 },
-            ...metadata.map(text => ({ text, size: 12 })),
-            { text: '', size: 12 },
-            { text: headers.join(' | '), size: 11 },
-            ...rows.map(row => ({ text: row.join(' | '), size: 10 })),
-            { text: '', size: 12 },
-            { text: `Sous-Total Brut : ${summaryOrNA(summary.subtotal_brut)}`, size: 12 },
-            { text: `Remises & Promos : ${summaryOrNA(summary.total_discount, '-')}`, size: 12 },
-            { text: `Total Commission : ${summaryOrNA(summary.total_commission, '-')}`, size: 12 },
-            { text: `Total Net Final : ${summaryOrNA(summary.total_net)}`, size: 12 }
-        ];
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' });
+        let cursorY = 20;
 
-        const blob = createPdfBlob({ lines, orientation: 'landscape' });
+        doc.setFontSize(18);
+        doc.text('Simulation de réservation', 14, cursorY);
+        cursorY += 8;
+
+        doc.setFontSize(12);
+        metadata.forEach(line => {
+            doc.text(line, 14, cursorY);
+            cursorY += 6;
+        });
+
+        if (metadata.length) {
+            cursorY += 2;
+        }
+
+        doc.autoTable({
+            startY: cursorY,
+            head: [headers],
+            body: rows,
+            styles: { fontSize: 10, cellPadding: 2 },
+            headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            margin: { left: 14, right: 14 }
+        });
+
+        let summaryY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : cursorY + 10;
+        doc.setFontSize(12);
+        doc.text(`Sous-Total Brut : ${summaryOrNA(summary.subtotal_brut)}`, 14, summaryY);
+        summaryY += 6;
+        doc.text(`Remises & Promos : ${summaryOrNA(summary.total_discount, '-')}`, 14, summaryY);
+        summaryY += 6;
+        doc.text(`Total Commission : ${summaryOrNA(summary.total_commission, '-')}`, 14, summaryY);
+        summaryY += 6;
+        doc.text(`Total Net Final : ${summaryOrNA(summary.total_net)}`, 14, summaryY);
+
+        const blob = doc.output('blob');
         const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
         const timestamp = new Date().toISOString().split('T')[0];
         downloadBlob(blob, `simulation_${hotelId}_${timestamp}.pdf`);
@@ -1131,6 +890,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportAvailabilityToExcel = () => {
         if (!currentAvailabilityData) {
             showToast('Aucune disponibilité à exporter.', true);
+            return;
+        }
+        if (!ensureExcelLibAvailable()) {
             return;
         }
 
@@ -1152,7 +914,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
         const timestamp = new Date().toISOString().split('T')[0];
-        const blob = createXlsmBlob('Disponibilites', worksheetData);
+        const blob = createExcelBlob('Disponibilites', worksheetData);
         downloadBlob(blob, `disponibilites_${hotelId}_${timestamp}.xlsm`);
         showToast('Export Excel des disponibilités généré.');
     };
@@ -1160,6 +922,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportAvailabilityToPdf = () => {
         if (!currentAvailabilityData) {
             showToast('Aucune disponibilité à exporter.', true);
+            return;
+        }
+        if (!ensurePdfLibAvailable()) {
             return;
         }
         const { period, availability } = currentAvailabilityData;
@@ -1177,22 +942,35 @@ document.addEventListener('DOMContentLoaded', () => {
             })
         ]);
 
-        const lines = [
-            { text: 'Tableau des disponibilites', size: 18 }
-        ];
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' });
+        let cursorY = 20;
+
+        doc.setFontSize(18);
+        doc.text('Tableau des disponibilités', 14, cursorY);
+        cursorY += 8;
+
+        doc.setFontSize(12);
         if (hotelId) {
-            lines.push({ text: `Hotel : ${hotelId}`, size: 12 });
+            doc.text(`Hôtel : ${hotelId}`, 14, cursorY);
+            cursorY += 6;
         }
         if (dates.length) {
-            lines.push({ text: `Periode : ${dates[0]} -> ${dates[dates.length - 1]}`, size: 12 });
+            doc.text(`Période : ${dates[0]} -> ${dates[dates.length - 1]}`, 14, cursorY);
+            cursorY += 6;
         }
-        lines.push({ text: '', size: 12 });
-        lines.push({ text: header.join(' | '), size: 11 });
-        rows.forEach(row => {
-            lines.push({ text: row.join(' | '), size: 10 });
+
+        doc.autoTable({
+            startY: cursorY + 2,
+            head: [header],
+            body: rows,
+            styles: { fontSize: 10, cellPadding: 2 },
+            headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+            alternateRowStyles: { fillColor: [245, 247, 250] },
+            margin: { left: 14, right: 14 }
         });
 
-        const blob = createPdfBlob({ lines, orientation: 'landscape' });
+        const blob = doc.output('blob');
         const timestamp = new Date().toISOString().split('T')[0];
         downloadBlob(blob, `disponibilites_${hotelId || 'hotel'}_${timestamp}.pdf`);
         showToast('Export PDF des disponibilités généré.');
