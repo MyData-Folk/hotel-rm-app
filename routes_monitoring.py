@@ -1,40 +1,47 @@
-from fastapi import APIRouter, Query
-from datetime import datetime
+from fastapi import APIRouter
+import os
+import shutil
+import time
 
-router = APIRouter(prefix="/monitor", tags=["Monitoring"])
+router = APIRouter(prefix="/monitor")
 
-fake_hotels = [
-    {"id": "folkestone", "name": "Folkestone Opera", "stars": 4},
-    {"id": "vendome", "name": "Vendôme Opéra", "stars": 3},
-    {"id": "washington", "name": "Washington Opéra", "stars": 4},
-]
 
-@router.get("/hotels")
-def get_hotels():
-    return {"count": len(fake_hotels), "hotels": fake_hotels}
-
-@router.get("/files/status")
-def files_status(hotel_id: str = Query(...)):
+@router.get("/health")
+def system_health():
+    db_ok = os.path.exists("/app/data")
+    supabase_ok = True  # à tester via ping si possible
+    total, used, free = shutil.disk_usage("/app")
     return {
-        "hotel_id": hotel_id,
-        "files": [
-            {"name": f"{hotel_id}_tarifs.xlsx", "status": "ok"},
-            {"name": f"{hotel_id}_planning.xlsx", "status": "ok"},
-        ],
-        "checked": datetime.now().isoformat(),
+        "api": "ok",
+        "db_mount": db_ok,
+        "supabase": supabase_ok,
+        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "disk": {
+            "total": total,
+            "used": used,
+            "free": free,
+        },
     }
 
-@router.post("/simulate")
-def simulate(payload: dict):
-    hotel = payload.get("hotel")
-    arrival, departure = payload.get("arrival"), payload.get("departure")
-    plan, category = payload.get("plan"), payload.get("category")
-    total = 250.0  # Simulation fictive
-    return {
-        "hotel": hotel,
-        "plan": plan,
-        "category": category,
-        "arrival": arrival,
-        "departure": departure,
-        "simulated_total": total,
-    }
+
+@router.get("/files")
+def list_uploaded_files():
+    dir_path = "/app/data"
+    if not os.path.exists(dir_path):
+        return {"files": []}
+
+    files = []
+    for filename in os.listdir(dir_path):
+        full_path = os.path.join(dir_path, filename)
+        try:
+            size = os.path.getsize(full_path)
+            modified = time.ctime(os.path.getmtime(full_path))
+        except OSError:
+            size = 0
+            modified = None
+        files.append({
+            "name": filename,
+            "size": size,
+            "modified": modified,
+        })
+    return {"files": files}

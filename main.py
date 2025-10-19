@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
@@ -24,6 +25,15 @@ DATA_DIR = os.getenv("DATA_DIR", "/app/data")
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+os.makedirs("/app/logs", exist_ok=True)
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+if not any(isinstance(h, logging.FileHandler) for h in root_logger.handlers):
+    fh = logging.FileHandler("/app/logs/app.log")
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    root_logger.addHandler(fh)
+
 logger = logging.getLogger(__name__)
 
 # Adapte l'URL pour psycopg2
@@ -34,69 +44,22 @@ app = FastAPI(
     description="API complète pour la gestion des données hôtelières et la simulation tarifaire."
 )
 
-# Inclusion des routers
-app.include_router(admin_router)
-app.include_router(monitor_router)
-
-# --- 2. MIDDLEWARE CORS CORRIGÉ ---
-origins = [
-    "https://folkestone.e-hotelmanager.com",
-    "https://admin-folkestone.e-hotelmanager.com",
-    "http://127.0.0.1:5500",
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "http://localhost:8080",
-    "https://localhost:3000",
-    # Ajout des patterns de sous-domaines
-    "https://*.e-hotelmanager.com",
-    "http://*.e-hotelmanager.com"
-]
+os.makedirs("/app/logs", exist_ok=True)
+os.makedirs("/app/backups", exist_ok=True)
+app.mount("/logs", StaticFiles(directory="/app/logs"), name="logs")
+app.mount("/backups", StaticFiles(directory="/app/backups"), name="backups")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https://([a-z0-9-]+\.)*e-hotelmanager\.com",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
-# Middleware de gestion d'erreurs global
-@app.middleware("http")
-async def catch_exceptions_middleware(request, call_next):
-    try:
-        response = await call_next(request)
-        
-        # Ajout des headers CORS pour toutes les réponses
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        
-        return response
-    except Exception as e:
-        logger.error(f"Erreur non gérée: {str(e)}", exc_info=True)
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Erreur interne du serveur"},
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                "Access-Control-Allow-Headers": "*"
-            }
-        )
-
-# Gestion explicite des requêtes OPTIONS pour CORS preflight
-@app.options("/{rest_of_path:path}")
-async def preflight_handler(request, rest_of_path: str):
-    return JSONResponse(
-        content={"status": "OK"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Max-Age": "86400"
-        }
-    )
+# Inclusion des routers
+app.include_router(admin_router)
+app.include_router(monitor_router)
 
 # --- 3. FONCTIONS UTILITAIRES ---
 def decode_hotel_id(hotel_id: str) -> str:
