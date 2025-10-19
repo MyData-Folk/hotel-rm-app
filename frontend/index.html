@@ -254,6 +254,14 @@
                         <h2 class="text-xl font-bold text-gray-800 flex items-center">
                             <i data-feather="list" class="mr-2 w-5 h-5"></i> Tableau des Disponibilités
                         </h2>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="availabilityExcelBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                                <i data-feather="download" class="mr-2 w-4 h-4"></i> Excel (XLSM)
+                            </button>
+                            <button id="availabilityPdfBtn" class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-50 flex items-center justify-center">
+                                <i data-feather="file-text" class="mr-2 w-4 h-4"></i> PDF
+                            </button>
+                        </div>
                     </div>
                     <div id="availabilityTableContainer" class="overflow-x-auto relative max-h-[500px] overflow-y-auto"></div>
                 </div>
@@ -310,13 +318,18 @@
                     <div id="totalNetFinal" class="text-2xl font-bold text-indigo-700">- €</div>
                 </div>
             </div>
-            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-4">
-                <button id="newSimulationBtn" class="btn btn-secondary px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
+            <div class="mt-6 flex flex-col lg:flex-row justify-between gap-4">
+                <button id="newSimulationBtn" class="btn btn-secondary px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center self-start">
                     <i data-feather="plus" class="mr-2 w-4 h-4"></i> Nouvelle Simulation
                 </button>
-                <button id="exportBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                    <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter en Excel
-                </button>
+                <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+                    <button id="exportSimulationExcelBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
+                        <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter en Excel (XLSM)
+                    </button>
+                    <button id="exportSimulationPdfBtn" class="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md shadow-sm text-sm font-medium hover:bg-indigo-50 flex items-center justify-center">
+                        <i data-feather="file-text" class="mr-2 w-4 h-4"></i> Exporter en PDF
+                    </button>
+                </div>
             </div>
         </div>
     </main>
@@ -359,7 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
         applyCommission: document.getElementById('applyCommission'),
         applyPartnerDiscount: document.getElementById('applyPartnerDiscount'),
         promoDiscount: document.getElementById('promoDiscount'),
-        exportBtn: document.getElementById('exportBtn'),
+        exportSimulationExcelBtn: document.getElementById('exportSimulationExcelBtn'),
+        exportSimulationPdfBtn: document.getElementById('exportSimulationPdfBtn'),
         newSimulationBtn: document.getElementById('newSimulationBtn'),
         availabilityForm: document.getElementById('availabilityForm'),
         availRoomTypesContainer: document.getElementById('availRoomTypesContainer'),
@@ -367,11 +381,15 @@ document.addEventListener('DOMContentLoaded', () => {
         availEndDate: document.getElementById('availEndDate'),
         availabilityResults: document.getElementById('availabilityResults'),
         availabilityTableContainer: document.getElementById('availabilityTableContainer'),
+        availabilityExcelBtn: document.getElementById('availabilityExcelBtn'),
+        availabilityPdfBtn: document.getElementById('availabilityPdfBtn'),
         selectAllRoomsBtn: document.getElementById('selectAllRoomsBtn'),
         deselectAllRoomsBtn: document.getElementById('deselectAllRoomsBtn'),
         commissionLabel: document.getElementById('commissionLabel'),
         partnerDiscountLabel: document.getElementById('partnerDiscountLabel')
     };
+
+    let currentAvailabilityData = null;
 
     const showSpinner = () => {
         if (DOMElements.spinner) DOMElements.spinner.classList.remove('hidden');
@@ -390,9 +408,338 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 4000);
     };
 
+    const downloadBlob = (blob, filename) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const TEXT_ENCODER = new TextEncoder();
+
+    const CRC32_TABLE = (() => {
+        const table = new Uint32Array(256);
+        for (let i = 0; i < 256; i += 1) {
+            let crc = i;
+            for (let j = 0; j < 8; j += 1) {
+                crc = (crc & 1) ? (0xEDB88320 ^ (crc >>> 1)) : (crc >>> 1);
+            }
+            table[i] = crc >>> 0;
+        }
+        return table;
+    })();
+
+    const crc32 = (input) => {
+        const data = input instanceof Uint8Array ? input : TEXT_ENCODER.encode(String(input));
+        let crc = -1;
+        for (let i = 0; i < data.length; i += 1) {
+            crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ data[i]) & 0xFF];
+        }
+        return (crc ^ -1) >>> 0;
+    };
+
+    const createZip = (files) => {
+        const localParts = [];
+        const centralParts = [];
+        let offset = 0;
+        const now = new Date();
+        const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2)) & 0xFFFF;
+        const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+        files.forEach(file => {
+            const nameBytes = TEXT_ENCODER.encode(file.name);
+            const dataBytes = file.binary instanceof Uint8Array ? file.binary : TEXT_ENCODER.encode(file.data);
+            const crc = crc32(dataBytes);
+
+            const localHeader = new Uint8Array(30 + nameBytes.length);
+            const localView = new DataView(localHeader.buffer);
+            localView.setUint32(0, 0x04034b50, true);
+            localView.setUint16(4, 20, true);
+            localView.setUint16(6, 0, true);
+            localView.setUint16(8, 0, true);
+            localView.setUint16(10, dosTime, true);
+            localView.setUint16(12, dosDate, true);
+            localView.setUint32(14, crc, true);
+            localView.setUint32(18, dataBytes.length, true);
+            localView.setUint32(22, dataBytes.length, true);
+            localView.setUint16(26, nameBytes.length, true);
+            localView.setUint16(28, 0, true);
+            localHeader.set(nameBytes, 30);
+
+            localParts.push(localHeader, dataBytes);
+
+            const centralHeader = new Uint8Array(46 + nameBytes.length);
+            const centralView = new DataView(centralHeader.buffer);
+            centralView.setUint32(0, 0x02014b50, true);
+            centralView.setUint16(4, 20, true);
+            centralView.setUint16(6, 20, true);
+            centralView.setUint16(8, 0, true);
+            centralView.setUint16(10, 0, true);
+            centralView.setUint16(12, dosTime, true);
+            centralView.setUint16(14, dosDate, true);
+            centralView.setUint32(16, crc, true);
+            centralView.setUint32(20, dataBytes.length, true);
+            centralView.setUint32(24, dataBytes.length, true);
+            centralView.setUint16(28, nameBytes.length, true);
+            centralView.setUint16(30, 0, true);
+            centralView.setUint16(32, 0, true);
+            centralView.setUint16(34, 0, true);
+            centralView.setUint16(36, 0, true);
+            centralView.setUint32(38, 0, true);
+            centralView.setUint32(42, offset, true);
+            centralHeader.set(nameBytes, 46);
+
+            centralParts.push(centralHeader);
+
+            offset += localHeader.length + dataBytes.length;
+        });
+
+        const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+        const localSize = localParts.reduce((sum, part) => sum + part.length, 0);
+
+        const endRecord = new Uint8Array(22);
+        const endView = new DataView(endRecord.buffer);
+        endView.setUint32(0, 0x06054b50, true);
+        endView.setUint16(4, 0, true);
+        endView.setUint16(6, 0, true);
+        endView.setUint16(8, files.length, true);
+        endView.setUint16(10, files.length, true);
+        endView.setUint32(12, centralSize, true);
+        endView.setUint32(16, localSize, true);
+        endView.setUint16(20, 0, true);
+
+        const output = new Uint8Array(localSize + centralSize + endRecord.length);
+        let cursor = 0;
+        localParts.forEach(part => {
+            output.set(part, cursor);
+            cursor += part.length;
+        });
+        centralParts.forEach(part => {
+            output.set(part, cursor);
+            cursor += part.length;
+        });
+        output.set(endRecord, cursor);
+
+        return output;
+    };
+
+    const escapeXml = (value) => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+
+    const columnNumberToName = (num) => {
+        let columnName = '';
+        let n = num;
+        while (n > 0) {
+            const remainder = (n - 1) % 26;
+            columnName = String.fromCharCode(65 + remainder) + columnName;
+            n = Math.floor((n - 1) / 26);
+        }
+        return columnName || 'A';
+    };
+
+    const buildWorksheetXml = (rows) => {
+        const lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
+            '<sheetData>'];
+
+        rows.forEach((row, rowIndex) => {
+            const cells = [];
+            row.forEach((value, cellIndex) => {
+                if (value === null || value === undefined || value === '') return;
+                const cellRef = `${columnNumberToName(cellIndex + 1)}${rowIndex + 1}`;
+                let cellType = '';
+                let cellValue = value;
+                let isInlineStr = false;
+
+                if (typeof value === 'number') {
+                    cellValue = value;
+                } else if (value instanceof Date) {
+                    cellValue = Math.round((value.getTime() / 86400000) + 25569);
+                } else if (typeof value === 'boolean') {
+                    cellType = ' t="b"';
+                    cellValue = value ? 1 : 0;
+                } else {
+                    const numeric = Number(value);
+                    if (String(value).trim() !== '' && Number.isFinite(numeric) && !Number.isNaN(numeric)) {
+                        cellValue = numeric;
+                    } else {
+                        isInlineStr = true;
+                        cellValue = escapeXml(String(value));
+                    }
+                }
+
+                if (isInlineStr) {
+                    cells.push(`<c r="${cellRef}" t="inlineStr"><is><t>${cellValue}</t></is></c>`);
+                } else {
+                    cells.push(`<c r="${cellRef}"${cellType}><v>${escapeXml(String(cellValue))}</v></c>`);
+                }
+            });
+            lines.push(`<row r="${rowIndex + 1}">${cells.join('')}</row>`);
+        });
+
+        lines.push('</sheetData>');
+        lines.push('</worksheet>');
+        return lines.join('');
+    };
+
+    const sanitizeSheetName = (name) => {
+        const cleaned = (name || 'Feuille1').replace(/[\\/:*?\[\]]/g, ' ').trim().slice(0, 31);
+        return cleaned || 'Feuille1';
+    };
+
+    const createXlsmBlob = (sheetName, rows) => {
+        const worksheetXml = buildWorksheetXml(rows);
+        const safeSheetName = sanitizeSheetName(sheetName);
+        const created = new Date().toISOString();
+
+        const files = [
+            {
+                name: '[Content_Types].xml',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n  <Default Extension="xml" ContentType="application/xml"/>\n  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.ms-excel.sheet.macroEnabled.main+xml"/>\n  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.ms-excel.worksheet+xml"/>\n  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>\n  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>\n</Types>`
+            },
+            {
+                name: '_rels/.rels',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\n</Relationships>`
+            },
+            {
+                name: 'docProps/app.xml',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">\n  <Application>HotelVision</Application>\n</Properties>`
+            },
+            {
+                name: 'docProps/core.xml',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n  <dc:creator>HotelVision</dc:creator>\n  <cp:lastModifiedBy>HotelVision</cp:lastModifiedBy>\n  <dcterms:created xsi:type="dcterms:W3CDTF">${created}</dcterms:created>\n  <dcterms:modified xsi:type="dcterms:W3CDTF">${created}</dcterms:modified>\n</cp:coreProperties>`
+            },
+            {
+                name: 'xl/workbook.xml',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">\n  <sheets>\n    <sheet name="${escapeXml(safeSheetName)}" sheetId="1" r:id="rId1"/>\n  </sheets>\n</workbook>`
+            },
+            {
+                name: 'xl/_rels/workbook.xml.rels',
+                data: `<?xml version="1.0" encoding="UTF-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>\n</Relationships>`
+            },
+            {
+                name: 'xl/worksheets/sheet1.xml',
+                data: worksheetXml
+            }
+        ];
+
+        const zipBytes = createZip(files);
+        return new Blob([zipBytes], { type: 'application/vnd.ms-excel.sheet.macroEnabled.12' });
+    };
+
+    const normalizeForPdf = (value) => String(value ?? '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/€/g, 'EUR')
+        .replace(/[–—]/g, '-')
+        .replace(/œ/g, 'oe')
+        .replace(/Œ/g, 'OE');
+
+    const escapePdfString = (value) => normalizeForPdf(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)');
+
+    const createPdfBlob = ({ lines, orientation = 'portrait', margin = 40 }) => {
+        const width = orientation === 'landscape' ? 842 : 595;
+        const height = orientation === 'landscape' ? 595 : 842;
+        const startX = margin;
+        const startY = height - margin;
+
+        const commands = ['BT'];
+        let currentFont = null;
+        let isFirstLine = true;
+
+        lines.forEach(rawLine => {
+            const size = rawLine?.size || 12;
+            const lineHeight = rawLine?.lineHeight || size + 4;
+            const text = rawLine?.text ? escapePdfString(rawLine.text) : '';
+
+            if (isFirstLine) {
+                commands.push(`/F1 ${size} Tf`);
+                commands.push(`1 0 0 1 ${startX} ${startY} Tm`);
+                isFirstLine = false;
+            } else {
+                commands.push(`0 -${lineHeight.toFixed(2)} Td`);
+                if (currentFont !== size) {
+                    commands.push(`/F1 ${size} Tf`);
+                }
+            }
+
+            currentFont = size;
+            if (text) {
+                commands.push(`(${text}) Tj`);
+            }
+        });
+
+        commands.push('ET');
+        const content = `${commands.join('\n')}\n`;
+        const contentBytes = TEXT_ENCODER.encode(content);
+
+        const objects = [
+            '<< /Type /Catalog /Pages 2 0 R >>',
+            '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+            `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>`,
+            `<< /Length ${contentBytes.length} >>\nstream\n${content}endstream`,
+            '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'
+        ];
+
+        const header = TEXT_ENCODER.encode('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+        const objectBytes = [];
+        const offsets = [0];
+        let offset = header.length;
+
+        objects.forEach((obj, index) => {
+            offsets.push(offset);
+            const bytes = TEXT_ENCODER.encode(`${index + 1} 0 obj\n${obj}\nendobj\n`);
+            objectBytes.push(bytes);
+            offset += bytes.length;
+        });
+
+        const xrefOffset = offset;
+        let xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+        for (let i = 1; i <= objects.length; i += 1) {
+            xref += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+        }
+        const xrefBytes = TEXT_ENCODER.encode(xref);
+        const trailer = TEXT_ENCODER.encode(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+        const totalLength = header.length + objectBytes.reduce((sum, bytes) => sum + bytes.length, 0) + xrefBytes.length + trailer.length;
+        const output = new Uint8Array(totalLength);
+        let cursor = 0;
+        output.set(header, cursor);
+        cursor += header.length;
+        objectBytes.forEach(bytes => {
+            output.set(bytes, cursor);
+            cursor += bytes.length;
+        });
+        output.set(xrefBytes, cursor);
+        cursor += xrefBytes.length;
+        output.set(trailer, cursor);
+
+        return new Blob([output], { type: 'application/pdf' });
+    };
+
     const formatCurrency = (val) => {
-        if (val === null || val === undefined) return '–';
-        return `${val.toFixed(2).replace('.', ',')} €`;
+        if (val === null || val === undefined) return 'N/A';
+        const num = Number(val);
+        if (Number.isNaN(num)) return `${val}`;
+        return `${num.toFixed(2).replace('.', ',')} €`;
+    };
+
+    const toNumberOrEmpty = (val) => {
+        if (val === null || val === undefined) return '';
+        const num = Number(val);
+        return Number.isNaN(num) ? '' : num;
     };
 
     const fetchHotels = async () => {
@@ -417,6 +764,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const hotelId = DOMElements.hotelIdSelect?.value;
         if (!hotelId) return showToast("Veuillez sélectionner un hôtel.", true);
         
+        currentSimulationData = null;
+        currentAvailabilityData = null;
+        DOMElements.resultsContainer?.classList.add('hidden');
+        DOMElements.availabilityResults?.classList.add('hidden');
+
         showSpinner();
         if (DOMElements.statusMessage) {
             DOMElements.statusMessage.textContent = 'Chargement des données...';
@@ -646,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             displayAvailabilityResults(result);
             showToast('Disponibilités chargées avec succès');
-            
+
         } catch (error) {
             console.error('Erreur disponibilités:', error);
             showToast(error.message, true);
@@ -656,8 +1008,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const displayAvailabilityResults = (data) => {
+        currentAvailabilityData = data;
         DOMElements.availabilityResults.classList.remove('hidden');
-        
+
         let tableHTML = `
             <table class="w-full text-sm sticky-table-header">
                 <thead>
@@ -689,6 +1042,161 @@ document.addEventListener('DOMContentLoaded', () => {
         tableHTML += '</tbody></table>';
         DOMElements.availabilityTableContainer.innerHTML = tableHTML;
     };
+
+    const buildSimulationMetadata = () => {
+        const info = currentSimulationData?.simulation_info || {};
+        const hotelId = DOMElements.hotelIdSelect?.value || '';
+        const period = info.start_date && info.end_date ? `${info.start_date} -> ${info.end_date}` : '';
+        return [
+            ['Hôtel', hotelId],
+            ['Type de chambre', info.room || ''],
+            ['Source', info.source || ''],
+            ['Période', period]
+        ];
+    };
+
+    const exportSimulationToExcel = () => {
+        if (!currentSimulationData) {
+            showToast('Aucune simulation à exporter.', true);
+            return;
+        }
+        const { results = [], summary = {} } = currentSimulationData;
+        const worksheetData = [
+            ...buildSimulationMetadata(),
+            [],
+            ['Date', 'Prix Brut (€)', 'Prix Net (€)', 'Stock', 'Disponibilité'],
+            ...results.map(day => [
+                day.date_display || day.date || '',
+                typeof day.gross_price === 'number' ? day.gross_price : (day.gross_price ?? ''),
+                typeof day.net_price === 'number' ? day.net_price : (day.net_price ?? ''),
+                day.stock ?? '',
+                day.availability ?? ''
+            ]),
+            [],
+            ['Sous-Total Brut', toNumberOrEmpty(summary.subtotal_brut)],
+            ['Remises & Promos', toNumberOrEmpty(summary.total_discount)],
+            ['Total Commission', toNumberOrEmpty(summary.total_commission)],
+            ['Total Net Final', toNumberOrEmpty(summary.total_net)]
+        ];
+
+        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
+        const timestamp = new Date().toISOString().split('T')[0];
+        const blob = createXlsmBlob('Simulation', worksheetData);
+        downloadBlob(blob, `simulation_${hotelId}_${timestamp}.xlsm`);
+        showToast('Export Excel généré.');
+    };
+
+    const exportSimulationToPdf = () => {
+        if (!currentSimulationData) {
+            showToast('Aucune simulation à exporter.', true);
+            return;
+        }
+        const summary = currentSimulationData.summary || {};
+        const summaryOrNA = (value, prefix = '') => {
+            if (value === null || value === undefined) return 'N/A';
+            const formatted = formatCurrency(value);
+            return prefix ? `${prefix} ${formatted}` : formatted;
+        };
+
+        const metadata = buildSimulationMetadata().filter(([, value]) => value).map(([label, value]) => `${label} : ${value}`);
+        const headers = ['Date', 'Prix Brut (€)', 'Prix Net (€)', 'Stock', 'Disponibilité'];
+        const rows = (currentSimulationData.results || []).map(day => [
+            day.date_display || day.date || '',
+            typeof day.gross_price === 'number' ? day.gross_price.toFixed(2) : (day.gross_price ?? ''),
+            typeof day.net_price === 'number' ? day.net_price.toFixed(2) : (day.net_price ?? ''),
+            day.stock ?? '',
+            day.availability ?? ''
+        ]);
+
+        const lines = [
+            { text: 'Simulation de reservation', size: 18 },
+            ...metadata.map(text => ({ text, size: 12 })),
+            { text: '', size: 12 },
+            { text: headers.join(' | '), size: 11 },
+            ...rows.map(row => ({ text: row.join(' | '), size: 10 })),
+            { text: '', size: 12 },
+            { text: `Sous-Total Brut : ${summaryOrNA(summary.subtotal_brut)}`, size: 12 },
+            { text: `Remises & Promos : ${summaryOrNA(summary.total_discount, '-')}`, size: 12 },
+            { text: `Total Commission : ${summaryOrNA(summary.total_commission, '-')}`, size: 12 },
+            { text: `Total Net Final : ${summaryOrNA(summary.total_net)}`, size: 12 }
+        ];
+
+        const blob = createPdfBlob({ lines, orientation: 'landscape' });
+        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
+        const timestamp = new Date().toISOString().split('T')[0];
+        downloadBlob(blob, `simulation_${hotelId}_${timestamp}.pdf`);
+        showToast('Export PDF généré.');
+    };
+
+    const exportAvailabilityToExcel = () => {
+        if (!currentAvailabilityData) {
+            showToast('Aucune disponibilité à exporter.', true);
+            return;
+        }
+
+        const { period, availability } = currentAvailabilityData;
+        const dates = period?.dates || [];
+        const headerRow = ['Type de chambre', ...dates.map(date => period?.date_display?.[date] || date)];
+        const rows = Object.entries(availability || {}).map(([roomName, values]) => [
+            roomName,
+            ...dates.map(date => toNumberOrEmpty(values?.[date]))
+        ]);
+
+        const worksheetData = [
+            ['Hôtel', DOMElements.hotelIdSelect?.value || ''],
+            ['Période', dates.length ? `${dates[0]} -> ${dates[dates.length - 1]}` : ''],
+            [],
+            headerRow,
+            ...rows
+        ];
+
+        const hotelId = DOMElements.hotelIdSelect?.value || 'hotel';
+        const timestamp = new Date().toISOString().split('T')[0];
+        const blob = createXlsmBlob('Disponibilites', worksheetData);
+        downloadBlob(blob, `disponibilites_${hotelId}_${timestamp}.xlsm`);
+        showToast('Export Excel des disponibilités généré.');
+    };
+
+    const exportAvailabilityToPdf = () => {
+        if (!currentAvailabilityData) {
+            showToast('Aucune disponibilité à exporter.', true);
+            return;
+        }
+        const { period, availability } = currentAvailabilityData;
+        const dates = period?.dates || [];
+
+        const hotelId = DOMElements.hotelIdSelect?.value || '';
+        const header = ['Type de chambre', ...dates.map(date => period?.date_display?.[date] || date)];
+        const rows = Object.entries(availability || {}).map(([roomName, values]) => [
+            roomName,
+            ...dates.map(date => {
+                const cellValue = values?.[date];
+                if (cellValue === null || cellValue === undefined) return '';
+                const num = Number(cellValue);
+                return Number.isNaN(num) ? `${cellValue}` : num;
+            })
+        ]);
+
+        const lines = [
+            { text: 'Tableau des disponibilites', size: 18 }
+        ];
+        if (hotelId) {
+            lines.push({ text: `Hotel : ${hotelId}`, size: 12 });
+        }
+        if (dates.length) {
+            lines.push({ text: `Periode : ${dates[0]} -> ${dates[dates.length - 1]}`, size: 12 });
+        }
+        lines.push({ text: '', size: 12 });
+        lines.push({ text: header.join(' | '), size: 11 });
+        rows.forEach(row => {
+            lines.push({ text: row.join(' | '), size: 10 });
+        });
+
+        const blob = createPdfBlob({ lines, orientation: 'landscape' });
+        const timestamp = new Date().toISOString().split('T')[0];
+        downloadBlob(blob, `disponibilites_${hotelId || 'hotel'}_${timestamp}.pdf`);
+        showToast('Export PDF des disponibilités généré.');
+    };
     
     // Event listeners
     DOMElements.refreshDataBtn.addEventListener('click', loadData);
@@ -696,7 +1204,15 @@ document.addEventListener('DOMContentLoaded', () => {
     DOMElements.simPartnerSelect.addEventListener('change', updateRatePlans);
     DOMElements.simulationForm.addEventListener('submit', handleSimulation);
     DOMElements.availabilityForm.addEventListener('submit', handleAvailability);
-    DOMElements.newSimulationBtn.addEventListener('click', () => DOMElements.resultsContainer.classList.add('hidden'));
+    DOMElements.newSimulationBtn.addEventListener('click', () => {
+        DOMElements.resultsContainer.classList.add('hidden');
+        currentSimulationData = null;
+    });
+
+    DOMElements.exportSimulationExcelBtn?.addEventListener('click', exportSimulationToExcel);
+    DOMElements.exportSimulationPdfBtn?.addEventListener('click', exportSimulationToPdf);
+    DOMElements.availabilityExcelBtn?.addEventListener('click', exportAvailabilityToExcel);
+    DOMElements.availabilityPdfBtn?.addEventListener('click', exportAvailabilityToPdf);
     
     DOMElements.selectAllRoomsBtn.addEventListener('click', () => {
         document.querySelectorAll('.room-checkbox').forEach(cb => cb.checked = true);
