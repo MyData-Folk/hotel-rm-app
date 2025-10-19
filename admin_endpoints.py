@@ -8,7 +8,11 @@ from pathlib import Path
 
 router = APIRouter(prefix="/admin", tags=["Admin Tools"])
 
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "superadmintoken")  # 👈 change-le dans Coolify
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
+if not ADMIN_TOKEN:
+    raise RuntimeError(
+        "ADMIN_TOKEN must be provided via environment variables to protect admin endpoints"
+    )
 BACKUP_DIR = Path("/app/backups")
 LOG_PATH = Path("/app/logs/app.log")
 DB_URL = os.getenv("DATABASE_URL", "postgres://postgres:supersecretpassword@hotel-db:5432/hoteldb")
@@ -56,9 +60,13 @@ def get_logs(lines: int = 200, x_admin_token: str = Header(None)):
 
 # --- 4️⃣ SQL (readonly)
 @router.post("/sql")
-def run_sql(request: Request, x_admin_token: str = Header(None)):
+async def run_sql(request: Request, x_admin_token: str = Header(None)):
     require_admin(x_admin_token)
-    body = request.json()
+    try:
+        body = await request.json()
+    except Exception as exc:  # pragma: no cover - FastAPI already validates JSON
+        raise HTTPException(status_code=400, detail=f"Invalid JSON payload: {exc}")
+
     sql = body.get("sql", "")
     readonly = body.get("readonly", True)
     if not sql:

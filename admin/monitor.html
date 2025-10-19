@@ -377,12 +377,18 @@
     <p>Surveillance & outils de maintenance pour l'application hotel RM</p>
   </div>
 
+  <div class="row" style="justify-content:flex-end">
+    <a class="btn secondary" href="index.html" title="Retourner au tableau principal">
+      ⬅ Retour Admin
+    </a>
+  </div>
+
   <div class="tab-container">
     <div class="tab-buttons">
-      <button class="tab-btn active" onclick="switchTab('admin')">
+      <button class="tab-btn active" data-tab="admin" onclick="switchTab(event, 'admin')">
         <span>🔧 Admin</span>
       </button>
-      <button class="tab-btn" onclick="switchTab('monitoring')">
+      <button class="tab-btn" data-tab="monitoring" onclick="switchTab(event, 'monitoring')">
         <span>📊 Monitoring App</span>
       </button>
     </div>
@@ -633,12 +639,12 @@ Security: require header X-Admin-Token: <secret>. Use HTTPS and limit exposure t
           <div class="code-block">
             <code>
 Available monitoring endpoints:
-GET /hotels → returns list of hotels { "count": 3, "hotels": [...] }
-GET /files/status?hotel_id=xxx → returns file status for specific hotel
-POST /simulate → Body: { "hotel": "xxx", "arrival": "date", "departure": "date", "plan": "xxx", "category": "xxx" } → runs price simulation and returns results
+GET /monitor/hotels → returns list of hotels { "count": 3, "hotels": [...] }
+GET /monitor/files/status?hotel_id=xxx → returns file status for specific hotel
+POST /monitor/simulate → Body: { "hotel": "xxx", "arrival": "date", "departure": "date", "plan": "xxx", "category": "xxx" } → runs price simulation and returns results
             </code>
           </div>
-          <div class="hint">Ces endpoints sont spécifiques à l'application hotel RM.</div>
+          <div class="hint">Ces endpoints sont spécifiques à l'application hotel RM et retournent actuellement des données de démonstration.</div>
         </div>
       </div>
     </main>
@@ -682,12 +688,17 @@ function showToast(message, type = 'info', duration = 5000) {
 }
 
 // Tab switching with animation
-function switchTab(tabName) {
+function switchTab(evtOrTab, maybeTabName) {
+  const tabName = typeof evtOrTab === 'string' ? evtOrTab : maybeTabName;
+  const evt = typeof evtOrTab === 'string' ? null : evtOrTab;
   currentTab = tabName;
-  
+
   // Update tab buttons
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.closest('.tab-btn').classList.add('active');
+  const activeButton = evt?.currentTarget?.closest('.tab-btn') || document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+  if (activeButton) {
+    activeButton.classList.add('active');
+  }
   
   // Update content with animation
   document.querySelectorAll('.tab-content').forEach(content => {
@@ -714,9 +725,12 @@ function switchTab(tabName) {
 function initializeMonitoringTab() {
   // Clear previous results
   $('hotelsOut').textContent = 'Cliquez "Get Hotels" pour voir la liste...';
+  $('hotelsOut').style.display = 'block';
   $('filesOut').textContent = 'Sélectionnez un hôtel et cliquez "Check Files Status"';
   $('simulateOut').textContent = 'Résultats de la simulation apparaîtront ici...';
   $('hotelList').style.display = 'none';
+  $('hotelList').innerHTML = '';
+  $('hotelSelect').innerHTML = '<option value="">-- Sélectionnez un hôtel --</option>';
   $('hotelSelectContainer').style.display = 'none';
 }
 
@@ -733,8 +747,20 @@ function setStatus(stateText, stateClass, panel = 'admin') {
 
 // Enhanced API fetch with loading states
 async function apiFetch(path, opts = {}, useMonitoringApi = false) {
-  const base = (useMonitoringApi ? monitoringBaseEl : baseEl).value.replace(/\/+$/, '');
-  const url = path.startsWith('http') ? path : base + path;
+  const baseInput = useMonitoringApi ? monitoringBaseEl : baseEl;
+  const base = baseInput.value.replace(/\/+$/, '');
+  let resolvedPath = path;
+
+  if (!resolvedPath.startsWith('http')) {
+    if (useMonitoringApi && !resolvedPath.startsWith('/monitor')) {
+      const cleaned = resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`;
+      resolvedPath = `/monitor${cleaned}`;
+    } else if (!resolvedPath.startsWith('/')) {
+      resolvedPath = `/${resolvedPath}`;
+    }
+  }
+
+  const url = resolvedPath.startsWith('http') ? resolvedPath : base + resolvedPath;
   opts.headers = opts.headers || {};
   
   if (tokenEl.value) opts.headers['X-Admin-Token'] = tokenEl.value;
@@ -867,7 +893,7 @@ function displayHotelList(data) {
     // Add to visual list
     const hotelItem = document.createElement('div');
     hotelItem.className = 'hotel-item';
-    hotelItem.onclick = () => selectHotel(hotelId, hotelName);
+    hotelItem.addEventListener('click', (evt) => selectHotel(evt, hotelId, hotelName));
     
     const stars = '⭐'.repeat(hotelStars);
     
@@ -892,18 +918,18 @@ function displayHotelList(data) {
   showToast(`${hotels.length} hôtels chargés`, 'success');
 }
 
-function selectHotel(hotelId, hotelName) {
+function selectHotel(evt, hotelId, hotelName) {
   // Update the input field
   $('hotelId').value = hotelId;
-  
+
   // Update the dropdown
   $('hotelSelect').value = hotelId;
-  
+
   // Update visual selection
   document.querySelectorAll('.hotel-item').forEach(item => {
     item.classList.remove('selected');
   });
-  event.currentTarget.classList.add('selected');
+  evt.currentTarget.classList.add('selected');
   
   showToast(`Hôtel "${hotelName}" sélectionné`, 'success');
   
