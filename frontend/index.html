@@ -1,729 +1,260 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HotelVision - Plateforme de Gestion Hôtelière Intelligente</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Poppins', sans-serif;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Simulateur RM - Folkestone Opera</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: "#0b1220",
+            card: "#121a2b",
+            border: "#1d2740",
+            text: "#ecf1f6",
+            accent: "#facc15",
+            muted: "#9aa4b6",
+            success: "#6ee7b7",
+            danger: "#ef4444"
+          },
+          boxShadow: {
+            card: "0 10px 25px rgba(0,0,0,.25)"
+          }
         }
-        #vanta-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.15;
-        }
-        .gradient-header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        }
-        .btn-gradient-primary {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-            transition: all 0.3s ease;
-        }
-        .btn-gradient-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -10px rgba(79, 70, 229, 0.6);
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
-        }
-        .tab-link {
-            transition: all 0.3s ease;
-        }
-        .tab-link.tab-active {
-            border-bottom: 3px solid #4f46e5;
-            color: #4f46e5;
-            font-weight: 600;
-        }
-        .form-input {
-            transition: all 0.3s ease;
-            border: 1px solid #e2e8f0;
-        }
-        .form-input:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
-        }
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #4f46e5;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .sticky-table-header th {
-            position: sticky;
-            top: 0;
-            background-color: #f8fafc;
-            z-index: 10;
-        }
-    </style>
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial}
+    .scroll-slim::-webkit-scrollbar{height:8px;width:8px}
+    .scroll-slim::-webkit-scrollbar-thumb{background:#223054;border-radius:999px}
+  </style>
 </head>
-<body class="bg-gray-50">
-    <div id="vanta-bg"></div>
-    
-    <header class="gradient-header text-white shadow-lg">
-        <div class="container mx-auto px-4 py-8 text-center">
-            <div class="flex items-center justify-center space-x-3">
-                <i data-feather="home" class="w-8 h-8"></i>
-                <h1 class="text-3xl md:text-4xl font-bold">HotelVision</h1>
-            </div>
-            <p id="header-subtitle" class="mt-2 text-lg text-blue-100">Simulateur Avancé & Gestion des Disponibilités</p>
+<body class="bg-bg text-text">
+  <header class="p-6 border-b border-border flex items-center justify-between">
+    <h1 class="text-xl font-semibold">🏨 Simulateur de Revenue Management</h1>
+    <button id="openSettings" class="text-sm text-muted hover:text-accent">⚙️ Paramètres</button>
+  </header>
+
+  <main class="p-6 max-w-6xl mx-auto space-y-6">
+    <!-- HOTEL SELECTION -->
+    <section class="glass border border-border rounded-2xl shadow-card p-6">
+      <h2 class="font-semibold text-lg mb-4">Choix de l'hôtel</h2>
+      <div class="flex flex-col md:flex-row items-center gap-4">
+        <select id="hotelSelect" class="flex-1 px-4 py-2 rounded-lg bg-card border border-border text-text">
+          <option value="">Chargement...</option>
+        </select>
+        <button id="simulateBtn" class="px-4 py-2 bg-accent text-black font-semibold rounded-lg hover:brightness-110">Lancer la Simulation</button>
+      </div>
+    </section>
+
+    <!-- SIMULATION RESULT -->
+    <section id="resultsSection" class="glass border border-border rounded-2xl shadow-card p-6 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-lg">Résultats de la Simulation</h2>
+        <div class="flex gap-2">
+          <button id="exportExcelBtn" class="px-3 py-2 text-sm bg-card border border-border rounded-lg hover:bg-card/80">📊 Export Excel</button>
+          <button id="exportPdfBtn" class="px-3 py-2 text-sm bg-card border border-border rounded-lg hover:bg-card/80">🧾 Export PDF</button>
         </div>
-    </header>
+      </div>
+      <div class="overflow-auto scroll-slim">
+        <table id="resultsTable" class="min-w-full text-sm border-collapse border border-border">
+          <thead class="bg-card">
+            <tr>
+              <th class="border border-border px-3 py-2 text-left">OTA</th>
+              <th class="border border-border px-3 py-2 text-left">Type Chambre</th>
+              <th class="border border-border px-3 py-2 text-right">Tarif (€)</th>
+              <th class="border border-border px-3 py-2 text-right">Remise (%)</th>
+              <th class="border border-border px-3 py-2 text-right">Commission (%)</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <div class="mt-4 text-right text-sm text-muted" id="summaryStats"></div>
+    </section>
 
-    <main class="container mx-auto px-4 py-8 max-w-7xl">
-        <div class="card p-6 md:p-8 mb-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                <div class="flex-grow w-full md:w-auto">
-                    <label for="hotelId" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i data-feather="hotel" class="inline mr-2 w-4 h-4"></i> Sélectionnez votre hôtel :
-                    </label>
-                    <div class="flex">
-                        <select id="hotelId" class="form-input rounded-r-none flex-grow px-4 py-2">
-                            <option value="">-- Sélectionner --</option>
-                        </select>
-                        <button id="refreshDataBtn" class="btn btn-gradient-primary rounded-l-none px-4 py-2 flex items-center" title="Charger/Rafraîchir les données">
-                            <i data-feather="refresh-cw" class="mr-2 w-4 h-4"></i> Rafraîchir
-                        </button>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4 mt-4 md:mt-0">
-                    <a href="https://admin-folkestone.e-hotelmanager.com" class="btn btn-secondary flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <i data-feather="settings" class="mr-2 w-4 h-4"></i> Paramètres
-                    </a>
-                </div>
-            </div>
-            <p id="statusMessage" class="text-sm text-gray-600 mt-4 flex items-center">
-                <i data-feather="info" class="mr-2 w-4 h-4"></i> Veuillez sélectionner un hôtel et cliquer sur rafraîchir.
-            </p>
-        </div>
+    <!-- AVAILABILITIES -->
+    <section id="availSection" class="glass border border-border rounded-2xl shadow-card p-6 hidden">
+      <h2 class="font-semibold text-lg mb-4">Mes disponibilités</h2>
+      <div class="overflow-auto scroll-slim">
+        <table id="availTable" class="min-w-full text-sm border-collapse border border-border">
+          <thead class="bg-card">
+            <tr>
+              <th class="border border-border px-3 py-2 text-left">Type de Chambre</th>
+              <th class="border border-border px-3 py-2 text-right">Disponibles</th>
+            </tr>
+          </thead>
+          <tbody id="availBody"></tbody>
+        </table>
+      </div>
+      <div class="mt-4 text-right text-sm text-muted" id="availSummary"></div>
+    </section>
+  </main>
 
-        <div id="main-tools" class="card p-0 opacity-50 pointer-events-none transition-all duration-300">
-            <div class="flex border-b border-gray-200">
-                <button class="tab-link tab-active px-6 py-4" data-tab="simulator">
-                    <i data-feather="calendar" class="mr-2 w-4 h-4"></i> Simulateur
-                </button>
-                <button class="tab-link px-6 py-4" data-tab="availability">
-                    <i data-feather="check-circle" class="mr-2 w-4 h-4"></i> Disponibilités
-                </button>
-            </div>
-            
-            <div id="tab-content-simulator" class="p-6 md:p-8">
-                <form id="simulationForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                    <div>
-                        <label for="simPartner" class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="users" class="mr-2 w-4 h-4"></i> Partenaire
-                        </label>
-                        <select id="simPartner" class="form-input w-full px-4 py-2">
-                            <option value="">En Direct (0%)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="simRoomType" class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="home" class="mr-2 w-4 h-4"></i> Type de chambre
-                        </label>
-                        <select id="simRoomType" class="form-input w-full px-4 py-2">
-                            <option value="">-- Sélectionner --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="simRatePlan" class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="dollar-sign" class="mr-2 w-4 h-4"></i> Plan tarifaire
-                        </label>
-                        <select id="simRatePlan" class="form-input w-full px-4 py-2">
-                            <option value="">-- Sélectionner --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="simStartDate" class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="calendar" class="mr-2 w-4 h-4"></i> Date d'arrivée
-                        </label>
-                        <input type="date" id="simStartDate" class="form-input w-full px-4 py-2">
-                    </div>
-                    <div>
-                        <label for="simEndDate" class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="calendar" class="mr-2 w-4 h-4"></i> Date de départ
-                        </label>
-                        <input type="date" id="simEndDate" class="form-input w-full px-4 py-2">
-                    </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                            <i data-feather="zap" class="mr-2 w-4 h-4"></i> Simuler
-                        </button>
-                    </div>
-                </form>
-
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-6 p-4 bg-gray-50 rounded-lg">
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="applyCommission" checked class="rounded border-gray-300 h-4 w-4 text-indigo-600 focus:ring-indigo-500">
-                        <label for="applyCommission" class="text-sm font-medium" id="commissionLabel">Appliquer commission (0%)</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="checkbox" id="applyPartnerDiscount" checked class="rounded border-gray-300 h-4 w-4 text-indigo-600 focus:ring-indigo-500">
-                        <label for="applyPartnerDiscount" class="text-sm font-medium" id="partnerDiscountLabel">Appliquer remise partenaire (0%)</label>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="promoDiscount" class="text-sm font-medium">Remise (%):</label>
-                        <input type="number" id="promoDiscount" min="0" max="100" value="0" class="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                </div>
-            </div>
-
-            <div id="tab-content-availability" class="p-6 md:p-8 hidden">
-                <form id="availabilityForm" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1 flex items-center">
-                            <i data-feather="grid" class="mr-2 w-4 h-4"></i> Types de chambres
-                        </label>
-                        <div id="availRoomTypesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-4 border rounded-lg bg-gray-50">
-                            <!-- Les cases à cocher seront générées ici -->
-                        </div>
-                        <div class="flex gap-2 mt-2">
-                          <button type="button" id="selectAllRoomsBtn" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center">
-                            <i data-feather="check-square" class="mr-1 w-3 h-3"></i> Tout sélectionner
-                          </button>
-                          <span>/</span>
-                          <button type="button" id="deselectAllRoomsBtn" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center">
-                            <i data-feather="square" class="mr-1 w-3 h-3"></i> Tout désélectionner
-                          </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                         <div>
-                             <label for="availStartDate" class="block text-sm font-medium mb-1 flex items-center">
-                                 <i data-feather="calendar" class="mr-2 w-4 h-4"></i> Date de début
-                             </label>
-                             <input type="date" id="availStartDate" class="form-input w-full px-4 py-2">
-                         </div>
-                         <div>
-                             <label for="availEndDate" class="block text-sm font-medium mb-1 flex items-center">
-                                 <i data-feather="calendar" class="mr-2 w-4 h-4"></i> Date de fin
-                             </label>
-                             <input type="date" id="availEndDate" class="form-input w-full px-4 py-2">
-                         </div>
-                         <div class="flex items-end">
-                             <button type="submit" class="btn btn-gradient-primary w-full px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                                 <i data-feather="search" class="mr-2 w-4 h-4"></i> Vérifier
-                             </button>
-                         </div>
-                    </div>
-                </form>
-                <div id="availabilityResults" class="mt-6 hidden">
-                    <div class="flex justify-between items-center border-b pb-4 mb-4">
-                        <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                            <i data-feather="list" class="mr-2 w-5 h-5"></i> Tableau des Disponibilités
-                        </h2>
-                    </div>
-                    <div id="availabilityTableContainer" class="overflow-x-auto relative max-h-[500px] overflow-y-auto"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="resultsContainer" class="card mt-8 hidden animate-fade-in">
-            <div class="border-b pb-4 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                    <i data-feather="file-text" class="mr-2 w-5 h-5"></i> Simulation : <span id="simRoomName" class="ml-1">-</span>
-                </h2>
-                <p class="text-sm text-gray-600 mt-1 flex items-center" id="simSourceInfo">
-                    <i data-feather="info" class="mr-2 w-4 h-4"></i> Source: -
-                </p>
-            </div>
-            <div class="overflow-x-auto relative max-h-[500px] overflow-y-auto">
-                <table class="w-full text-sm sticky-table-header">
-                    <thead class="bg-gray-50 sticky top-0">
-                        <tr>
-                            <th class="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Brut (€)</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Prix Net (€)</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Stock</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-700">Disponibilité</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultsTableBody" class="divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-            <div class="mt-6 p-4 bg-gray-50 rounded-lg grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
-                        <i data-feather="calculator" class="mr-2 w-4 h-4"></i> Détail des calculs
-                    </h3>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span>Sous-Total Brut:</span>
-                            <span id="subtotalBrut" class="font-semibold">- €</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Remises & Promos:</span>
-                            <span id="totalDiscount" class="font-semibold text-green-600">- €</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span>Total Commission:</span>
-                            <span id="totalCommission" class="font-semibold text-red-600">- €</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="border-l pl-6">
-                    <h3 class="font-semibold text-gray-800 mb-3 flex items-center">
-                        <i data-feather="credit-card" class="mr-2 w-4 h-4"></i> Total Net Final
-                    </h3>
-                    <div id="totalNetFinal" class="text-2xl font-bold text-indigo-700">- €</div>
-                </div>
-            </div>
-            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-4">
-                <button id="newSimulationBtn" class="btn btn-secondary px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center justify-center">
-                    <i data-feather="plus" class="mr-2 w-4 h-4"></i> Nouvelle Simulation
-                </button>
-                <button id="exportBtn" class="btn btn-gradient-primary px-4 py-2 rounded-md text-white font-medium flex items-center justify-center">
-                    <i data-feather="download" class="mr-2 w-4 h-4"></i> Exporter en Excel
-                </button>
-            </div>
-        </div>
-    </main>
-  
-    <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="spinner"></div>
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="fixed inset-0 bg-black/70 flex items-center justify-center hidden">
+    <div class="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-card">
+      <h2 class="text-lg font-semibold mb-3">⚙️ Paramètres</h2>
+      <label class="text-sm text-muted">API Base URL</label>
+      <input id="apiBaseInput" class="w-full mt-1 mb-3 px-3 py-2 bg-bg border border-border rounded-lg" placeholder="https://api-folkestone.e-hotelmanager.com">
+      <label class="text-sm text-muted">Admin Token (optionnel)</label>
+      <input id="adminTokenInput" type="password" class="w-full mt-1 mb-4 px-3 py-2 bg-bg border border-border rounded-lg" placeholder="••••••••">
+      <div class="flex justify-end gap-2">
+        <button id="closeSettings" class="px-3 py-2 border border-border rounded-lg">Annuler</button>
+        <button id="saveSettings" class="px-3 py-2 bg-accent text-black rounded-lg font-semibold">Enregistrer</button>
+      </div>
     </div>
-    <div id="toast" class="toast"></div>
+  </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialisation de Vanta.js pour l'arrière-plan
-    VANTA.NET({
-        el: "#vanta-bg",
-        color: 0x4f46e5,
-        backgroundColor: 0xf8fafc,
-        points: 12,
-        maxDistance: 20,
-        spacing: 15
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 right-5 px-4 py-2 rounded-lg text-white font-medium shadow-lg hidden"></div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const LS = {
+      get API(){ return localStorage.getItem('API_BASE') || defaultApiBase(); },
+      set API(v){ localStorage.setItem('API_BASE', v); },
+      get TOKEN(){ return localStorage.getItem('ADMIN_TOKEN') || ''; },
+      set TOKEN(v){ localStorage.setItem('ADMIN_TOKEN', v); }
+    };
+
+    const defaultApiBase = () => {
+      const h = window.location.host;
+      if(h.startsWith('folkestone.')) return window.location.protocol + '//' + h.replace('folkestone.','api-folkestone.');
+      if(h.startsWith('admin-')) return window.location.protocol + '//' + h.replace('admin-','api-');
+      return window.location.origin;
+    }
+
+    const toast = (msg, ok=true) => {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.className = `fixed bottom-5 right-5 px-4 py-2 rounded-lg text-white font-medium shadow-lg ${ok?'bg-green-600':'bg-red-600'}`;
+      t.classList.remove('hidden');
+      setTimeout(()=>t.classList.add('hidden'),3000);
+    };
+
+    // Load hotels
+    async function loadHotels(){
+      try{
+        const r = await fetch(LS.API.replace(/\/$/,'') + '/hotels');
+        const j = await r.json();
+        $('#hotelSelect').innerHTML = j.map(h=>`<option value="${h}">${h}</option>`).join('');
+      }catch(e){
+        $('#hotelSelect').innerHTML = '<option value="">Erreur API</option>';
+        toast('Impossible de charger les hôtels', false);
+      }
+    }
+
+    async function simulate(){
+      const hotelId = $('#hotelSelect').value;
+      if(!hotelId){ toast("Choisissez un hôtel", false); return; }
+      $('#simulateBtn').disabled = true;
+      $('#simulateBtn').textContent = 'Simulation en cours...';
+      try{
+        const res = await fetch(LS.API.replace(/\/$/,'') + '/simulate?hotel_id=' + encodeURIComponent(hotelId));
+        const j = await res.json();
+        showResults(j, hotelId);
+      }catch(e){
+        toast('Erreur lors de la simulation', false);
+      }finally{
+        $('#simulateBtn').disabled = false;
+        $('#simulateBtn').textContent = 'Lancer la Simulation';
+      }
+    }
+
+    function showResults(data, hotelId){
+      $('#resultsSection').classList.remove('hidden');
+      const body = $('#resultsBody'); body.innerHTML = '';
+      const rows = data.results || [];
+      if(rows.length===0){ body.innerHTML = '<tr><td colspan="5" class="px-3 py-3 text-center text-muted">Aucune donnée</td></tr>'; return; }
+      let total = 0;
+      for(const r of rows){
+        body.innerHTML += `
+          <tr>
+            <td class="border border-border px-3 py-2">${r.ota||'-'}</td>
+            <td class="border border-border px-3 py-2">${r.room_type||'-'}</td>
+            <td class="border border-border px-3 py-2 text-right">${r.price?.toFixed(2)||'-'}</td>
+            <td class="border border-border px-3 py-2 text-right">${r.discount||0}</td>
+            <td class="border border-border px-3 py-2 text-right">${r.commission||0}</td>
+          </tr>`;
+        total += r.price||0;
+      }
+      $('#summaryStats').textContent = `Nombre de lignes: ${rows.length} | Tarif moyen: ${(total/rows.length).toFixed(2)} €`;
+      if(data.availability){
+        showAvailability(data.availability);
+      }
+      // keep current data for export
+      window.lastSimulation = {hotelId, results: rows, availability: data.availability||[]};
+    }
+
+    function showAvailability(avail){
+      $('#availSection').classList.remove('hidden');
+      const b = $('#availBody'); b.innerHTML='';
+      let total=0;
+      for(const r of avail){
+        b.innerHTML += `<tr><td class="border border-border px-3 py-2">${r.room}</td><td class="border border-border px-3 py-2 text-right">${r.available}</td></tr>`;
+        total += r.available;
+      }
+      $('#availSummary').textContent = `Total chambres disponibles: ${total}`;
+    }
+
+    async function exportExcel(){
+      if(!window.lastSimulation){ toast('Aucune simulation à exporter', false); return; }
+      const r = await fetch(LS.API.replace(/\/$/,'') + '/export/excel', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(window.lastSimulation)
+      });
+      if(!r.ok){ toast('Erreur export Excel', false); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `simulation_${window.lastSimulation.hotelId}.xlsx`;
+      a.click(); URL.revokeObjectURL(a.href);
+      toast('Export Excel téléchargé');
+    }
+
+    async function exportPdf(){
+      if(!window.lastSimulation){ toast('Aucune simulation à exporter', false); return; }
+      const r = await fetch(LS.API.replace(/\/$/,'') + '/export/pdf', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(window.lastSimulation)
+      });
+      if(!r.ok){ toast('Erreur export PDF', false); return; }
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `simulation_${window.lastSimulation.hotelId}.pdf`;
+      a.click(); URL.revokeObjectURL(a.href);
+      toast('Export PDF téléchargé');
+    }
+
+    // Settings modal
+    $('#openSettings').addEventListener('click', ()=> $('#settingsModal').classList.remove('hidden'));
+    $('#closeSettings').addEventListener('click', ()=> $('#settingsModal').classList.add('hidden'));
+    $('#saveSettings').addEventListener('click', ()=>{
+      LS.API = $('#apiBaseInput').value.trim() || defaultApiBase();
+      LS.TOKEN = $('#adminTokenInput').value.trim();
+      $('#settingsModal').classList.add('hidden');
+      toast('Paramètres enregistrés');
     });
 
-    const API_URL = 'https://api-folkestone.e-hotelmanager.com';
-    let hotelData = {}, hotelConfig = {}, currentSimulationData = null;
+    // Events
+    $('#simulateBtn').addEventListener('click', simulate);
+    $('#exportExcelBtn').addEventListener('click', exportExcel);
+    $('#exportPdfBtn').addEventListener('click', exportPdf);
 
-    const DOMElements = {
-        hotelIdSelect: document.getElementById('hotelId'),
-        refreshDataBtn: document.getElementById('refreshDataBtn'),
-        statusMessage: document.getElementById('statusMessage'),
-        mainTools: document.getElementById('main-tools'),
-        simPartnerSelect: document.getElementById('simPartner'),
-        simRoomTypeSelect: document.getElementById('simRoomType'),
-        simRatePlanSelect: document.getElementById('simRatePlan'),
-        simulationForm: document.getElementById('simulationForm'),
-        simStartDate: document.getElementById('simStartDate'),
-        simEndDate: document.getElementById('simEndDate'),
-        resultsContainer: document.getElementById('resultsContainer'),
-        resultsTableBody: document.getElementById('resultsTableBody'),
-        spinner: document.getElementById('spinner-overlay'),
-        toast: document.getElementById('toast'),
-        applyCommission: document.getElementById('applyCommission'),
-        applyPartnerDiscount: document.getElementById('applyPartnerDiscount'),
-        promoDiscount: document.getElementById('promoDiscount'),
-        exportBtn: document.getElementById('exportBtn'),
-        newSimulationBtn: document.getElementById('newSimulationBtn'),
-        availabilityForm: document.getElementById('availabilityForm'),
-        availRoomTypesContainer: document.getElementById('availRoomTypesContainer'),
-        availStartDate: document.getElementById('availStartDate'),
-        availEndDate: document.getElementById('availEndDate'),
-        availabilityResults: document.getElementById('availabilityResults'),
-        availabilityTableContainer: document.getElementById('availabilityTableContainer'),
-        selectAllRoomsBtn: document.getElementById('selectAllRoomsBtn'),
-        deselectAllRoomsBtn: document.getElementById('deselectAllRoomsBtn'),
-        commissionLabel: document.getElementById('commissionLabel'),
-        partnerDiscountLabel: document.getElementById('partnerDiscountLabel')
-    };
-
-    const showSpinner = () => {
-        if (DOMElements.spinner) DOMElements.spinner.classList.remove('hidden');
-    };
-    
-    const hideSpinner = () => {
-        if (DOMElements.spinner) DOMElements.spinner.classList.add('hidden');
-    };
-    
-    const showToast = (message, isError = false) => {
-        if (!DOMElements.toast) return;
-        DOMElements.toast.textContent = message;
-        DOMElements.toast.className = `toast show ${isError ? 'bg-red-500' : 'bg-green-600'}`;
-        setTimeout(() => {
-            if (DOMElements.toast) DOMElements.toast.classList.remove('show');
-        }, 4000);
-    };
-
-    const formatCurrency = (val) => {
-        if (val === null || val === undefined) return '–';
-        return `${val.toFixed(2).replace('.', ',')} €`;
-    };
-
-    const fetchHotels = async () => {
-        try {
-            const res = await fetch(`${API_URL}/hotels`);
-            if (!res.ok) throw new Error('Impossible de charger les hôtels.');
-            const hotels = await res.json();
-            
-            if (DOMElements.hotelIdSelect) {
-                DOMElements.hotelIdSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-                hotels.forEach(id => {
-                    DOMElements.hotelIdSelect.innerHTML += `<option value="${id}">${id}</option>`;
-                });
-            }
-        } catch(error) {
-            console.error('Erreur chargement hôtels:', error);
-            showToast(error.message, true);
-        }
-    };
-
-    const loadData = async () => {
-        const hotelId = DOMElements.hotelIdSelect?.value;
-        if (!hotelId) return showToast("Veuillez sélectionner un hôtel.", true);
-        
-        showSpinner();
-        if (DOMElements.statusMessage) {
-            DOMElements.statusMessage.textContent = 'Chargement des données...';
-        }
-        if (DOMElements.mainTools) {
-            DOMElements.mainTools.classList.add('opacity-50', 'pointer-events-none');
-        }
-        
-        try {
-            const [dataRes, configRes] = await Promise.all([
-                fetch(`${API_URL}/data?hotel_id=${encodeURIComponent(hotelId)}`),
-                fetch(`${API_URL}/config?hotel_id=${encodeURIComponent(hotelId)}`)
-            ]);
-            
-            if (!dataRes.ok) throw new Error('Données introuvables');
-            if (!configRes.ok) throw new Error('Configuration introuvable');
-            
-            const data = await dataRes.json();
-            hotelData = data.rooms || {};
-            hotelConfig = await configRes.json();
-            
-            console.log('Données chargées:', { hotelData, hotelConfig });
-            
-            populateSelectors();
-            
-            if (DOMElements.statusMessage) {
-                DOMElements.statusMessage.textContent = `Données pour '${hotelId}' chargées avec succès.`;
-            }
-            if (DOMElements.mainTools) {
-                DOMElements.mainTools.classList.remove('opacity-50', 'pointer-events-none');
-            }
-            showToast(`Données pour ${hotelId} chargées avec succès`);
-            
-        } catch (error) {
-            console.error('Erreur chargement données:', error);
-            if (DOMElements.statusMessage) {
-                DOMElements.statusMessage.textContent = `Erreur: ${error.message}`;
-            }
-            showToast(error.message, true);
-        } finally {
-            hideSpinner();
-        }
-    };
-
-    const populateSelectors = () => {
-        console.log('Populating selectors with data:', { hotelData, hotelConfig });
-        
-        if (!DOMElements.simPartnerSelect || !DOMElements.simRoomTypeSelect || !DOMElements.availRoomTypesContainer) {
-            console.error('Sélecteurs manquants');
-            return;
-        }
-
-        // Partenaires
-        DOMElements.simPartnerSelect.innerHTML = '<option value="">En Direct (0%)</option>';
-        
-        if (hotelConfig.partners) {
-            Object.keys(hotelConfig.partners).sort().forEach(name => {
-                const partner = hotelConfig.partners[name];
-                DOMElements.simPartnerSelect.innerHTML += `<option value="${name}">${name} (${partner.commission}%)</option>`;
-            });
-        }
-
-        // Types de chambres
-        const roomOrder = hotelConfig.displayOrder?.rooms || Object.keys(hotelData);
-        DOMElements.simRoomTypeSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-        DOMElements.availRoomTypesContainer.innerHTML = '';
-        
-        roomOrder.filter(room => hotelData[room]).forEach(room => {
-            DOMElements.simRoomTypeSelect.innerHTML += `<option value="${room}">${room}</option>`;
-            DOMElements.availRoomTypesContainer.innerHTML += `
-                <div class="flex items-center">
-                    <input type="checkbox" id="room-${room}" value="${room}" checked class="room-checkbox rounded border-gray-300 h-4 w-4 text-indigo-600 focus:ring-indigo-500">
-                    <label for="room-${room}" class="ml-2 text-sm">${room}</label>
-                </div>`;
-        });
-
-        updateRatePlans();
-    };
-    
-    const updateRatePlans = async () => {
-        if (!DOMElements.simRoomTypeSelect || !DOMElements.simPartnerSelect || !DOMElements.hotelIdSelect || 
-            !DOMElements.simRatePlanSelect || !DOMElements.commissionLabel || !DOMElements.partnerDiscountLabel) {
-            console.error('Éléments manquants pour updateRatePlans');
-            return;
-        }
-
-        const room = DOMElements.simRoomTypeSelect.value;
-        const partner = DOMElements.simPartnerSelect.value;
-        const hotelId = DOMElements.hotelIdSelect.value;
-        
-        if (!room || !hotelId) {
-            DOMElements.simRatePlanSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-            return;
-        }
-        
-        showSpinner();
-        try {
-            const params = new URLSearchParams({
-                hotel_id: hotelId,
-                room_type: room,
-                partner_name: partner || ''
-            });
-            
-            const res = await fetch(`${API_URL}/plans/partner?${params}`);
-            if (!res.ok) throw new Error('Erreur chargement plans');
-            
-            const data = await res.json();
-            console.log('Plans chargés:', data);
-            
-            DOMElements.simRatePlanSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-            
-            if (data.plans && data.plans.length > 0) {
-                data.plans.forEach(plan => {
-                    DOMElements.simRatePlanSelect.innerHTML += `<option value="${plan}">${plan}</option>`;
-                });
-            } else {
-                DOMElements.simRatePlanSelect.innerHTML = '<option value="">Aucun plan disponible</option>';
-            }
-            
-            const partnerInfo = hotelConfig.partners?.[partner];
-            if (partnerInfo) {
-                DOMElements.commissionLabel.textContent = `Appliquer commission (${partnerInfo.commission || 0}%)`;
-                DOMElements.partnerDiscountLabel.textContent = `Appliquer remise partenaire (${partnerInfo.defaultDiscount?.percentage || 0}%)`;
-            } else {
-                DOMElements.commissionLabel.textContent = `Appliquer commission (0%)`;
-                DOMElements.partnerDiscountLabel.textContent = `Appliquer remise partenaire (0%)`;
-            }
-            
-        } catch (error) {
-            console.error('Erreur chargement plans:', error);
-            DOMElements.simRatePlanSelect.innerHTML = '<option value="">Erreur chargement</option>';
-            showToast('Erreur chargement des plans', true);
-        } finally {
-            hideSpinner();
-        }
-    };
-
-    const handleSimulation = async (e) => {
-        e.preventDefault();
-        const payload = {
-            hotel_id: DOMElements.hotelIdSelect.value,
-            room: DOMElements.simRoomTypeSelect.value,
-            plan: DOMElements.simRatePlanSelect.value,
-            start: DOMElements.simStartDate.value,
-            end: DOMElements.simEndDate.value,
-            partner_name: DOMElements.simPartnerSelect.value || null,
-            apply_commission: DOMElements.applyCommission.checked,
-            apply_partner_discount: DOMElements.applyPartnerDiscount.checked,
-            promo_discount: parseFloat(DOMElements.promoDiscount.value) || 0
-        };
-        
-        if (!payload.start || !payload.end) return showToast("Les dates sont requises.", true);
-        if (!payload.room) return showToast("Le type de chambre est requis.", true);
-        if (!payload.plan) return showToast("Le plan tarifaire est requis.", true);
-        
-        showSpinner();
-        try {
-            const res = await fetch(`${API_URL}/simulate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.detail || 'Erreur de simulation');
-            
-            displayResults(result);
-            showToast('Simulation terminée avec succès');
-            
-        } catch (error) {
-            console.error('Erreur simulation:', error);
-            showToast(error.message, true);
-        } finally {
-            hideSpinner();
-        }
-    };
-
-    const displayResults = (data) => {
-        currentSimulationData = data;
-        DOMElements.resultsContainer.classList.remove('hidden');
-        
-        document.getElementById('simRoomName').textContent = data.simulation_info.room;
-        document.getElementById('simSourceInfo').textContent = `Source: ${data.simulation_info.source}`;
-        
-        DOMElements.resultsTableBody.innerHTML = data.results.map(day => {
-            const stockColor = (day.stock ?? 0) > 2 ? 'text-green-600' : (day.stock ?? 0) > 0 ? 'text-orange-500' : 'text-red-500';
-            return `<tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 whitespace-nowrap">${day.date_display}</td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">${formatCurrency(day.gross_price)}</td>
-                <td class="px-4 py-3 text-right font-semibold text-indigo-700 whitespace-nowrap">${formatCurrency(day.net_price)}</td>
-                <td class="px-4 py-3 text-right font-medium ${stockColor} whitespace-nowrap">${day.stock ?? 'N/A'}</td>
-                <td class="px-4 py-3 text-right whitespace-nowrap">${day.availability}</td>
-            </tr>`;
-        }).join('');
-        
-        const { summary } = data;
-        document.getElementById('subtotalBrut').textContent = formatCurrency(summary.subtotal_brut);
-        document.getElementById('totalDiscount').textContent = `- ${formatCurrency(summary.total_discount)}`;
-        document.getElementById('totalCommission').textContent = `- ${formatCurrency(summary.total_commission)}`;
-        document.getElementById('totalNetFinal').textContent = formatCurrency(summary.total_net);
-    };
-
-    const handleAvailability = async (e) => {
-        e.preventDefault();
-        const selectedRooms = Array.from(document.querySelectorAll('.room-checkbox:checked')).map(cb => cb.value);
-        if (selectedRooms.length === 0) return showToast("Veuillez sélectionner au moins une chambre.", true);
-        
-        const payload = {
-            hotel_id: DOMElements.hotelIdSelect.value,
-            start_date: DOMElements.availStartDate.value,
-            end_date: DOMElements.availEndDate.value,
-            room_types: selectedRooms
-        };
-        
-        if (!payload.start_date || !payload.end_date) return showToast("Les dates sont requises.", true);
-        
-        showSpinner();
-        try {
-            const res = await fetch(`${API_URL}/availability`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            const result = await res.json();
-            if (!res.ok) throw new Error(result.detail || 'Erreur disponibilités');
-            
-            displayAvailabilityResults(result);
-            showToast('Disponibilités chargées avec succès');
-            
-        } catch (error) {
-            console.error('Erreur disponibilités:', error);
-            showToast(error.message, true);
-        } finally {
-            hideSpinner();
-        }
-    };
-
-    const displayAvailabilityResults = (data) => {
-        DOMElements.availabilityResults.classList.remove('hidden');
-        
-        let tableHTML = `
-            <table class="w-full text-sm sticky-table-header">
-                <thead>
-                    <tr>
-                        <th class="px-4 py-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10">Type de chambre</th>
-        `;
-        
-        data.period.dates.forEach(date => {
-            tableHTML += `<th class="px-2 py-2 text-center font-semibold text-gray-700 sticky top-0 bg-gray-50">${data.period.date_display[date]}</th>`;
-        });
-        
-        tableHTML += '</tr></thead><tbody class="divide-y divide-gray-200">';
-        
-        Object.entries(data.availability).forEach(([roomName, dates]) => {
-            tableHTML += '<tr class="hover:bg-gray-50">';
-            tableHTML += `<td class="px-4 py-3 font-medium sticky left-0 bg-white z-10 whitespace-nowrap">${roomName}</td>`;
-            
-            data.period.dates.forEach(date => {
-                const stock = dates[date];
-                let bgColor = 'bg-red-100 text-red-800';
-                if (stock > 0) bgColor = 'bg-orange-100 text-orange-800';
-                if (stock > 2) bgColor = 'bg-green-100 text-green-800';
-                tableHTML += `<td class="px-2 py-2 text-center font-semibold ${bgColor}">${stock}</td>`;
-            });
-            
-            tableHTML += '</tr>';
-        });
-        
-        tableHTML += '</tbody></table>';
-        DOMElements.availabilityTableContainer.innerHTML = tableHTML;
-    };
-    
-    // Event listeners
-    DOMElements.refreshDataBtn.addEventListener('click', loadData);
-    DOMElements.simRoomTypeSelect.addEventListener('change', updateRatePlans);
-    DOMElements.simPartnerSelect.addEventListener('change', updateRatePlans);
-    DOMElements.simulationForm.addEventListener('submit', handleSimulation);
-    DOMElements.availabilityForm.addEventListener('submit', handleAvailability);
-    DOMElements.newSimulationBtn.addEventListener('click', () => DOMElements.resultsContainer.classList.add('hidden'));
-    
-    DOMElements.selectAllRoomsBtn.addEventListener('click', () => {
-        document.querySelectorAll('.room-checkbox').forEach(cb => cb.checked = true);
+    // Init
+    document.addEventListener('DOMContentLoaded', ()=>{
+      $('#apiBaseInput').value = LS.API;
+      $('#adminTokenInput').value = LS.TOKEN;
+      loadHotels();
     });
-    
-    DOMElements.deselectAllRoomsBtn.addEventListener('click', () => {
-        document.querySelectorAll('.room-checkbox').forEach(cb => cb.checked = false);
-    });
-    
-    document.querySelectorAll('.tab-link').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('tab-active'));
-            button.classList.add('tab-active');
-            document.querySelectorAll('[id^="tab-content-"]').forEach(content => content.classList.add('hidden'));
-            document.getElementById(`tab-content-${button.dataset.tab}`).classList.remove('hidden');
-        });
-    });
-
-    // Initialisation des dates
-    const today = new Date();
-    const nextWeek = new Date(new Date().setDate(today.getDate() + 7));
-    [DOMElements.simStartDate, DOMElements.availStartDate].forEach(el => el.value = today.toISOString().split('T')[0]);
-    [DOMElements.simEndDate, DOMElements.availEndDate].forEach(el => el.value = nextWeek.toISOString().split('T')[0]);
-    
-    fetchHotels();
-    feather.replace();
-});
-</script>
+  </script>
 </body>
 </html>
