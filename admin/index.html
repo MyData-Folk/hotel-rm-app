@@ -1,436 +1,754 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Hotel RM • Admin</title>
-  <!-- TailwindCSS CDN -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HôtelMaster Pro - Dashboard</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
   <script>
-    // Palette & font
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            bg: "#0b1220",
-            card: "#121a2b",
-            border: "#1d2740",
-            text: "#ecf1f6",
-            muted: "#9aa4b6",
-            accent: "#facc15",   // doré
-            success: "#6ee7b7",
-            danger: "#ef4444",
-            info: "#60a5fa"
-          },
-          boxShadow: {
-            card: "0 10px 25px rgba(0,0,0,.35)"
+            primary: {50:'#f0fdfa',100:'#ccfbf1',200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',500:'#14b8a6',600:'#0d9488',700:'#0f766e',800:'#115e59',900:'#134e4a'},
+            brandbg: '#0b1220',
+            brandcard: '#121a2b',
+            brandborder: '#1d2740',
+            brandtext: '#ecf1f6',
+            brandmuted: '#9aa4b6',
+            brandaccent: '#facc15',
           }
         }
       }
     }
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; }
-    .glass { background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); }
-    .scroll-slim::-webkit-scrollbar{height:8px;width:8px}
-    .scroll-slim::-webkit-scrollbar-thumb{background:#223054;border-radius:999px}
-    .dot { width:10px; height:10px; border-radius:999px; display:inline-block; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;}
+    .gradient-bg{background:linear-gradient(135deg,#0f766e 0%,#14b8a6 100%);}
+    .card-hover{transition:all .3s ease;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);}
+    .card-hover:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);}
+    .file-upload{border:2px dashed #cbd5e1;transition:all .3s ease;}
+    .file-upload:hover{border-color:#0f766e;background-color:rgba(241,245,249,.5);}
+    .nav-tab{position:relative;transition:all .3s ease;}
+    .nav-tab.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background-color:#0f766e;}
+    .spinner{animation:spin 1s linear infinite}@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .smooth-transition{transition:all .3s cubic-bezier(.4,0,.2,1)}
+    .sticky-table-header th{position:sticky;top:0;background-color:#f8fafc;z-index:10}
+    .scroll-slim::-webkit-scrollbar{height:8px;width:8px}.scroll-slim::-webkit-scrollbar-thumb{background:#223054;border-radius:999px}
   </style>
 </head>
-<body class="bg-bg text-text">
-
-  <!-- Layout -->
-  <div class="min-h-screen flex">
-    <!-- Sidebar -->
-    <aside class="w-72 border-r border-border bg-[linear-gradient(180deg,#0b1220,#0b1220)]">
-      <div class="px-6 py-5 flex items-center gap-3">
-        <div class="w-8 h-8 rounded-xl bg-accent/20 border border-accent/40 flex items-center justify-center">
-          <span class="text-accent font-semibold">RM</span>
-        </div>
+<body class="bg-gray-50 text-gray-800">
+  <!-- Header -->
+  <header class="gradient-bg text-white shadow-md">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div class="text-sm text-muted">Admin</div>
-          <div class="font-semibold">Hotel RM App</div>
+          <h1 class="text-2xl md:text-3xl font-bold">HôtelMaster Pro</h1>
+          <p class="text-primary-100 opacity-90">Dashboard de gestion hôtelière premium</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="hidden md:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
+            <i data-feather="user" class="w-5 h-5"></i>
+            <span>Administrateur</span>
+          </div>
+          <button class="p-2 rounded-full hover:bg-white/10" title="Paramètres" onclick="openSettingsTab()">
+            <i data-feather="settings" class="w-5 h-5"></i>
+          </button>
         </div>
       </div>
-      <nav class="px-2 pt-2 space-y-1">
-        <button data-tab="dashboard" class="tab-btn w-full text-left px-4 py-3 rounded-xl hover:bg-card/70 border border-transparent hover:border-border transition flex items-center gap-2">
-          <span>🏠</span><span>Tableaux & Données</span>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-8">
+    <!-- Navigation -->
+    <nav class="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
+      <div class="flex flex-wrap">
+        <button class="nav-tab active px-6 py-4 font-medium text-primary-700 flex items-center gap-2" data-tab="hotels">
+          <i data-feather="home" class="w-4 h-4"></i> Gestion des Hôtels
         </button>
-        <button data-tab="monitor" class="tab-btn w-full text-left px-4 py-3 rounded-xl hover:bg-card/70 border border-transparent hover:border-border transition flex items-center gap-2">
-          <span>🩺</span><span>Monitoring & Maintenance</span>
+        <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="upload">
+          <i data-feather="upload" class="w-4 h-4"></i> Import de Données
         </button>
-        <button data-tab="settings" class="tab-btn w-full text-left px-4 py-3 rounded-xl hover:bg-card/70 border border-transparent hover:border-border transition flex items-center gap-2">
-          <span>⚙️</span><span>Paramètres</span>
+        <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="status">
+          <i data-feather="activity" class="w-4 h-4"></i> Statut du Système
         </button>
-      </nav>
-      <div class="px-4 py-6 text-xs text-muted">
-        Version interface: <span class="font-mono">admin-ui 1.0</span>
+        <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="monitor">
+          <i data-feather="cpu" class="w-4 h-4"></i> Monitoring & Maintenance
+        </button>
+        <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="settings">
+          <i data-feather="sliders" class="w-4 h-4"></i> Paramètres
+        </button>
       </div>
-    </aside>
+    </nav>
 
-    <!-- Main -->
-    <main class="flex-1">
-      <!-- Header -->
-      <header class="border-b border-border px-6 py-4 flex items-center gap-3">
-        <div class="text-muted">Espace administrateur</div>
-        <div class="text-accent">•</div>
-        <div id="header-env" class="text-sm text-muted">API: <span class="font-mono" id="header-api-base"></span></div>
-        <div class="ml-auto flex items-center gap-3">
-          <button id="refresh-all" class="px-3 py-2 text-sm bg-card border border-border rounded-lg hover:bg-card/70">⟳ Rafraîchir</button>
-          <span id="pill-status" class="text-xs px-2 py-1 rounded-full border border-border text-muted">statut: inconnu</span>
-        </div>
-      </header>
+    <!-- Messages Container -->
+    <div id="messageContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-md"></div>
 
-      <!-- Content -->
-      <section class="p-6 space-y-6">
-        <!-- DASHBOARD TAB (placeholder) -->
-        <div id="tab-dashboard" class="tab hidden">
-          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <h2 class="font-semibold mb-2">📊 Vue d’ensemble</h2>
-              <p class="text-sm text-muted">Ici tu gardes tes composants existants (chargement config, simulation, etc.).</p>
-              <div class="mt-4 text-sm text-muted">
-                Astuce: tu peux déclencher un export rapide pour tester l’API :
+    <!-- === TAB: GESTION DES HÔTELS === -->
+    <div id="hotelsTab" class="tab-content active">
+      <div class="grid grid-cols-1 gap-6">
+        <!-- Create Hotel -->
+        <div class="card-hover bg-white rounded-xl overflow-hidden">
+          <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <i data-feather="plus" class="w-5 h-5 text-primary-600"></i> Créer un Nouvel Hôtel
+            </h2>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div class="md:col-span-3">
+                <label for="newHotelId" class="block text-sm font-medium text-gray-700 mb-1">ID de l'Hôtel</label>
+                <input type="text" id="newHotelId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="ex: hotel-paris-centre">
               </div>
-              <div class="mt-3 flex gap-2">
-                <button id="btn-export-excel-demo" class="px-3 py-2 bg-card border border-border rounded-lg hover:bg-card/70">Export Excel (démo)</button>
-                <button id="btn-export-pdf-demo" class="px-3 py-2 bg-card border border-border rounded-lg hover:bg-card/70">Export PDF (démo)</button>
+              <div class="flex items-end">
+                <button id="createHotelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                  <i data-feather="plus" class="w-4 h-4"></i> Créer
+                </button>
               </div>
-            </div>
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <h2 class="font-semibold mb-2">🏨 Hôtels</h2>
-              <div id="hotels-list" class="text-sm text-muted">—</div>
-            </div>
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <h2 class="font-semibold mb-2">🧠 Conseils</h2>
-              <ul class="list-disc pl-5 text-sm text-muted space-y-1">
-                <li>Surveille `/monitor/health` pour l’espace disque et les dossiers montés.</li>
-                <li>Définis <code>ADMIN_TOKEN</code> et teste un backup DB.</li>
-                <li>Monte <code>/app/data</code>, <code>/app/backups</code>, <code>/app/logs</code> dans Coolify.</li>
-              </ul>
             </div>
           </div>
         </div>
 
-        <!-- MONITOR TAB -->
-        <div id="tab-monitor" class="tab hidden">
-          <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <!-- Santé -->
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <h2 class="font-semibold">🩺 Santé</h2>
-                <button id="btn-refresh-health" class="text-xs px-2 py-1 bg-card border border-border rounded">Rafraîchir</button>
-              </div>
-              <pre id="health-json" class="text-xs text-muted whitespace-pre-wrap leading-relaxed">—</pre>
-            </div>
-
-            <!-- Fichiers -->
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <div class="flex items-center justify-between mb-3">
-                <h2 class="font-semibold">📂 Fichiers (DATA_DIR)</h2>
-                <button id="btn-refresh-files" class="text-xs px-2 py-1 bg-card border border-border rounded">Rafraîchir</button>
-              </div>
-              <div class="overflow-auto scroll-slim max-h-80">
-                <table class="w-full text-sm">
-                  <thead>
-                    <tr class="text-muted">
-                      <th class="text-left py-2 border-b border-border">Nom</th>
-                      <th class="text-left py-2 border-b border-border">Taille</th>
-                      <th class="text-left py-2 border-b border-border">Modifié</th>
-                    </tr>
-                  </thead>
-                  <tbody id="files-tbody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Logs -->
-            <div class="glass shadow-card border border-border rounded-2xl p-5">
-              <div class="flex items-center justify-between mb-2">
-                <h2 class="font-semibold">🧾 Logs</h2>
-                <div class="flex items-center gap-2">
-                  <a id="link-log-file" href="#" target="_blank" class="text-info hover:underline text-sm">ouvrir app.log</a>
-                  <button id="btn-refresh-logs" class="text-xs px-2 py-1 bg-card border border-border rounded">Actualiser</button>
-                </div>
-              </div>
-              <pre id="logs-tail" class="text-xs text-muted whitespace-pre-wrap leading-relaxed max-h-64 overflow-auto scroll-slim">—</pre>
-            </div>
+        <!-- Hotels List -->
+        <div class="card-hover bg-white rounded-xl overflow-hidden">
+          <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <i data-feather="list" class="w-5 h-5 text-primary-600"></i> Liste des Hôtels
+            </h2>
           </div>
-
-          <!-- Backup -->
-          <div class="glass shadow-card border border-border rounded-2xl p-5">
-            <h2 class="font-semibold mb-2">💾 Backup Base (pg_dump)</h2>
-            <div class="flex flex-col sm:flex-row gap-3 items-start">
-              <input id="admin-token" type="password" class="px-3 py-2 bg-card border border-border rounded-lg w-full sm:w-80" placeholder="X-Admin-Token">
-              <div class="flex gap-2">
-                <button id="btn-backup" class="px-3 py-2 bg-accent text-black rounded-lg hover:brightness-105">Lancer un backup</button>
-                <button id="btn-backup-open" class="px-3 py-2 bg-card border border-border rounded-lg">Ouvrir dernier backup</button>
-              </div>
+          <div class="p-6">
+            <div id="hotelsList" class="flex flex-col items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+              <p class="text-gray-500">Chargement des hôtels...</p>
             </div>
-            <div id="backup-result" class="mt-3 text-sm text-muted">—</div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- SETTINGS TAB -->
-        <div id="tab-settings" class="tab hidden">
-          <div class="glass shadow-card border border-border rounded-2xl p-5">
-            <h2 class="font-semibold mb-2">⚙️ Paramètres</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- === TAB: IMPORT DE DONNÉES === -->
+    <div id="uploadTab" class="tab-content hidden">
+      <div class="grid grid-cols-1 gap-6">
+        <!-- Excel Upload -->
+        <div class="card-hover bg-white rounded-xl overflow-hidden">
+          <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <i data-feather="file-text" class="w-5 h-5 text-primary-600"></i> Import des Données Excel
+            </h2>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 gap-6">
               <div>
-                <label class="text-sm text-muted">API Base URL</label>
-                <input id="api-base" class="mt-1 w-full px-3 py-2 bg-card border border-border rounded-lg" placeholder="https://api-folkestone.e-hotelmanager.com">
-                <p class="text-xs text-muted mt-1">Par défaut, l’URL est devinée depuis le domaine (admin → api).</p>
+                <label for="excelHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
+                <select id="excelHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                  <option value="">Chargement...</option>
+                </select>
+              </div>
+              <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
+                <input type="file" id="excelFile" accept=".xlsx,.csv" class="hidden">
+                <label for="excelFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
+                  <i data-feather="upload" class="w-4 h-4"></i> Choisir un fichier Excel/CSV
+                </label>
+                <p class="mt-4 text-sm text-gray-500 text-center">Formats supportés: .xlsx, .csv<br><span class="text-xs">Taille maximale: 10MB</span></p>
+                <div id="excelFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
               </div>
               <div>
-                <label class="text-sm text-muted">Admin Token (X-Admin-Token)</label>
-                <input id="setting-token" type="password" class="mt-1 w-full px-3 py-2 bg-card border border-border rounded-lg" placeholder="••••••••">
-                <p class="text-xs text-muted mt-1">Stocké localement (localStorage) côté navigateur.</p>
+                <button id="uploadExcelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                  <i data-feather="upload-cloud" class="w-4 h-4"></i> Importer le Fichier
+                </button>
               </div>
-            </div>
-            <div class="mt-4 flex gap-2">
-              <button id="btn-save-settings" class="px-3 py-2 bg-accent text-black rounded-lg hover:brightness-105">Enregistrer</button>
-              <button id="btn-reset-settings" class="px-3 py-2 bg-card border border-border rounded-lg">Réinitialiser</button>
             </div>
           </div>
         </div>
-      </section>
-    </main>
-  </div>
 
-  <!-- Toast -->
-  <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 rounded-xl bg-card border border-border shadow-card text-sm hidden"></div>
+        <!-- JSON Upload -->
+        <div class="card-hover bg-white rounded-xl overflow-hidden">
+          <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <i data-feather="code" class="w-5 h-5 text-primary-600"></i> Import de la Configuration JSON
+            </h2>
+          </div>
+          <div class="p-6">
+            <div class="grid grid-cols-1 gap-6">
+              <div>
+                <label for="jsonHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
+                <select id="jsonHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                  <option value="">Chargement...</option>
+                </select>
+              </div>
+              <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
+                <input type="file" id="jsonFile" accept=".json" class="hidden">
+                <label for="jsonFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
+                  <i data-feather="upload" class="w-4 h-4"></i> Choisir un fichier JSON
+                </label>
+                <p class="mt-4 text-sm text-gray-500 text-center">Format supporté: .json<br><span class="text-xs">Taille maximale: 5MB</span></p>
+                <div id="jsonFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
+              </div>
+              <div>
+                <button id="uploadJsonBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
+                  <i data-feather="upload-cloud" class="w-4 h-4"></i> Importer la Configuration
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === TAB: STATUT DU SYSTÈME === -->
+    <div id="statusTab" class="tab-content hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Hôtels Configurés</p>
+              <h3 class="text-2xl font-bold text-gray-800 mt-1" id="hotelsCount">0</h3>
+            </div>
+            <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+              <i data-feather="home" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Statut API</p>
+              <h3 class="text-2xl font-bold text-gray-800 mt-1" id="apiStatus">Checking...</h3>
+            </div>
+            <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+              <i data-feather="cloud" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Base de Données</p>
+              <h3 class="text-2xl font-bold text-gray-800 mt-1" id="dbStatus">Checking...</h3>
+            </div>
+            <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
+              <i data-feather="database" class="w-5 h-5"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tableau détaillé -->
+      <div class="card-hover bg-white rounded-xl overflow-hidden">
+        <div class="p-6 border-b border-gray-100 bg-gray-50">
+          <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+            <i data-feather="bar-chart-2" class="w-5 h-5 text-primary-600"></i> Statut Détaillé par Hôtel
+          </h2>
+        </div>
+        <div class="p-6 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hôtel</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Données Excel</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Configuration JSON</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Mise à Jour</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="detailedStatus" class="bg-white divide-y divide-gray-200">
+              <tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- === TAB: MONITORING & MAINTENANCE === -->
+    <div id="monitorTab" class="tab-content hidden">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+        <!-- Santé -->
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-semibold text-gray-800">🩺 Santé</h2>
+            <button id="btn-refresh-health" class="text-xs px-2 py-1 bg-gray-100 border border-gray-200 rounded">Rafraîchir</button>
+          </div>
+          <pre id="health-json" class="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">—</pre>
+        </div>
+        <!-- Fichiers -->
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-xl font-semibold text-gray-800">📂 Fichiers (DATA_DIR)</h2>
+            <button id="btn-refresh-files" class="text-xs px-2 py-1 bg-gray-100 border border-gray-200 rounded">Rafraîchir</button>
+          </div>
+          <div class="overflow-auto scroll-slim max-h-80">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-gray-500">
+                  <th class="text-left py-2 border-b border-gray-200">Nom</th>
+                  <th class="text-left py-2 border-b border-gray-200">Taille</th>
+                  <th class="text-left py-2 border-b border-gray-200">Modifié</th>
+                </tr>
+              </thead>
+              <tbody id="files-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Logs -->
+        <div class="card-hover bg-white rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-semibold text-gray-800">🧾 Logs</h2>
+            <div class="flex items-center gap-2">
+              <a id="link-log-file" href="#" target="_blank" class="text-primary-600 hover:underline text-sm">ouvrir app.log</a>
+              <button id="btn-refresh-logs" class="text-xs px-2 py-1 bg-gray-100 border border-gray-200 rounded">Actualiser</button>
+            </div>
+          </div>
+          <pre id="logs-tail" class="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed max-h-64 overflow-auto scroll-slim">—</pre>
+        </div>
+      </div>
+      <!-- Backup -->
+      <div class="card-hover bg-white rounded-xl p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">💾 Backup Base (pg_dump)</h2>
+        <div class="flex flex-col sm:flex-row gap-3 items-start">
+          <input id="admin-token" type="password" class="px-3 py-2 bg-white border border-gray-300 rounded-lg w-full sm:w-80" placeholder="X-Admin-Token">
+          <div class="flex gap-2">
+            <button id="btn-backup" class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg">Lancer un backup</button>
+            <button id="btn-backup-open" class="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg">Ouvrir dernier backup</button>
+          </div>
+        </div>
+        <div id="backup-result" class="mt-3 text-sm text-gray-600">—</div>
+      </div>
+    </div>
+
+    <!-- === TAB: PARAMÈTRES === -->
+    <div id="settingsTab" class="tab-content hidden">
+      <div class="card-hover bg-white rounded-xl p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-3">⚙️ Paramètres</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm text-gray-600">API Base URL</label>
+            <input id="apiBaseInput" class="mt-1 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="https://api-folkestone.e-hotelmanager.com">
+            <p class="text-xs text-gray-500 mt-1">Par défaut, deviné depuis le domaine (admin → api).</p>
+          </div>
+          <div>
+            <label class="text-sm text-gray-600">Admin Token (X-Admin-Token)</label>
+            <input id="adminTokenInput" type="password" class="mt-1 w-full px-3 py-2 bg-white border border-gray-300 rounded-lg" placeholder="••••••••">
+            <p class="text-xs text-gray-500 mt-1">Stocké localement (navigateur).</p>
+          </div>
+        </div>
+        <div class="mt-4 flex gap-2">
+          <button id="btn-save-settings" class="px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg">Enregistrer</button>
+          <button id="btn-reset-settings" class="px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg">Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Spinner & Toast -->
+  <div id="spinner-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden"><div class="spinner border-4 border-white/30 border-t-primary-600 rounded-full w-10 h-10"></div></div>
+  <div id="toast" class="fixed bottom-5 right-5 px-4 py-2 rounded-lg text-white font-medium shadow-lg hidden"></div>
 
   <script>
-    // ===== Helpers =====
-    const $ = (s, p=document) => p.querySelector(s);
-    const $$ = (s, p=document) => [...p.querySelectorAll(s)];
-    const fmtSize = n => n<1024? n+' B' : n<1024*1024? (n/1024).toFixed(1)+' KB' : n<1024*1024*1024? (n/1024/1024).toFixed(1)+' MB' : (n/1024/1024/1024).toFixed(1)+' GB';
-    const toast = (msg, ok=true) => {
-      const el = $('#toast');
-      el.textContent = msg;
-      el.classList.remove('hidden');
-      el.style.borderColor = ok ? '#2dd4bf33' : '#ef444433';
-      el.style.boxShadow = ok ? '0 10px 25px rgba(45,212,191,.15)' : '0 10px 25px rgba(239,68,68,.15)';
-      setTimeout(()=>el.classList.add('hidden'), 2500);
+    feather.replace();
+
+    // ========= Config & Helpers =========
+    const elements = {
+      // nav
+      navTabs: document.querySelectorAll('.nav-tab'),
+      tabContents: document.querySelectorAll('.tab-content'),
+      // hotels
+      newHotelId: document.getElementById('newHotelId'),
+      createHotelBtn: document.getElementById('createHotelBtn'),
+      hotelsList: document.getElementById('hotelsList'),
+      // upload
+      excelHotelSelect: document.getElementById('excelHotelSelect'),
+      jsonHotelSelect: document.getElementById('jsonHotelSelect'),
+      excelFile: document.getElementById('excelFile'),
+      jsonFile: document.getElementById('jsonFile'),
+      uploadExcelBtn: document.getElementById('uploadExcelBtn'),
+      uploadJsonBtn: document.getElementById('uploadJsonBtn'),
+      excelFileName: document.getElementById('excelFileName'),
+      jsonFileName: document.getElementById('jsonFileName'),
+      // status
+      hotelsCount: document.getElementById('hotelsCount'),
+      apiStatus: document.getElementById('apiStatus'),
+      dbStatus: document.getElementById('dbStatus'),
+      detailedStatus: document.getElementById('detailedStatus'),
+      // monitoring
+      healthJson: document.getElementById('health-json'),
+      filesTbody: document.getElementById('files-tbody'),
+      logsTail: document.getElementById('logs-tail'),
+      btnRefreshHealth: document.getElementById('btn-refresh-health'),
+      btnRefreshFiles: document.getElementById('btn-refresh-files'),
+      btnRefreshLogs: document.getElementById('btn-refresh-logs'),
+      linkLogFile: document.getElementById('link-log-file'),
+      adminTokenField: document.getElementById('admin-token'),
+      btnBackup: document.getElementById('btn-backup'),
+      btnBackupOpen: document.getElementById('btn-backup-open'),
+      backupResult: document.getElementById('backup-result'),
+      // settings
+      apiBaseInput: document.getElementById('apiBaseInput'),
+      adminTokenInput: document.getElementById('adminTokenInput'),
+      btnSaveSettings: document.getElementById('btn-save-settings'),
+      btnResetSettings: document.getElementById('btn-reset-settings'),
+      // misc
+      spinner: document.getElementById('spinner-overlay'),
+      toast: document.getElementById('toast'),
+      messageContainer: document.getElementById('messageContainer'),
     };
 
-    // Guess API base from current host (admin → api), fallback to same origin
-    function defaultApiBase() {
+    const defaultApiBase = () => {
       try {
-        const h = window.location.host;
-        if (h.startsWith('admin-')) {
-          return window.location.protocol + '//' + h.replace('admin-','api-');
-        }
-        return window.location.origin;
-      } catch { return window.location.origin; }
+        const {protocol, host} = window.location;
+        if (host.startsWith('admin-')) return `${protocol}//${host.replace('admin-','api-')}`;
+        return `${protocol}//${host}`;
+      } catch { return 'https://api-folkestone.e-hotelmanager.com'; }
     }
-
     const LS = {
-      get API_BASE(){ return localStorage.getItem('API_BASE') || defaultApiBase(); },
-      set API_BASE(v){ localStorage.setItem('API_BASE', v); },
-      get ADMIN_TOKEN(){ return localStorage.getItem('ADMIN_TOKEN') || ''; },
-      set ADMIN_TOKEN(v){ localStorage.setItem('ADMIN_TOKEN', v); },
+      get API(){ return localStorage.getItem('API_BASE') || defaultApiBase(); },
+      set API(v){ localStorage.setItem('API_BASE', v); },
+      get TOKEN(){ return localStorage.getItem('ADMIN_TOKEN') || ''; },
+      set TOKEN(v){ localStorage.setItem('ADMIN_TOKEN', v); },
       get LAST_BACKUP(){ return localStorage.getItem('LAST_BACKUP') || ''; },
-      set LAST_BACKUP(v){ localStorage.setItem('LAST_BACKUP', v); }
+      set LAST_BACKUP(v){ localStorage.setItem('LAST_BACKUP', v); },
+    }
+    const API_BASE = () => LS.API.replace(/\/$/,'');
+
+    const showSpinner = () => elements.spinner.classList.remove('hidden');
+    const hideSpinner = () => elements.spinner.classList.add('hidden');
+    const toast = (msg, ok=true) => {
+      const el = elements.toast;
+      el.textContent = msg;
+      el.className = `fixed bottom-5 right-5 px-4 py-2 rounded-lg text-white font-medium shadow-lg ${ok?'bg-green-600':'bg-red-600'}`;
+      el.classList.remove('hidden');
+      setTimeout(()=> el.classList.add('hidden'), 3500);
     };
 
-    function api(path, opts={}) {
-      const base = LS.API_BASE.replace(/\/$/,'');
-      return fetch(base + path, opts);
+    function showMessage(message, type='success') {
+      const wrap = document.createElement('div');
+      wrap.className = `flex items-start p-4 rounded-lg shadow-lg ${type==='error'?'bg-red-50 border-l-4 border-red-500':'bg-green-50 border-l-4 border-green-500'}`;
+      wrap.innerHTML = `
+        <i data-feather="${type==='error'?'alert-triangle':'check-circle'}" class="w-5 h-5 ${type==='error'?'text-red-500':'text-green-500'} mr-3"></i>
+        <div class="flex-1"><p class="text-sm font-medium ${type==='error'?'text-red-800':'text-green-800'}">${message}</p></div>
+        <button class="ml-4 text-gray-400 hover:text-gray-500"><i data-feather="x" class="w-5 h-5"></i></button>
+      `;
+      wrap.querySelector('button').onclick = () => wrap.remove();
+      elements.messageContainer.appendChild(wrap);
+      feather.replace();
+      setTimeout(()=>{wrap.classList.add('opacity-0','transition-opacity','duration-300'); setTimeout(()=>wrap.remove(),300)}, 5000);
     }
 
-    // ===== Tabs =====
-    function showTab(name){
-      $$('.tab').forEach(el => el.classList.add('hidden'));
-      $('#tab-'+name).classList.remove('hidden');
-      $$('.tab-btn').forEach(b => {
-        if (b.dataset.tab === name) {
-          b.classList.add('bg-card','border','border-border');
-        } else {
-          b.classList.remove('bg-card','border','border-border');
-        }
+    // ========= Navigation =========
+    function openSettingsTab(){
+      elements.navTabs.forEach(t=>t.classList.remove('active'));
+      elements.tabContents.forEach(c=>c.classList.add('hidden'));
+      document.querySelector('[data-tab="settings"]').classList.add('active');
+      document.getElementById('settingsTab').classList.remove('hidden');
+    }
+    function setupNavigation(){
+      elements.navTabs.forEach(tab=>{
+        tab.addEventListener('click', ()=>{
+          const target = tab.getAttribute('data-tab');
+          elements.navTabs.forEach(t=>t.classList.remove('active'));
+          elements.tabContents.forEach(c=>c.classList.add('hidden'));
+          tab.classList.add('active');
+          document.getElementById(`${target}Tab`).classList.remove('hidden');
+          if (target==='status') checkSystemStatus();
+          if (target==='monitor') refreshMonitorAll();
+        });
       });
     }
 
-    // ===== Monitoring actions =====
-    async function loadHealth() {
-      try {
-        const r = await api('/monitor/health');
-        const j = await r.json();
-        $('#health-json').textContent = JSON.stringify(j, null, 2);
-        $('#pill-status').textContent = 'statut: ' + (j.api || 'ok');
-        $('#pill-status').className = 'text-xs px-2 py-1 rounded-full border border-border ' + (j.api==='ok'?'text-success':'text-danger');
-      } catch (e) {
-        $('#health-json').textContent = 'Erreur: ' + e;
-        $('#pill-status').textContent = 'statut: erreur';
-        $('#pill-status').className = 'text-xs px-2 py-1 rounded-full border border-border text-danger';
+    // ========= Hotels =========
+    async function loadHotels(){
+      try{
+        elements.hotelsList.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
+            <p class="text-gray-500">Chargement des hôtels...</p>
+          </div>`;
+        const res = await fetch(`${API_BASE()}/hotels`);
+        const hotels = await res.json();
+        updateHotelsList(hotels);
+        updateHotelSelects(hotels);
+      }catch(e){
+        elements.hotelsList.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-8">
+            <i data-feather="alert-triangle" class="w-8 h-8 text-red-500 mb-4"></i>
+            <p class="text-gray-500">Erreur lors du chargement des hôtels</p>
+            <button onclick="loadHotels()" class="mt-4 text-primary-600 hover:text-primary-800 font-medium">
+              <i data-feather="refresh-cw" class="w-4 h-4 inline mr-2"></i> Réessayer
+            </button>
+          </div>`;
+        feather.replace();
+        showMessage("Impossible de charger la liste des hôtels",'error');
+      }
+    }
+    function updateHotelsList(hotels){
+      if (!hotels || hotels.length===0){
+        elements.hotelsList.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-8">
+            <i data-feather="box" class="w-8 h-8 text-gray-400 mb-4"></i>
+            <p class="text-gray-500">Aucun hôtel configuré</p>
+          </div>`;
+        feather.replace(); return;
+      }
+      let html = `
+        <div class="overflow-hidden rounded-lg border border-gray-200">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Hôtel</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">`;
+      hotels.forEach(h=> {
+        html += `
+          <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${h}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              <button onclick="deleteHotel('${h}')" class="inline-flex items-center px-3 py-1 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                <i data-feather="trash-2" class="w-4 h-4 mr-2"></i> Supprimer
+              </button>
+            </td>
+          </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      elements.hotelsList.innerHTML = html;
+      feather.replace();
+    }
+    function updateHotelSelects(hotels){
+      const opts = (hotels||[]).map(h=>`<option value="${h}">${h}</option>`).join('');
+      elements.excelHotelSelect.innerHTML = '<option value="">Sélectionnez un hôtel</option>' + opts;
+      elements.jsonHotelSelect.innerHTML  = '<option value="">Sélectionnez un hôtel</option>' + opts;
+    }
+    async function createHotel(){
+      const hotelId = elements.newHotelId.value.trim();
+      if(!hotelId){ showMessage("Veuillez saisir un ID d'hôtel",'error'); return; }
+      elements.createHotelBtn.disabled = true;
+      elements.createHotelBtn.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>Création en cours...`;
+      try{
+        const res = await fetch(`${API_BASE()}/hotels?hotel_id=${encodeURIComponent(hotelId)}`,{method:'POST'});
+        if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.detail||'Erreur lors de la création'); }
+        showMessage(`Hôtel "${hotelId}" créé avec succès`,'success');
+        elements.newHotelId.value = '';
+        loadHotels();
+      }catch(e){ showMessage('Erreur: '+e.message,'error'); }
+      finally{
+        elements.createHotelBtn.disabled = false;
+        elements.createHotelBtn.innerHTML = `<i data-feather="plus" class="w-4 h-4 mr-2"></i>Créer`;
+        feather.replace();
+      }
+    }
+    async function deleteHotel(hotelId){
+      if(!confirm(`Supprimer l'hôtel "${hotelId}" ?`)) return;
+      try{
+        const res = await fetch(`${API_BASE()}/hotels/${encodeURIComponent(hotelId)}`,{method:'DELETE'});
+        if(!res.ok) throw new Error('Erreur lors de la suppression');
+        showMessage(`Hôtel "${hotelId}" supprimé avec succès`,'success');
+        loadHotels();
+      }catch(e){ showMessage('Erreur lors de la suppression','error'); }
+    }
+
+    // ========= Upload =========
+    function setupFileInputs(){
+      elements.excelFile.addEventListener('change', function(){
+        if(this.files.length>0){ elements.excelFileName.textContent = this.files[0].name; elements.excelFileName.classList.remove('hidden'); }
+        else elements.excelFileName.classList.add('hidden');
+      });
+      elements.jsonFile.addEventListener('change', function(){
+        if(this.files.length>0){ elements.jsonFileName.textContent = this.files[0].name; elements.jsonFileName.classList.remove('hidden'); }
+        else elements.jsonFileName.classList.add('hidden');
+      });
+    }
+    async function uploadExcel(){
+      const hotelId = elements.excelHotelSelect.value;
+      const file = elements.excelFile.files[0];
+      if(!hotelId){ showMessage("Veuillez sélectionner un hôtel",'error'); return; }
+      if(!file){ showMessage("Veuillez sélectionner un fichier Excel",'error'); return; }
+      await uploadFile(file, hotelId, 'excel', elements.uploadExcelBtn);
+    }
+    async function uploadJson(){
+      const hotelId = elements.jsonHotelSelect.value;
+      const file = elements.jsonFile.files[0];
+      if(!hotelId){ showMessage("Veuillez sélectionner un hôtel",'error'); return; }
+      if(!file){ showMessage("Veuillez sélectionner un fichier JSON",'error'); return; }
+      await uploadFile(file, hotelId, 'config', elements.uploadJsonBtn);
+    }
+    async function uploadFile(file, hotelId, type, button){
+      const formData = new FormData(); formData.append('file', file);
+      const endpoint = type==='excel'? '/upload/excel' : '/upload/config';
+      try{
+        button.disabled = true;
+        button.innerHTML = `<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>${type==='excel'?'Import en cours...':'Upload en cours...'}`;
+        const res = await fetch(`${API_BASE()}${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, {method:'POST', body:formData});
+        if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.detail||'Erreur lors de l\'upload'); }
+        const result = await res.json().catch(()=> ({}));
+        showMessage(`Fichier uploadé avec succès.`, 'success');
+        if(type==='excel'){ elements.excelFile.value=''; elements.excelFileName.classList.add('hidden'); }
+        else { elements.jsonFile.value=''; elements.jsonFileName.classList.add('hidden'); }
+        // option: rafraîchir statut
+        checkSystemStatus();
+      }catch(e){ showMessage('Erreur: '+e.message,'error'); }
+      finally{
+        button.disabled=false;
+        button.innerHTML = `<i data-feather="upload-cloud" class="w-4 h-4 mr-2"></i>${type==='excel'?'Importer le Fichier':'Importer la Configuration'}`;
+        feather.replace();
       }
     }
 
-    async function loadFiles() {
-      const tb = $('#files-tbody'); tb.innerHTML = '';
-      try {
-        const r = await api('/monitor/files');
-        const j = await r.json();
-        (j.files || []).forEach(f => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td class="py-2 border-b border-border">${f.name}</td>
-            <td class="py-2 border-b border-border">${fmtSize(f.size_bytes)}</td>
-            <td class="py-2 border-b border-border">${f.modified}</td>`;
-          tb.appendChild(tr);
-        });
-      } catch(e) {
-        tb.innerHTML = `<tr><td class="py-2 text-danger" colspan="3">Erreur: ${e}</td></tr>`;
-      }
-    }
+    // ========= Statut (comme avant) =========
+    async function checkSystemStatus(){
+      try{
+        const healthRes = await fetch(`${API_BASE()}/health`);
+        if (healthRes.ok){
+          const health = await healthRes.json();
+          elements.apiStatus.textContent = 'En ligne';
+          elements.apiStatus.className = 'text-2xl font-bold text-green-600 mt-1';
+          const dbOk = health.database==='healthy' || health.db==='healthy' || health.status==='ok';
+          elements.dbStatus.textContent = dbOk ? 'En ligne' : 'Erreur';
+          elements.dbStatus.className = `text-2xl font-bold ${dbOk?'text-green-600':'text-red-600'} mt-1`;
+        } else throw new Error('API non disponible');
 
-    async function tailLogs() {
-      try {
-        const r = await api('/monitor/logs/tail?lines=200');
-        const j = await r.json();
-        $('#logs-tail').textContent = (j.content || []).join('\n') || '—';
-      } catch(e) {
-        $('#logs-tail').textContent = 'Erreur: ' + e;
-      }
-    }
+        const hotelsRes = await fetch(`${API_BASE()}/hotels`);
+        const hotels = await hotelsRes.json();
+        elements.hotelsCount.textContent = hotels.length;
 
-    async function doBackup() {
-      const token = $('#admin-token').value.trim() || LS.ADMIN_TOKEN;
-      if (!token) { toast('Renseigne le token admin dans Paramètres ou le champ ci-dessus', false); return; }
-      try {
-        const r = await api('/admin/backup', { method:'POST', headers: { 'X-Admin-Token': token } });
-        const j = await r.json();
-        if (j.status === 'ok' && j.path) {
-          LS.LAST_BACKUP = j.path;
-          $('#backup-result').innerHTML = `✅ Backup créé: <a class="text-success underline" href="${LS.API_BASE.replace(/\/$/,'')}${j.path}" target="_blank">${j.path}</a>`;
-          toast('Backup créé avec succès');
+        let detailedHtml = '';
+        if (!hotels || hotels.length===0){
+          detailedHtml = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Aucun hôtel configuré</td></tr>`;
         } else {
-          $('#backup-result').textContent = 'Erreur: ' + (j.detail || JSON.stringify(j));
+          for (const h of hotels){
+            const st = await fetch(`${API_BASE()}/files/status?hotel_id=${encodeURIComponent(h)}`).then(r=>r.json()).catch(()=>({}));
+            detailedHtml += `
+              <tr>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${h}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  ${st.data_file_exists?'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Présent</span>':'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Absent</span>'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  ${st.config_exists?'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Présent</span>':'<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Absent</span>'}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date().toLocaleDateString('fr-FR')}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <button onclick="testHotel('${h}')" class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <i data-feather="check-circle" class="w-4 h-4 mr-2"></i> Tester
+                  </button>
+                </td>
+              </tr>`;
+          }
+        }
+        elements.detailedStatus.innerHTML = detailedHtml;
+        feather.replace();
+      }catch(e){
+        elements.apiStatus.textContent = 'Hors ligne';
+        elements.apiStatus.className = 'text-2xl font-bold text-red-600 mt-1';
+        elements.dbStatus.textContent = 'Inconnu';
+        elements.dbStatus.className = 'text-2xl font-bold text-gray-600 mt-1';
+        elements.detailedStatus.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Erreur lors du chargement des données</td></tr>`;
+      }
+    }
+    async function testHotel(hotelId){
+      try{
+        const res = await fetch(`${API_BASE()}/data?hotel_id=${encodeURIComponent(hotelId)}`);
+        if(res.ok) showMessage(`Hôtel "${hotelId}" testé avec succès`, 'success');
+        else throw new Error('Données non disponibles');
+      }catch(e){ showMessage(`Erreur test hôtel "${hotelId}": ${e.message}`, 'error'); }
+    }
+    window.deleteHotel = deleteHotel;
+    window.testHotel = testHotel;
+    window.loadHotels = loadHotels;
+
+    // ========= Monitoring =========
+    async function loadHealth(){
+      try{ const j = await fetch(`${API_BASE()}/monitor/health`).then(r=>r.json());
+        elements.healthJson.textContent = JSON.stringify(j,null,2);
+      }catch(e){ elements.healthJson.textContent = 'Erreur: '+e; }
+    }
+    async function loadFilesMonitor(){
+      elements.filesTbody.innerHTML = '';
+      try{ const j = await fetch(`${API_BASE()}/monitor/files`).then(r=>r.json());
+        (j.files||[]).forEach(f=>{
+          const tr = document.createElement('tr');
+          const fmt = n => n<1024? n+' B' : n<1048576? (n/1024).toFixed(1)+' KB' : n<1073741824? (n/1048576).toFixed(1)+' MB' : (n/1073741824).toFixed(1)+' GB';
+          tr.innerHTML = `<td class="py-2 border-b">${f.name}</td><td class="py-2 border-b">${fmt(f.size_bytes)}</td><td class="py-2 border-b">${f.modified}</td>`;
+          elements.filesTbody.appendChild(tr);
+        });
+      }catch(e){ elements.filesTbody.innerHTML = `<tr><td class="py-2 text-red-600" colspan="3">Erreur: ${e}</td></tr>`; }
+    }
+    async function tailLogs(){
+      try{ const j = await fetch(`${API_BASE()}/monitor/logs/tail?lines=200`).then(r=>r.json());
+        elements.logsTail.textContent = (j.content||[]).join('\n')||'—';
+      }catch(e){ elements.logsTail.textContent = 'Erreur: '+e; }
+    }
+    async function doBackup(){
+      const t = elements.adminTokenField.value.trim() || LS.TOKEN;
+      if(!t){ toast('Renseigne le token admin dans Paramètres ou ci-dessus', false); return; }
+      try{
+        const res = await fetch(`${API_BASE()}/admin/backup`, {method:'POST', headers:{'X-Admin-Token': t}});
+        const j = await res.json();
+        if(j.status==='ok' && j.path){
+          LS.LAST_BACKUP = j.path;
+          elements.backupResult.innerHTML = `✅ Backup créé: <a class="text-primary-700 underline" href="${API_BASE()}${j.path}" target="_blank">${j.path}</a>`;
+          toast('Backup créé');
+        } else {
+          elements.backupResult.textContent = 'Erreur: ' + (j.detail||JSON.stringify(j));
           toast('Échec du backup', false);
         }
-      } catch(e) {
-        $('#backup-result').textContent = 'Erreur: ' + e;
-        toast('Échec du backup', false);
-      }
+      }catch(e){ elements.backupResult.textContent = 'Erreur: '+e; toast('Échec du backup', false); }
     }
-
-    function openLastBackup() {
-      const p = LS.LAST_BACKUP;
-      if (!p) { toast('Aucun backup enregistré pour cette session', false); return; }
-      window.open(LS.API_BASE.replace(/\/$/,'') + p, '_blank');
+    function openLastBackup(){
+      if(!LS.LAST_BACKUP){ toast('Aucun backup enregistré', false); return; }
+      window.open(API_BASE()+LS.LAST_BACKUP,'_blank');
     }
+    async function refreshMonitorAll(){ await Promise.all([loadHealth(), loadFilesMonitor(), tailLogs()]); }
 
-    // ===== Demo exports =====
-    async function exportExcelDemo() {
-      const payload = {
-        title: "Export démo",
-        rows: [
-          { date: "2025-10-20", hotel: "Folkestone Opera", room: "Double", price: 120, ota: "Booking" },
-          { date: "2025-10-20", hotel: "Folkestone Opera", room: "Twin",   price: 130, ota: "Expedia" }
-        ],
-        summary: { lignes: 2 }
-      };
-      const r = await api('/export/excel', {
-        method:'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!r.ok) { toast('Export Excel: erreur HTTP '+r.status, false); return; }
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'export-demo.xlsx';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast('Export Excel téléchargé');
+    // ========= Paramètres =========
+    function loadSettingsUI(){
+      elements.apiBaseInput.value = LS.API;
+      elements.adminTokenInput.value = LS.TOKEN;
+      elements.adminTokenField.value = LS.TOKEN;
+      elements.linkLogFile.href = API_BASE() + '/logs/app.log';
     }
-
-    async function exportPdfDemo() {
-      const payload = {
-        title: "Rapport Démo",
-        rows: [
-          { date: "2025-10-20", hotel: "Folkestone Opera", room: "Double", price: 120, ota: "Booking" },
-          { date: "2025-10-20", hotel: "Folkestone Opera", room: "Twin",   price: 130, ota: "Expedia" }
-        ]
-      };
-      const r = await api('/export/pdf', {
-        method:'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!r.ok) { toast('Export PDF: erreur HTTP '+r.status, false); return; }
-      const blob = await r.blob();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'export-demo.pdf';
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast('Export PDF téléchargé');
+    function saveSettings(){
+      const base = elements.apiBaseInput.value.trim() || defaultApiBase();
+      const tok  = elements.adminTokenInput.value.trim();
+      LS.API = base; if(tok) LS.TOKEN = tok;
+      elements.adminTokenField.value = LS.TOKEN;
+      loadSettingsUI(); toast('Paramètres enregistrés');
     }
-
-    // ===== Settings =====
-    function loadSettingsUI() {
-      $('#api-base').value = LS.API_BASE;
-      $('#setting-token').value = LS.ADMIN_TOKEN;
-      $('#admin-token').value = LS.ADMIN_TOKEN;
-      $('#header-api-base').textContent = LS.API_BASE;
-      $('#link-log-file').href = LS.API_BASE.replace(/\/$/,'') + '/logs/app.log';
-    }
-
-    function saveSettings() {
-      const base = $('#api-base').value.trim() || defaultApiBase();
-      const tok = $('#setting-token').value.trim();
-      LS.API_BASE = base;
-      if (tok) LS.ADMIN_TOKEN = tok;
-      $('#admin-token').value = LS.ADMIN_TOKEN;
-      loadSettingsUI();
-      toast('Paramètres enregistrés');
-    }
-
-    function resetSettings() {
+    function resetSettings(){
       localStorage.removeItem('API_BASE');
       localStorage.removeItem('ADMIN_TOKEN');
       localStorage.removeItem('LAST_BACKUP');
-      loadSettingsUI();
-      toast('Paramètres réinitialisés');
+      loadSettingsUI(); toast('Paramètres réinitialisés');
     }
 
-    // ===== Hotels demo (optional fetch) =====
-    async function loadHotels() {
-      try {
-        const r = await api('/hotels');
-        const j = await r.json();
-        $('#hotels-list').innerHTML = (j||[]).map(h => `<span class="inline-block text-xs px-2 py-1 rounded-full border border-border mr-1 mb-1">${h}</span>`).join('') || '—';
-      } catch {
-        $('#hotels-list').textContent = '—';
-      }
+    // ========= Events & Init =========
+    function setupEventListeners(){
+      elements.createHotelBtn.addEventListener('click', createHotel);
+      elements.uploadExcelBtn.addEventListener('click', uploadExcel);
+      elements.uploadJsonBtn.addEventListener('click', uploadJson);
+      elements.excelFile.addEventListener('change', ()=>{ if(elements.excelFile.files.length>0){ elements.excelFileName.textContent=elements.excelFile.files[0].name; elements.excelFileName.classList.remove('hidden'); }});
+      elements.jsonFile.addEventListener('change', ()=>{ if(elements.jsonFile.files.length>0){ elements.jsonFileName.textContent=elements.jsonFile.files[0].name; elements.jsonFileName.classList.remove('hidden'); }});
+      // monitor
+      elements.btnRefreshHealth.addEventListener('click', loadHealth);
+      elements.btnRefreshFiles.addEventListener('click', loadFilesMonitor);
+      elements.btnRefreshLogs.addEventListener('click', tailLogs);
+      elements.btnBackup.addEventListener('click', doBackup);
+      elements.btnBackupOpen.addEventListener('click', openLastBackup);
+      // settings
+      elements.btnSaveSettings.addEventListener('click', saveSettings);
+      elements.btnResetSettings.addEventListener('click', resetSettings);
     }
 
-    // ===== Events & init =====
-    document.addEventListener('DOMContentLoaded', () => {
-      // Tabs
-      $$('.tab-btn').forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
-      showTab('monitor'); // ouvrir sur Monitoring par défaut
-      // Buttons
-      $('#refresh-all').addEventListener('click', async ()=>{ await Promise.all([loadHealth(), loadFiles(), tailLogs(), loadHotels()]); toast('Données rafraîchies'); });
-      $('#btn-refresh-health').addEventListener('click', loadHealth);
-      $('#btn-refresh-files').addEventListener('click', loadFiles);
-      $('#btn-refresh-logs').addEventListener('click', tailLogs);
-      $('#btn-backup').addEventListener('click', doBackup);
-      $('#btn-backup-open').addEventListener('click', openLastBackup);
-      $('#btn-save-settings').addEventListener('click', saveSettings);
-      $('#btn-reset-settings').addEventListener('click', resetSettings);
-      $('#btn-export-excel-demo')?.addEventListener('click', exportExcelDemo);
-      $('#btn-export-pdf-demo')?.addEventListener('click', exportPdfDemo);
-
-      // Settings
+    document.addEventListener('DOMContentLoaded', ()=>{
+      setupNavigation();
+      setupEventListeners();
+      setupFileInputs();
       loadSettingsUI();
-      // Initial loads
-      loadHealth(); loadFiles(); tailLogs(); loadHotels();
+      loadHotels();
+      checkSystemStatus();
     });
   </script>
 </body>
