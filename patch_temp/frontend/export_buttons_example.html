@@ -1,0 +1,30 @@
+<div class="flex gap-3 mt-4">
+  <button onclick="handleExport('excel')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+    📊 Exporter en Excel
+  </button>
+  <button onclick="handleExport('pdf')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
+    📄 Exporter en PDF
+  </button>
+</div>
+
+<script type="module">
+  import { exportFile } from './export.js';
+
+  async function handleExport(type) {
+    const data = window.simulationData || [];
+    const hotel_id = document.getElementById('hotelSelect')?.value || 'inconnu';
+    try {
+      await exportFile({
+        urlBase: 'https://api-folkestone.e-hotelmanager.com',
+        kind: 'reservations',
+        hotel_id,
+        columns: Object.keys(data[0] || {}),
+        rows: data,
+        metadata: { exported_by: 'admin-panel' },
+        type
+      });
+    } catch (err) {
+      alert('❌ Erreur export : ' + err.message);
+    }
+  }
+</script>
