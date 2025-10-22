@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="api-base-url" content="" />
 <title>Folkestone — Maintenance & Monitoring</title>
 <style>
   :root{
@@ -408,7 +409,7 @@
 
         <div class="section-title">Configuration</div>
         <label>API Base URL</label>
-        <input id="baseUrl" type="text" value="https://api-folkestone.e-hotelmanager.com" />
+        <input id="baseUrl" type="text" placeholder="https://api.exemple.com" />
 
         <label>Admin Token (X-Admin-Token)</label>
         <input id="adminToken" type="text" placeholder="optionnel — sécurisé pour actions admin"/>
@@ -469,7 +470,7 @@
         </header>
 
         <label>API Base URL</label>
-        <input id="monitoringBaseUrl" type="text" value="https://api-folkestone.e-hotelmanager.com" />
+        <input id="monitoringBaseUrl" type="text" placeholder="https://api.exemple.com" />
 
         <div class="section-title">Quick Actions</div>
         <div class="btn-group">
@@ -661,6 +662,22 @@ let hotelsData = [];
 const $ = id => document.getElementById(id);
 const baseEl = $('baseUrl'), tokenEl = $('adminToken');
 const monitoringBaseEl = $('monitoringBaseUrl');
+
+const resolveApiBaseUrl = () => {
+  const metaContent = document.querySelector('meta[name="api-base-url"]')?.getAttribute('content')?.trim();
+  if (metaContent) {
+    return metaContent.replace(/\/+$/, '');
+  }
+  return window.location.origin.replace(/\/+$/, '');
+};
+
+const defaultApiBaseUrl = resolveApiBaseUrl();
+if (baseEl && !baseEl.value) {
+  baseEl.value = defaultApiBaseUrl;
+}
+if (monitoringBaseEl && !monitoringBaseEl.value) {
+  monitoringBaseEl.value = defaultApiBaseUrl;
+}
 
 // Toast notification system
 function showToast(message, type = 'info', duration = 5000) {

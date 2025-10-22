@@ -4,32 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HôtelMaster Pro - Dashboard</title>
+    <meta name="api-base-url" content="">
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            200: '#99f6e4',
-                            300: '#5eead4',
-                            400: '#2dd4bf',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -337,7 +316,15 @@
 
     <script>
         // Configuration
-        const API_BASE = 'https://api-folkestone.e-hotelmanager.com';
+        const resolveApiBaseUrl = () => {
+            const metaContent = document.querySelector('meta[name="api-base-url"]')?.getAttribute('content')?.trim();
+            if (metaContent) {
+                return metaContent.replace(/\/+$/, '');
+            }
+            return window.location.origin.replace(/\/+$/, '');
+        };
+
+        const API_BASE = resolveApiBaseUrl();
         
         // Éléments DOM
         const elements = {
