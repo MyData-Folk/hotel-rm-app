@@ -6,4 +6,5 @@ pandas
 openpyxl
 python-multipart
 aiofiles
+reportlab==4.2.2
 python-dotenv
