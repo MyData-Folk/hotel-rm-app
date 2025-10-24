@@ -12,7 +12,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
-from sqlmodel import SQLModel, Field, create_engine, Session, select
+from sqlmodel import SQLModel, Field, create_engine, Session, select, func
 
 # --- 1. CONFIGURATION ---
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///local.db")
@@ -32,16 +32,19 @@ app = FastAPI(
 
 # --- 2. MIDDLEWARE CORS CORRIGÉ ---
 origins = [
-    "https://folkestone.e-hotelmanager.com",
-    "https://admin-folkestone.e-hotelmanager.com",
-    "http://127.0.0.1:5500",
+    "https://hotel.hotelmanager.fr",
+    "https://admin.hotelmanager.fr",
+    "http://localhost",
     "http://localhost:3000",
+    "http://localhost:5173",
     "http://localhost:8000",
     "http://localhost:8080",
+    "http://127.0.0.1:5500",
+    "http://127.0.0.1:8000",
+    "https://localhost",
     "https://localhost:3000",
-    # Ajout des patterns de sous-domaines
-    "https://*.e-hotelmanager.com",
-    "http://*.e-hotelmanager.com"
+    "https://localhost:5173",
+    "https://127.0.0.1:3000",
 ]
 
 app.add_middleware(
@@ -114,14 +117,115 @@ def safe_int(val) -> int:
     except (ValueError, TypeError, AttributeError):
         return 0
 
+
+def log_activity(
+    session: Session,
+    activity_type: str,
+    description: str,
+    hotel_id: Optional[str] = None,
+    performed_by: str = "system",
+    details: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Enregistre une activité dans l'historique centralisé."""
+    try:
+        payload = ActivityLog(
+            hotel_id=hotel_id,
+            activity_type=activity_type,
+            description=description,
+            performed_by=performed_by,
+            details=json.dumps(details or {}, ensure_ascii=False),
+        )
+        session.add(payload)
+    except Exception as exc:
+        logger.error(f"Impossible d'enregistrer l'activité '{activity_type}': {exc}")
+
+
+def deserialize_details(raw_details: Optional[str]) -> Optional[Dict[str, Any]]:
+    if raw_details in (None, "", "null"):
+        return None
+
+    try:
+        return json.loads(raw_details)
+    except json.JSONDecodeError:
+        return {"raw": raw_details}
+
+
+def get_system_metrics(session: Session) -> Dict[str, Any]:
+    active_hotels = session.exec(
+        select(func.count(Hotel.id)).where(Hotel.is_active == True)
+    ).one()
+    if isinstance(active_hotels, tuple):
+        active_hotels = active_hotels[0]
+
+    total_hotels = session.exec(select(func.count(Hotel.id))).one()
+    if isinstance(total_hotels, tuple):
+        total_hotels = total_hotels[0]
+    recent_logs = session.exec(
+        select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(5)
+    ).all()
+
+    return {
+        "active_hotels": active_hotels,
+        "total_hotels": total_hotels,
+        "recent_activity": [
+            {
+                "id": log.id,
+                "hotel_id": log.hotel_id,
+                "activity_type": log.activity_type,
+                "description": log.description,
+                "details": deserialize_details(log.details),
+                "performed_by": log.performed_by,
+                "created_at": log.created_at.isoformat(),
+            }
+            for log in recent_logs
+        ],
+    }
+
 # --- 4. MODÈLES DE DONNÉES ---
 class Hotel(SQLModel, table=True):
-    hotel_id: str = Field(primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hotel_id: str = Field(index=True, unique=True)
+    name: Optional[str] = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_active: bool = Field(default=True)
 
 class HotelConfig(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hotel_id: str = Field(index=True, unique=True)
     config_json: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ActivityLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hotel_id: Optional[str] = Field(default=None, index=True)
+    activity_type: str = Field(index=True)
+    description: str
+    details: Optional[str] = None
+    performed_by: Optional[str] = Field(default="system", index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class HotelCreate(BaseModel):
+    hotel_id: str
+    name: Optional[str] = None
+
+
+class HotelOut(BaseModel):
+    hotel_id: str
+    name: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+
+
+class ActivityLogOut(BaseModel):
+    id: int
+    hotel_id: Optional[str]
+    activity_type: str
+    description: str
+    details: Optional[Dict[str, Any]] = None
+    performed_by: Optional[str]
+    created_at: datetime
 
 class SimulateIn(BaseModel):
     hotel_id: str
@@ -133,12 +237,15 @@ class SimulateIn(BaseModel):
     apply_commission: bool = True
     apply_partner_discount: bool = True
     promo_discount: float = 0.0
+    performed_by: Optional[str] = "system"
+
 
 class AvailabilityRequest(BaseModel):
     hotel_id: str
     start_date: str
     end_date: str
     room_types: List[str] = []
+    performed_by: Optional[str] = "system"
 
 # --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
 @app.on_event('startup')
@@ -262,146 +369,324 @@ def read_root():
 @app.get("/health", tags=["Status"])
 def health_check():
     """Endpoint de vérification de la santé de l'API"""
+    started = datetime.utcnow()
+    db_status = "unknown"
+    metrics: Dict[str, Any] = {}
+
     try:
         with Session(engine) as session:
             session.exec(select(Hotel).limit(1))
-        db_status = "healthy"
+            db_status = "healthy"
+            metrics = get_system_metrics(session)
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
         db_status = "unhealthy"
-    
+
+    duration_ms = max((datetime.utcnow() - started).total_seconds() * 1000, 0)
+
     return {
-        "status": "ok",
-        "timestamp": datetime.now().isoformat(),
+        "status": "ok" if db_status == "healthy" else "degraded",
+        "timestamp": datetime.utcnow().isoformat(),
         "database": db_status,
-        "version": "8.0",
-        "cors": "enabled"
+        "version": "9.0",
+        "latency_ms": round(duration_ms, 2),
+        "metrics": metrics,
+        "cors": "enabled",
     }
 
-# --- Gestion des Hôtels ---
-@app.post("/hotels", tags=["Hotel Management"])
-def create_hotel(hotel_id: str = Query(..., min_length=3)):
-    hotel_id = decode_hotel_id(hotel_id)
-    with Session(engine) as session:
-        if session.get(Hotel, hotel_id):
-            raise HTTPException(status_code=409, detail=f"L'ID d'hôtel '{hotel_id}' existe déjà.")
-        hotel = Hotel(hotel_id=hotel_id)
-        session.add(hotel)
-        session.commit()
-        logger.info(f"Hôtel créé: {hotel_id}")
-        return {"status": "ok", "hotel_id": hotel_id}
 
-@app.get("/hotels", tags=["Hotel Management"], response_model=List[str])
-def get_all_hotels():
+@app.get("/monitor/health", tags=["Monitoring"])
+def monitor_health():
+    started = datetime.utcnow()
+    db_status = "unknown"
     with Session(engine) as session:
-        hotels = [h.hotel_id for h in session.exec(select(Hotel)).all()]
+        metrics = get_system_metrics(session)
+        db_status = "healthy"
+
+    data_files = [f for f in os.listdir(DATA_DIR) if f.endswith('_data.json')]
+    storage_usage = 0
+    for filename in data_files:
+        path = os.path.join(DATA_DIR, filename)
+        if os.path.exists(path):
+            storage_usage += os.path.getsize(path)
+
+    return {
+        "status": "ok",
+        "generated_at": datetime.utcnow().isoformat(),
+        "latency_ms": round(max((datetime.utcnow() - started).total_seconds() * 1000, 0), 2),
+        "database": db_status,
+        "metrics": metrics,
+        "storage": {
+            "files": len(data_files),
+            "bytes": storage_usage,
+        },
+    }
+
+
+@app.get("/activity", tags=["Monitoring"], response_model=List[ActivityLogOut])
+def list_activity(limit: int = Query(20, ge=1, le=200)):
+    with Session(engine) as session:
+        logs = session.exec(
+            select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(limit)
+        ).all()
+
+    return [
+        ActivityLogOut(
+            id=log.id,
+            hotel_id=log.hotel_id,
+            activity_type=log.activity_type,
+            description=log.description,
+            details=deserialize_details(log.details),
+            performed_by=log.performed_by,
+            created_at=log.created_at,
+        )
+        for log in logs
+    ]
+
+# --- Gestion des Hôtels ---
+@app.post("/hotels", tags=["Hotel Management"], response_model=HotelOut, status_code=201)
+def create_hotel(payload: HotelCreate, performed_by: str = Query("system", alias="actor")):
+    hotel_id = decode_hotel_id(payload.hotel_id)
+
+    if not re.fullmatch(r"[a-z0-9-]{3,64}", hotel_id):
+        raise HTTPException(
+            status_code=400,
+            detail="L'identifiant d'hôtel doit contenir uniquement des minuscules, chiffres ou tirets.",
+        )
+
+    hotel_name = (payload.name or "").strip() or None
+
+    with Session(engine) as session:
+        existing = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
+        if existing:
+            if not existing.is_active:
+                existing.is_active = True
+                existing.name = hotel_name or existing.name
+                log_activity(
+                    session,
+                    activity_type="hotel.reactivated",
+                    description=f"Hôtel réactivé: {hotel_id}",
+                    hotel_id=hotel_id,
+                    performed_by=performed_by,
+                    details={"name": existing.name},
+                )
+                session.commit()
+                session.refresh(existing)
+                logger.info(f"Hôtel réactivé: {hotel_id}")
+                return HotelOut(
+                    hotel_id=existing.hotel_id,
+                    name=existing.name,
+                    is_active=existing.is_active,
+                    created_at=existing.created_at,
+                )
+
+            raise HTTPException(status_code=409, detail=f"L'ID d'hôtel '{hotel_id}' existe déjà.")
+
+        hotel = Hotel(hotel_id=hotel_id, name=hotel_name)
+        session.add(hotel)
+        log_activity(
+            session,
+            activity_type="hotel.created",
+            description=f"Hôtel créé: {hotel_id}",
+            hotel_id=hotel_id,
+            performed_by=performed_by,
+            details={"name": hotel_name},
+        )
+        session.commit()
+        session.refresh(hotel)
+        logger.info(f"Hôtel créé: {hotel_id}")
+
+        return HotelOut(
+            hotel_id=hotel.hotel_id,
+            name=hotel.name,
+            is_active=hotel.is_active,
+            created_at=hotel.created_at,
+        )
+
+
+@app.get("/hotels", tags=["Hotel Management"], response_model=List[HotelOut])
+def get_all_hotels(include_inactive: bool = Query(False)):
+    with Session(engine) as session:
+        statement = select(Hotel)
+        if not include_inactive:
+            statement = statement.where(Hotel.is_active == True)
+
+        hotels = session.exec(statement.order_by(Hotel.created_at.desc())).all()
         logger.info(f"Liste des hôtels récupérée: {len(hotels)} hôtels")
-        return hotels
+
+        return [
+            HotelOut(
+                hotel_id=h.hotel_id,
+                name=h.name,
+                is_active=h.is_active,
+                created_at=h.created_at,
+            )
+            for h in hotels
+        ]
+
 
 @app.delete("/hotels/{hotel_id}", tags=["Hotel Management"])
-def delete_hotel(hotel_id: str):
+def disable_hotel(hotel_id: str, performed_by: str = Query("system", alias="actor")):
     hotel_id = decode_hotel_id(hotel_id)
     with Session(engine) as session:
-        hotel = session.get(Hotel, hotel_id)
-        if not hotel: 
+        hotel = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
+        if not hotel:
             raise HTTPException(status_code=404, detail="Hôtel non trouvé.")
-        
-        config = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
-        if config: 
-            session.delete(config)
-        
-        data_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
-        if os.path.exists(data_path): 
-            os.remove(data_path)
-        
-        session.delete(hotel)
+
+        if not hotel.is_active:
+            return {"status": "noop", "message": "L'hôtel est déjà désactivé."}
+
+        hotel.is_active = False
+        log_activity(
+            session,
+            activity_type="hotel.disabled",
+            description=f"Hôtel désactivé: {hotel_id}",
+            hotel_id=hotel_id,
+            performed_by=performed_by,
+        )
+        session.add(hotel)
         session.commit()
-        
-    logger.info(f"Hôtel supprimé: {hotel_id}")
-    return {"status": "ok", "message": f"Hôtel '{hotel_id}' et ses données supprimés."}
+
+    logger.info(f"Hôtel désactivé: {hotel_id}")
+    return {"status": "ok", "message": f"Hôtel '{hotel_id}' désactivé (soft delete)."}
 
 # --- Gestion des Fichiers ---
 @app.post('/upload/excel', tags=["Uploads"])
 async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...)):
     hotel_id = decode_hotel_id(hotel_id)
-    
+
     if not file.filename.lower().endswith(('.xlsx', '.csv')):
         raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
-    
+
+    with Session(engine) as session:
+        hotel = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hôtel introuvable. Veuillez le créer avant l'upload.")
+        if not hotel.is_active:
+            raise HTTPException(status_code=423, detail="Hôtel désactivé. Réactivez-le avant l'upload.")
+
     try:
         content = await file.read()
         logger.info(f"Upload Excel/CSV pour {hotel_id}, taille: {len(content)} bytes")
-        
+
         if file.filename.lower().endswith('.xlsx'):
             df = pd.read_excel(io.BytesIO(content), header=None)
         else:
             df = pd.read_csv(io.BytesIO(content), header=None, encoding='utf-8', sep=';')
-            
+
         parsed = parse_sheet_to_structure(df)
         out_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
-        
-        with open(out_path, 'w', encoding='utf-8') as f: 
+
+        with open(out_path, 'w', encoding='utf-8') as f:
             json.dump(parsed, f, indent=2, ensure_ascii=False)
-        
+
         logger.info(f"Données sauvegardées pour {hotel_id}: {len(parsed.get('rooms', {}))} chambres")
-        
+
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="data.uploaded",
+                description=f"Données planning importées pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={
+                    "rooms_found": len(parsed.get('rooms', {})),
+                    "dates_processed": len(parsed.get('dates_processed', [])),
+                },
+            )
+            session.commit()
+
         return {
-            'status': 'ok', 
-            'hotel_id': hotel_id, 
+            'status': 'ok',
+            'hotel_id': hotel_id,
             'rooms_found': len(parsed.get('rooms', {})),
             'dates_processed': len(parsed.get('dates_processed', [])),
             'source_info': parsed.get('report_generated_at', 'Source inconnue')
         }
-        
+
     except Exception as e:
         logger.error(f"Erreur traitement fichier pour {hotel_id}: {str(e)}", exc_info=True)
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="data.upload_failed",
+                description=f"Echec import données pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"error": str(e)},
+            )
+            session.commit()
         raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
+
 
 @app.post('/upload/config', tags=["Uploads"])
 async def upload_config(hotel_id: str = Query(...), file: UploadFile = File(...)):
     hotel_id = decode_hotel_id(hotel_id)
-    
+
     try:
         content = await file.read()
         logger.info(f"Upload config pour {hotel_id}, taille: {len(content)} bytes")
-        
+
         # Validation du contenu JSON
         try:
             parsed = json.loads(content.decode('utf-8'))
         except json.JSONDecodeError as e:
             logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
-        
+
         # Validation de la structure
         if not isinstance(parsed, dict):
             raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
-        
+
         # Vérification optionnelle de l'ID d'hôtel
         file_hotel_id = parsed.get('hotel_id', '').lower().strip()
         if file_hotel_id and file_hotel_id != hotel_id:
             logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
-        
+
+        serialized = json.dumps(parsed, ensure_ascii=False, indent=2)
+
         with Session(engine) as session:
             existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
-            if existing: 
-                existing.config_json = json.dumps(parsed, ensure_ascii=False, indent=2)
-            else: 
-                session.add(HotelConfig(hotel_id=hotel_id, config_json=json.dumps(parsed, ensure_ascii=False, indent=2)))
+            if existing:
+                existing.config_json = serialized
+                existing.updated_at = datetime.utcnow()
+            else:
+                session.add(
+                    HotelConfig(
+                        hotel_id=hotel_id,
+                        config_json=serialized,
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+            log_activity(
+                session,
+                activity_type="config.uploaded",
+                description=f"Configuration importée pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"keys": list(parsed.keys())[:10]},
+            )
             session.commit()
-            
+
         logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
-        
+
         return {
-            'status': 'ok', 
+            'status': 'ok',
             'hotel_id': hotel_id,
             'partners_count': len(parsed.get('partners', {})),
             'has_display_order': 'displayOrder' in parsed
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="config.upload_failed",
+                description=f"Echec import configuration pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"error": str(e)},
+            )
+            session.commit()
         raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
 
 # --- Récupération des Données ---
@@ -439,6 +724,11 @@ def get_config(hotel_id: str = Query(...)):
         
         try:
             config_data = json.loads(cfg.config_json)
+            config_data.setdefault("_meta", {})
+            config_data["_meta"].update({
+                "hotel_id": hotel_id,
+                "updated_at": cfg.updated_at.isoformat() if hasattr(cfg, "updated_at") and cfg.updated_at else None,
+            })
             logger.info(f"Config chargée pour {hotel_id}")
             return config_data
         except Exception as e:
@@ -618,9 +908,27 @@ async def simulate(request: SimulateIn):
         total_net = subtotal_brut - total_discount - total_commission
 
         logger.info(f"Simulation terminée pour {request.hotel_id}: {len(results)} jours, total net: {total_net}")
-        
-        return {
+
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="simulation.completed",
+                description=f"Simulation tarifaire réalisée pour {request.hotel_id}",
+                hotel_id=request.hotel_id,
+                performed_by=(request.performed_by or "system"),
+                details={
+                    "room": request.room,
+                    "plan": plan_key,
+                    "partner": request.partner_name,
+                    "nights": len(results),
+                    "net_total": total_net,
+                },
+            )
+            session.commit()
+
+        response = {
             "simulation_info": {
+                "hotel_id": request.hotel_id,
                 "room": request.room,
                 "plan": plan_key,
                 "partner": request.partner_name,
@@ -643,11 +951,23 @@ async def simulate(request: SimulateIn):
                 "total_net": total_net
             }
         }
-        
+
+        return response
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Erreur simulation pour {request.hotel_id}: {str(e)}", exc_info=True)
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="simulation.failed",
+                description=f"Echec simulation pour {request.hotel_id}",
+                hotel_id=request.hotel_id,
+                performed_by=(request.performed_by or "system"),
+                details={"error": str(e)},
+            )
+            session.commit()
         raise HTTPException(status_code=500, detail=f"Erreur lors de la simulation: {str(e)}")
 
 # --- NOUVEAU: Disponibilités ---
@@ -694,7 +1014,7 @@ async def get_availability(request: AvailabilityRequest):
             jours_semaine = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"]
             date_display[date_str] = f"{jours_semaine[date_obj.weekday()]} {date_obj.strftime('%d/%m')}"
         
-        return {
+        response = {
             "hotel_id": hotel_id,
             "period": {
                 "start_date": request.start_date,
@@ -704,11 +1024,37 @@ async def get_availability(request: AvailabilityRequest):
             },
             "availability": availability_data
         }
+
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="availability.requested",
+                description=f"Disponibilités consultées pour {hotel_id}",
+                hotel_id=hotel_id,
+                performed_by=(request.performed_by or "system"),
+                details={
+                    "room_types": room_types,
+                    "nights": len(dates_in_period),
+                },
+            )
+            session.commit()
+
+        return response
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Erreur disponibilités pour {request.hotel_id}: {str(e)}")
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="availability.failed",
+                description=f"Echec consultation disponibilités pour {request.hotel_id}",
+                hotel_id=request.hotel_id,
+                performed_by=(request.performed_by or "system"),
+                details={"error": str(e)},
+            )
+            session.commit()
         raise HTTPException(status_code=500, detail=f"Erreur lors du calcul des disponibilités: {str(e)}")
 
 # --- Export Excel ---
@@ -757,18 +1103,39 @@ async def export_simulation(data: dict):
             summary_df.to_excel(writer, sheet_name='Résumé', index=False)
         
         output.seek(0)
-        
+
         # Retour en streaming
         filename = f"simulation_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         logger.info(f"Export Excel généré: {filename}")
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="simulation.exported",
+                description="Export Excel simulation généré",
+                hotel_id=data.get("simulation_info", {}).get("hotel_id"),
+                details={
+                    "filename": filename,
+                    "rows": len(data.get("results", [])),
+                },
+            )
+            session.commit()
         return StreamingResponse(
             output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
-        
+
     except Exception as e:
         logger.error(f"Erreur export Excel: {str(e)}")
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="simulation.export_failed",
+                description="Echec export Excel simulation",
+                hotel_id=data.get("simulation_info", {}).get("hotel_id"),
+                details={"error": str(e)},
+            )
+            session.commit()
         raise HTTPException(status_code=500, detail=f"Erreur lors de l'export: {str(e)}")
 
 # --- Debug Endpoints ---
@@ -792,4 +1159,4 @@ def check_files_status(hotel_id: str = Query(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8080")))
