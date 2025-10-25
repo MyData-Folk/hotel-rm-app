@@ -6,7 +6,6 @@
     <title>HotelManager Pro V2 - Console Admin</title>
     <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
@@ -506,6 +505,57 @@
             return response.json();
         };
 
+        const describeUploadResult = (result, fileName) => {
+            if (!result || typeof result !== 'object') {
+                return { tone: 'error', message: "Réponse invalide du serveur." };
+            }
+
+            const status = result.status || 'ok';
+
+            if (result.message) {
+                const tone = status === 'ok' ? 'success' : status === 'noop' ? 'warning' : 'info';
+                return { tone, message: result.message };
+            }
+
+            if (status === 'ok') {
+                if ('rooms_found' in result || 'dates_processed' in result) {
+                    const rooms = Number(result.rooms_found ?? 0);
+                    const dates = Number(result.dates_processed ?? 0);
+                    const source = result.source_info ? ` • ${result.source_info}` : '';
+                    return {
+                        tone: 'success',
+                        message: `Planning importé pour ${result.hotel_id || "l'hôtel sélectionné"} : ${rooms} chambre${rooms > 1 ? 's' : ''}, ${dates} date${dates > 1 ? 's' : ''}${source}.`,
+                    };
+                }
+
+                if ('partners_count' in result) {
+                    const partners = Number(result.partners_count ?? 0);
+                    const order = result.has_display_order ? "Ordre d'affichage détecté" : "Pas d'ordre d'affichage";
+                    return {
+                        tone: 'success',
+                        message: `Configuration mise à jour pour ${result.hotel_id || "l'hôtel sélectionné"} : ${partners} partenaire${partners > 1 ? 's' : ''}. ${order}.`,
+                    };
+                }
+
+                return {
+                    tone: 'success',
+                    message: `Fichier "${fileName}" importé avec succès.`,
+                };
+            }
+
+            if (status === 'noop') {
+                return {
+                    tone: 'warning',
+                    message: result.message || `Aucune action effectuée pour "${fileName}".`,
+                };
+            }
+
+            return {
+                tone: 'info',
+                message: `Import terminé avec l'état « ${status} ».`,
+            };
+        };
+
         const loadMonitoring = async () => {
             try {
                 const [health, activity] = await Promise.all([
@@ -771,33 +821,41 @@
             const uploadStatus = document.getElementById('uploadStatus');
             const file = fileInput.files[0];
 
-            uploadStatus.classList.remove('hidden');
-            uploadStatus.className = 'mt-4 text-sm text-slate-400'; // Reset status styling
+            const applyUploadStatus = (message, tone = 'info') => {
+                const tones = {
+                    success: 'text-emerald-300',
+                    error: 'text-rose-300',
+                    warning: 'text-amber-300',
+                    info: 'text-sky-300',
+                };
+                uploadStatus.classList.remove('hidden');
+                uploadStatus.className = 'mt-4 text-sm text-slate-300';
+                if (tones[tone]) {
+                    uploadStatus.classList.add(tones[tone]);
+                }
+                uploadStatus.textContent = message;
+            };
 
             if (!file) {
-                uploadStatus.textContent = 'Veuillez sélectionner un fichier.';
-                uploadStatus.classList.add('text-amber-300');
+                applyUploadStatus('Veuillez sélectionner un fichier.', 'warning');
                 return;
             }
 
             const allowedExtensions = ['.xlsx', '.xls', '.json'];
             const fileExtension = '.' + file.name.split('.').pop();
             if (!allowedExtensions.includes(fileExtension)) {
-                uploadStatus.textContent = 'Type de fichier non supporté. Veuillez choisir un fichier Excel (.xlsx, .xls) ou JSON (.json).';
-                uploadStatus.classList.add('text-rose-300');
+                applyUploadStatus('Type de fichier non supporté. Veuillez choisir un fichier Excel (.xlsx, .xls) ou JSON (.json).', 'error');
                 return;
             }
 
-            uploadStatus.textContent = `Importation de "${file.name}"...`;
-            uploadStatus.classList.add('text-sky-300');
+            applyUploadStatus(`Importation de "${file.name}"...`, 'info');
 
             const formData = new FormData();
             formData.append('file', file);
 
             const hotelId = document.getElementById('hotelSelectDropdown').value.trim();
             if (!hotelId) {
-                uploadStatus.textContent = 'Veuillez sélectionner un hôtel.';
-                uploadStatus.classList.add('text-amber-300');
+                applyUploadStatus('Veuillez sélectionner un hôtel.', 'warning');
                 return;
             }
 
@@ -808,19 +866,17 @@
                     // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
                 });
 
-                if (response.message) {
-                    showToast(response.message, 'success');
-                    uploadStatus.textContent = `Fichier "${file.name}" importé avec succès.`;
-                    uploadStatus.classList.add('text-emerald-300');
+                const { tone, message } = describeUploadResult(response, file.name);
+                showToast(message, tone);
+                applyUploadStatus(message, tone);
+
+                if (response.status === 'ok') {
                     document.getElementById('btnCloseImportModal').click(); // Close modal on success
                     triggerFullRefresh(); // Refresh data after upload
-                } else {
-                    throw new Error('Réponse inattendue du serveur.');
                 }
             } catch (error) {
                 showToast(error.message, 'error');
-                uploadStatus.textContent = `Échec de l'importation : ${error.message}`;
-                uploadStatus.classList.add('text-rose-300');
+                applyUploadStatus(`Échec de l'importation : ${error.message}`, 'error');
             }
         });
 

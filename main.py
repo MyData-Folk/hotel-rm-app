@@ -11,7 +11,7 @@ import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field as PydanticField
 from sqlmodel import SQLModel, Field, create_engine, Session, select, func
 
 # --- 1. CONFIGURATION ---
@@ -149,37 +149,6 @@ def deserialize_details(raw_details: Optional[str]) -> Optional[Dict[str, Any]]:
     except json.JSONDecodeError:
         return {"raw": raw_details}
 
-
-def get_system_metrics(session: Session) -> Dict[str, Any]:
-    active_hotels = session.exec(
-        select(func.count(Hotel.id)).where(Hotel.is_active == True)
-    ).one()
-    if isinstance(active_hotels, tuple):
-        active_hotels = active_hotels[0]
-
-    total_hotels = session.exec(select(func.count(Hotel.id))).one()
-    if isinstance(total_hotels, tuple):
-        total_hotels = total_hotels[0]
-    recent_logs = session.exec(
-        select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(5)
-    ).all()
-
-    return {
-        "active_hotels": active_hotels,
-        "total_hotels": total_hotels,
-        "recent_activity": [
-            {
-                "id": log.id,
-                "hotel_id": log.hotel_id,
-                "activity_type": log.activity_type,
-                "description": log.description,
-                "details": deserialize_details(log.details),
-                "performed_by": log.performed_by,
-                "created_at": log.created_at.isoformat(),
-            }
-            for log in recent_logs
-        ],
-    }
 
 def get_system_metrics(session: Session) -> Dict[str, Any]:
     active_hotels = session.exec(
@@ -394,15 +363,15 @@ class SimulateIn(BaseModel):
     apply_commission: bool = True
     apply_partner_discount: bool = True
     promo_discount: float = 0.0
-    performed_by: Optional[str] = "system"
+    performed_by: Optional[str] = PydanticField(default="system")
 
 
 class AvailabilityRequest(BaseModel):
     hotel_id: str
     start_date: str
     end_date: str
-    room_types: List[str] = []
-    performed_by: Optional[str] = "system"
+    room_types: List[str] = PydanticField(default_factory=list)
+    performed_by: Optional[str] = PydanticField(default="system")
 
 # --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
 @app.on_event('startup')
@@ -727,73 +696,6 @@ async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...))
     hotel_id = decode_hotel_id(hotel_id)
     with Session(engine) as session:
         return await process_excel_file(session, hotel_id, await file.read(), file.filename)
-
-
-async def process_json_config(session: Session, hotel_id: str, file_content: bytes):
-    try:
-        logger.info(f"Upload config pour {hotel_id}, taille: {len(file_content)} bytes")
-
-        # Validation du contenu JSON
-        try:
-            parsed = json.loads(file_content.decode('utf-8'))
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
-
-        # Validation de la structure
-        if not isinstance(parsed, dict):
-            raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
-
-        # Vérification optionnelle de l'ID d'hôtel
-        file_hotel_id = parsed.get('hotel_id', '').lower().strip()
-        if file_hotel_id and file_hotel_id != hotel_id:
-            logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
-
-        serialized = json.dumps(parsed, ensure_ascii=False, indent=2)
-
-        existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
-        if existing:
-            existing.config_json = serialized
-            existing.updated_at = datetime.utcnow()
-        else:
-            session.add(
-                HotelConfig(
-                    hotel_id=hotel_id,
-                    config_json=serialized,
-                    updated_at=datetime.utcnow(),
-                )
-            )
-        log_activity(
-            session,
-            activity_type="config.uploaded",
-            description=f"Configuration importée pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={"keys": list(parsed.keys())[:10]},
-        )
-        session.commit()
-
-        logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
-
-        return {
-            'status': 'ok',
-            'hotel_id': hotel_id,
-            'partners_count': len(parsed.get('partners', {})),
-            'has_display_order': 'displayOrder' in parsed
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
-        log_activity(
-            session,
-            activity_type="config.upload_failed",
-            description=f"Echec import configuration pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={"error": str(e)},
-        )
-        session.commit()
-        raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
 
 
 @app.post('/upload/config', tags=["Uploads"])
