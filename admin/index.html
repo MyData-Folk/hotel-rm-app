@@ -328,8 +328,8 @@
 
             <div class="mt-6 space-y-4">
                 <div>
-                    <label for="uploadHotelId" class="text-xs uppercase tracking-[0.3em] text-slate-400">Identifiant Hôtel</label>
-                    <input id="uploadHotelId" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="ex: hotel-paris-centre" autocomplete="off" required />
+                    <label for="hotelSelectDropdown" class="text-xs uppercase tracking-[0.3em] text-slate-400">Sélectionner un hôtel</label>
+                    <select id="hotelSelectDropdown" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none"></select>
                 </div>
                 <div>
                     <label for="fileInput" class="sr-only">Sélectionner un fichier</label>
@@ -468,6 +468,7 @@
                     plugins: {
                         legend: { labels: { color: '#cbd5f5' } },
                     },
+                    height: 256, // Explicitly set height to override problematic dynamic calculation
                 },
             });
         };
@@ -722,10 +723,37 @@
             showToast('Inventaire des hôtels rafraîchi', 'info');
         });
 
+        const populateHotelDropdown = async () => {
+            const dropdown = document.getElementById('hotelSelectDropdown');
+            dropdown.innerHTML = '<option value="">Chargement des hôtels...</option>';
+            try {
+                const hotels = await fetchJSON('/hotels');
+                dropdown.innerHTML = ''; // Clear loading message
+                if (hotels.length === 0) {
+                    dropdown.innerHTML = '<option value="">Aucun hôtel enregistré</option>';
+                    dropdown.disabled = true;
+                } else {
+                    dropdown.disabled = false;
+                    dropdown.innerHTML = '<option value="">-- Sélectionner un hôtel --</option>';
+                    hotels.forEach(hotel => {
+                        const option = document.createElement('option');
+                        option.value = hotel.hotel_id;
+                        option.textContent = `${hotel.name || hotel.hotel_id} (${hotel.hotel_id})`;
+                        dropdown.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                showToast(`Erreur lors du chargement des hôtels: ${error.message}`, 'error');
+                dropdown.innerHTML = '<option value="">Erreur de chargement</option>';
+                dropdown.disabled = true;
+            }
+        };
+
         document.getElementById('btnOpenUpload').addEventListener('click', () => {
             const importModal = document.getElementById('importModal');
             importModal.classList.remove('hidden');
             importModal.classList.add('flex');
+            populateHotelDropdown(); // Populate dropdown when modal opens
             feather.replace(); // Render new icons in the modal
         });
 
@@ -766,9 +794,9 @@
             const formData = new FormData();
             formData.append('file', file);
 
-            const hotelId = document.getElementById('uploadHotelId').value.trim();
+            const hotelId = document.getElementById('hotelSelectDropdown').value.trim();
             if (!hotelId) {
-                uploadStatus.textContent = 'Veuillez entrer l\'identifiant de l\'hôtel.';
+                uploadStatus.textContent = 'Veuillez sélectionner un hôtel.';
                 uploadStatus.classList.add('text-amber-300');
                 return;
             }
