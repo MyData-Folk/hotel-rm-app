@@ -181,6 +181,163 @@ def get_system_metrics(session: Session) -> Dict[str, Any]:
         ],
     }
 
+def get_system_metrics(session: Session) -> Dict[str, Any]:
+    active_hotels = session.exec(
+        select(func.count(Hotel.id)).where(Hotel.is_active == True)
+    ).one()
+    if isinstance(active_hotels, tuple):
+        active_hotels = active_hotels[0]
+
+    total_hotels = session.exec(select(func.count(Hotel.id))).one()
+    if isinstance(total_hotels, tuple):
+        total_hotels = total_hotels[0]
+    recent_logs = session.exec(
+        select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(5)
+    ).all()
+
+    return {
+        "active_hotels": active_hotels,
+        "total_hotels": total_hotels,
+        "recent_activity": [
+            {
+                "id": log.id,
+                "hotel_id": log.hotel_id,
+                "activity_type": log.activity_type,
+                "description": log.description,
+                "details": deserialize_details(log.details),
+                "performed_by": log.performed_by,
+                "created_at": log.created_at.isoformat(),
+            }
+            for log in recent_logs
+        ],
+    }
+
+
+async def process_excel_file(session: Session, hotel_id: str, file_content: bytes, filename: str):
+    if not filename.lower().endswith(('.xlsx', '.csv')):
+        raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
+
+    hotel = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
+    if not hotel:
+        raise HTTPException(status_code=404, detail="Hôtel introuvable. Veuillez le créer avant l'upload.")
+    if not hotel.is_active:
+        raise HTTPException(status_code=423, detail="Hôtel désactivé. Réactivez-le avant l'upload.")
+
+    try:
+        logger.info(f"Upload Excel/CSV pour {hotel_id}, taille: {len(file_content)} bytes")
+
+        if filename.lower().endswith('.xlsx'):
+            df = pd.read_excel(io.BytesIO(file_content), header=None)
+        else:
+            df = pd.read_csv(io.BytesIO(file_content), header=None, encoding='utf-8', sep=';')
+
+        parsed = parse_sheet_to_structure(df)
+        out_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
+
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(parsed, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Données sauvegardées pour {hotel_id}: {len(parsed.get('rooms', {}))} chambres")
+
+        log_activity(
+            session,
+            activity_type="data.uploaded",
+            description=f"Données planning importées pour {hotel_id}",
+            hotel_id=hotel_id,
+            details={
+                "rooms_found": len(parsed.get('rooms', {})),
+                "dates_processed": len(parsed.get('dates_processed', [])),
+            },
+        )
+        session.commit()
+
+        return {
+            'status': 'ok',
+            'hotel_id': hotel_id,
+            'rooms_found': len(parsed.get('rooms', {})),
+            'dates_processed': len(parsed.get('dates_processed', [])),
+            'source_info': parsed.get('report_generated_at', 'Source inconnue')
+        }
+
+    except Exception as e:
+        logger.error(f"Erreur traitement fichier pour {hotel_id}: {str(e)}", exc_info=True)
+        log_activity(
+            session,
+            activity_type="data.upload_failed",
+            description=f"Echec import données pour {hotel_id}",
+            hotel_id=hotel_id,
+            details={"error": str(e)},
+        )
+        session.commit()
+        raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
+
+
+async def process_json_config(session: Session, hotel_id: str, file_content: bytes):
+    try:
+        logger.info(f"Upload config pour {hotel_id}, taille: {len(file_content)} bytes")
+
+        # Validation du contenu JSON
+        try:
+            parsed = json.loads(file_content.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
+
+        # Validation de la structure
+        if not isinstance(parsed, dict):
+            raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
+
+        # Vérification optionnelle de l'ID d'hôtel
+        file_hotel_id = parsed.get('hotel_id', '').lower().strip()
+        if file_hotel_id and file_hotel_id != hotel_id:
+            logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
+
+        serialized = json.dumps(parsed, ensure_ascii=False, indent=2)
+
+        existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
+        if existing:
+            existing.config_json = serialized
+            existing.updated_at = datetime.utcnow()
+        else:
+            session.add(
+                HotelConfig(
+                    hotel_id=hotel_id,
+                    config_json=serialized,
+                    updated_at=datetime.utcnow(),
+                )
+            )
+        log_activity(
+            session,
+            activity_type="config.uploaded",
+            description=f"Configuration importée pour {hotel_id}",
+            hotel_id=hotel_id,
+            details={"keys": list(parsed.keys())[:10]},
+        )
+        session.commit()
+
+        logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
+
+        return {
+            'status': 'ok',
+            'hotel_id': hotel_id,
+            'partners_count': len(parsed.get('partners', {})),
+            'has_display_order': 'displayOrder' in parsed
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
+        log_activity(
+            session,
+            activity_type="config.upload_failed",
+            description=f"Echec import configuration pour {hotel_id}",
+            hotel_id=hotel_id,
+            details={"error": str(e)},
+        )
+        session.commit()
+        raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
+
 # --- 4. MODÈLES DE DONNÉES ---
 class Hotel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
