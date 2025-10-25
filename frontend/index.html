@@ -397,12 +397,48 @@
             }
         };
 
-        const populatePlans = () => {
-            const roomId = document.getElementById('simRoom').value;
+        const populatePlans = async () => {
             const planSelect = document.getElementById('simPlan');
-            planSelect.innerHTML = '';
-            const plans = state.hotelData?.rooms?.[roomId]?.plans || {};
-            Object.keys(plans).forEach((plan) => planSelect.appendChild(new Option(plan, plan)));
+            const roomId = document.getElementById('simRoom').value;
+            const partner = document.getElementById('simPartner').value;
+            planSelect.innerHTML = '<option value="">Chargement...</option>';
+            planSelect.disabled = true;
+
+            if (!state.hotelId || !roomId) {
+                planSelect.innerHTML = '<option value="">Sélectionnez une chambre</option>';
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({
+                    hotel_id: state.hotelId,
+                    partner_name: partner || '',
+                    room_type: roomId,
+                });
+                const response = await fetchJSON(`/plans/partner?${params.toString()}`);
+                const plans = response.plans || [];
+                planSelect.innerHTML = '';
+                plans.forEach((plan) => planSelect.appendChild(new Option(plan, plan)));
+                if (plans.length) {
+                    planSelect.value = plans[0];
+                    planSelect.disabled = false;
+                } else {
+                    planSelect.innerHTML = '<option value="">Aucun plan disponible</option>';
+                    planSelect.disabled = true;
+                }
+            } catch (error) {
+                const fallbackPlans = Object.keys(state.hotelData?.rooms?.[roomId]?.plans || {});
+                planSelect.innerHTML = '';
+                fallbackPlans.forEach((plan) => planSelect.appendChild(new Option(plan, plan)));
+                if (fallbackPlans.length) {
+                    planSelect.value = fallbackPlans[0];
+                    planSelect.disabled = false;
+                } else {
+                    planSelect.innerHTML = '<option value="">Aucun plan disponible</option>';
+                    planSelect.disabled = true;
+                }
+                showToast(`Impossible de charger les plans filtrés: ${error.message}`, 'error');
+            }
         };
 
         const loadHotelData = async () => {
@@ -417,8 +453,8 @@
                 state.hotelConfig = await fetchJSON(`/config?hotel_id=${hotelId}`);
                 state.hotelId = hotelId;
                 populateRooms(state.hotelData);
-                populatePlans();
                 populatePartners(state.hotelConfig);
+                await populatePlans();
                 document.getElementById('hotelStatus').textContent = `Hôtel ${hotelId} prêt. Sélectionnez vos paramètres.`;
                 document.getElementById('lastUpdate').textContent = new Date().toLocaleString('fr-FR');
                 document.getElementById('dataSummary').textContent = `${Object.keys(state.hotelData.rooms || {}).length} chambres configurées`;
@@ -499,7 +535,11 @@
         });
 
         document.getElementById('simRoom').addEventListener('change', () => {
-            populatePlans();
+            populatePlans().catch(() => {});
+        });
+
+        document.getElementById('simPartner').addEventListener('change', () => {
+            populatePlans().catch(() => {});
         });
 
         document.getElementById('availabilityForm').addEventListener('submit', async (event) => {
