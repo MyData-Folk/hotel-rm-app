@@ -12,6 +12,17 @@
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
     <style>
         body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .chart-wrapper {
+            position: relative;
+            height: 320px;
+            max-height: 320px;
+        }
+        .chart-wrapper canvas {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -149,7 +160,9 @@
                                 </div>
                                 <span id="healthBadge" class="status-pill bg-emerald-500/15 text-emerald-300">Système opérationnel</span>
                             </div>
-                            <canvas id="latencyChart" class="mt-6 h-64"></canvas>
+                            <div class="chart-wrapper mt-6">
+                                <canvas id="latencyChart"></canvas>
+                            </div>
                         </div>
                         <div class="glass-card">
                             <h3 class="text-lg font-semibold">État en direct</h3>
@@ -290,6 +303,17 @@
                                 Exporter les données (JSON + Config)
                             </button>
                         </div>
+                        <div class="mt-8">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs uppercase tracking-[0.3em] text-slate-400">Derniers imports Excel</h4>
+                                <button id="refreshUploads" type="button" class="text-xs text-indigo-300 transition hover:text-indigo-200">
+                                    Actualiser
+                                </button>
+                            </div>
+                            <ul id="recentUploadsList" class="mt-4 space-y-3 text-xs text-slate-300">
+                                <li class="text-slate-500">Chargement des fichiers...</li>
+                            </ul>
+                        </div>
                         <p class="mt-6 text-xs text-slate-500">Les sauvegardes sont stockées de manière sécurisée côté serveur via les pipelines DevOps.</p>
                     </div>
                     <div class="glass-card">
@@ -369,8 +393,9 @@
     <script>
         const STORAGE_KEY = 'hmpro.apiBase';
         const defaultApiBase = localStorage.getItem(STORAGE_KEY) || 'http://localhost:8080';
+        const getApiBase = () => (localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '');
         const apiInput = document.getElementById('apiEndpoint');
-        apiInput.value = defaultApiBase;
+        apiInput.value = localStorage.getItem(STORAGE_KEY) || defaultApiBase;
 
         const sections = document.querySelectorAll('.section');
         const navPills = document.querySelectorAll('.nav-pill');
@@ -428,6 +453,7 @@
         const state = {
             latencySeries: [],
             latencyChart: null,
+            recentUploads: [],
         };
 
         const buildLatencyChart = () => {
@@ -494,7 +520,7 @@
         };
 
         const fetchJSON = async (path, options = {}) => {
-            const base = (localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '');
+            const base = getApiBase();
             const response = await fetch(`${base}${path}`, options);
             if (!response.ok) {
                 const payload = await response.json().catch(() => ({}));
@@ -503,6 +529,94 @@
                 throw error;
             }
             return response.json();
+        };
+
+        const extractFilename = (disposition) => {
+            if (!disposition) return null;
+            const utfMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+            if (utfMatch && utfMatch[1]) {
+                try {
+                    return decodeURIComponent(utfMatch[1]);
+                } catch (error) {
+                    return utfMatch[1];
+                }
+            }
+            const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+            return asciiMatch && asciiMatch[1] ? asciiMatch[1] : null;
+        };
+
+        const downloadFromEndpoint = async (path, fallbackName, options = {}) => {
+            const base = getApiBase();
+            const response = await fetch(`${base}${path}`, options);
+            if (!response.ok) {
+                let message = 'Erreur API';
+                try {
+                    const payload = await response.json();
+                    message = payload.detail || message;
+                } catch (err) {
+                    // ignore parsing errors
+                }
+                throw new Error(message);
+            }
+
+            const blob = await response.blob();
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const filename = extractFilename(disposition) || fallbackName;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename || fallbackName;
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                link.remove();
+            }, 150);
+            return filename;
+        };
+
+        const renderRecentUploads = (uploads) => {
+            const list = document.getElementById('recentUploadsList');
+            if (!list) return;
+            state.recentUploads = uploads;
+
+            if (!uploads.length) {
+                list.innerHTML = '<li class="text-slate-500">Aucun fichier importé récemment.</li>';
+                return;
+            }
+
+            list.innerHTML = '';
+            uploads.forEach((upload) => {
+                const generated = upload.report_generated_at ? formatDate(upload.report_generated_at) : (upload.report_generated_label || '—');
+                const li = document.createElement('li');
+                li.className = 'flex items-start justify-between gap-4 rounded-xl border border-white/10 bg-white/5 px-4 py-3';
+                li.innerHTML = `
+                    <div>
+                        <p class="text-sm font-semibold text-white">${upload.filename || 'Fichier importé'}</p>
+                        <p class="mt-1 text-[11px] uppercase tracking-[0.2em] text-slate-500">${upload.hotel_id}</p>
+                        <p class="mt-1 text-[11px] text-slate-400">Généré : ${generated}</p>
+                        <p class="text-[11px] text-slate-400">Importé : ${formatDate(upload.uploaded_at)} • ${formatBytes(upload.file_size)}</p>
+                    </div>
+                    <button class="table-action" data-action="download" data-id="${upload.id}" aria-label="Télécharger ${upload.filename || 'le fichier'}">
+                        <i data-feather="download"></i>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+            feather.replace({ class: 'h-4 w-4' });
+        };
+
+        const loadRecentUploads = async () => {
+            const list = document.getElementById('recentUploadsList');
+            if (!list) return;
+            list.innerHTML = '<li class="text-slate-500">Chargement des fichiers...</li>';
+            try {
+                const uploads = await fetchJSON('/uploads/recent');
+                renderRecentUploads(uploads);
+            } catch (error) {
+                list.innerHTML = `<li class="text-rose-300">${error.message}</li>`;
+                throw error;
+            }
         };
 
         const describeUploadResult = (result, fileName) => {
@@ -564,15 +678,20 @@
                 ]);
 
                 const metrics = health.metrics || {};
+                const storage = health.storage || {};
+                const jsonFiles = storage.files || 0;
+                const excelFiles = storage.database_files || 0;
+                const jsonBytes = storage.bytes || 0;
+                const excelBytes = storage.database_bytes || 0;
                 animateNumber(document.getElementById('activeHotelsValue'), metrics.active_hotels || 0);
                 animateNumber(document.getElementById('totalHotelsValue'), metrics.total_hotels || 0);
                 document.getElementById('latencyValue').textContent = `${Math.round(health.latency_ms || 0)} ms`;
-                document.getElementById('storageValue').textContent = `${health.storage?.files || 0} fichiers`;
-                document.getElementById('storageSubtitle').textContent = formatBytes(health.storage?.bytes || 0);
+                document.getElementById('storageValue').textContent = `${jsonFiles} JSON • ${excelFiles} Excel`;
+                document.getElementById('storageSubtitle').textContent = `JSON: ${formatBytes(jsonBytes)} • Excel: ${formatBytes(excelBytes)}`;
 
                 document.getElementById('apiStatus').textContent = health.status === 'ok' ? 'Opérationnelle' : 'Dégradée';
                 document.getElementById('dbStatus').textContent = health.database === 'healthy' ? 'Connexion OK' : 'Problème';
-                document.getElementById('storageStatus').textContent = `${health.storage?.files || 0} fichiers`;
+                document.getElementById('storageStatus').textContent = `${jsonFiles} JSON • ${excelFiles} Excel sauvegardés`;
                 document.getElementById('activityStatus').textContent = `${metrics.recent_activity?.length || 0} événements récents`;
                 document.getElementById('lastSync').textContent = formatDate(health.generated_at || health.timestamp);
 
@@ -695,9 +814,30 @@
         const triggerFullRefresh = () => {
             loadMonitoring();
             loadHotels();
+            loadRecentUploads().catch(() => {});
         };
 
         document.getElementById('includeInactive').addEventListener('change', loadHotels);
+
+        const recentUploadsList = document.getElementById('recentUploadsList');
+        if (recentUploadsList) {
+            recentUploadsList.addEventListener('click', async (event) => {
+                const button = event.target.closest('button[data-action="download"]');
+                if (!button) return;
+                const uploadId = Number(button.dataset.id);
+                const upload = state.recentUploads.find((item) => item.id === uploadId);
+                if (!upload) {
+                    showToast('Fichier introuvable dans le cache local.', 'warning');
+                    return;
+                }
+                try {
+                    await downloadFromEndpoint(`/uploads/${uploadId}/download`, upload.filename || `import_${uploadId}.bin`);
+                    showToast(`Téléchargement de ${upload.filename || 'l\'archive'} réussi`, 'success');
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            });
+        }
 
         document.getElementById('hotelTable').addEventListener('click', async (event) => {
             const button = event.target.closest('button[data-action]');
@@ -884,8 +1024,23 @@
             showToast('Sauvegarde planifiée pour la nuit prochaine', 'success');
         });
 
-        document.getElementById('backupNow').addEventListener('click', () => {
-            showToast('Sauvegarde complète démarrée', 'success');
+        document.getElementById('refreshUploads').addEventListener('click', async () => {
+            try {
+                await loadRecentUploads();
+                showToast('Liste des imports mise à jour', 'info');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        document.getElementById('backupNow').addEventListener('click', async () => {
+            const fallbackName = `backup_${new Date().toISOString().replace(/[.:]/g, '-')}.zip`;
+            try {
+                const filename = await downloadFromEndpoint('/backup/immediate?actor=admin-ui', fallbackName, { method: 'POST' });
+                showToast(`Sauvegarde "${filename}" téléchargée`, 'success');
+            } catch (error) {
+                showToast(`Échec de la sauvegarde : ${error.message}`, 'error');
+            }
         });
 
         document.getElementById('backupData').addEventListener('click', () => {
