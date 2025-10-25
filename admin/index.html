@@ -315,6 +315,36 @@
         </main>
     </div>
 
+    <!-- Import Module Modal -->
+    <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-card w-full max-w-lg p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Importer des données (Excel / JSON)</h3>
+                <button id="btnCloseImportModal" class="text-slate-400 hover:text-white">
+                    <i data-feather="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <p class="mt-2 text-sm text-slate-400">Sélectionnez un fichier Excel (.xlsx) ou JSON (.json) à importer.</p>
+
+            <div class="mt-6 space-y-4">
+                <div>
+                    <label for="fileInput" class="sr-only">Sélectionner un fichier</label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.json" class="block w-full text-sm text-slate-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-indigo-500/20 file:text-indigo-300
+                        hover:file:bg-indigo-500/30" />
+                </div>
+                <button id="btnUploadFile" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-40">
+                    <i data-feather="upload-cloud" class="h-4 w-4"></i>
+                    Importer le fichier
+                </button>
+            </div>
+            <div id="uploadStatus" class="mt-4 text-sm text-slate-400 hidden"></div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="pointer-events-none fixed top-6 right-6 z-50 flex w-96 flex-col gap-3"></div>
 
     <template id="activityItemTemplate">
@@ -495,7 +525,12 @@
                 updateStatusBadge(health.status);
 
                 const points = state.latencySeries;
-                points.push({ x: new Date(), y: health.latency_ms || 0 });
+                let currentLatency = health.latency_ms || 0;
+                // Cap latency to prevent extreme Y-axis scaling
+                if (currentLatency > 1000) { // Cap at 1000ms (1 second)
+                    currentLatency = 1000;
+                }
+                points.push({ x: new Date(), y: currentLatency });
                 if (points.length > 30) points.shift();
                 if (state.latencyChart) {
                     state.latencyChart.data.datasets[0].data = points;
@@ -681,7 +716,70 @@
         });
 
         document.getElementById('btnOpenUpload').addEventListener('click', () => {
-            showToast('Ouverture du module d\'import (via interface spécialisée)', 'info');
+            const importModal = document.getElementById('importModal');
+            importModal.classList.remove('hidden');
+            importModal.classList.add('flex');
+            feather.replace(); // Render new icons in the modal
+        });
+
+        document.getElementById('btnCloseImportModal').addEventListener('click', () => {
+            const importModal = document.getElementById('importModal');
+            importModal.classList.add('hidden');
+            importModal.classList.remove('flex');
+            document.getElementById('fileInput').value = ''; // Clear selected file
+            document.getElementById('uploadStatus').textContent = ''; // Clear status
+            document.getElementById('uploadStatus').classList.add('hidden');
+        });
+
+        document.getElementById('btnUploadFile').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const file = fileInput.files[0];
+
+            uploadStatus.classList.remove('hidden');
+            uploadStatus.className = 'mt-4 text-sm text-slate-400'; // Reset status styling
+
+            if (!file) {
+                uploadStatus.textContent = 'Veuillez sélectionner un fichier.';
+                uploadStatus.classList.add('text-amber-300');
+                return;
+            }
+
+            const allowedExtensions = ['.xlsx', '.xls', '.json'];
+            const fileExtension = '.' + file.name.split('.').pop();
+            if (!allowedExtensions.includes(fileExtension)) {
+                uploadStatus.textContent = 'Type de fichier non supporté. Veuillez choisir un fichier Excel (.xlsx, .xls) ou JSON (.json).';
+                uploadStatus.classList.add('text-rose-300');
+                return;
+            }
+
+            uploadStatus.textContent = `Importation de "${file.name}"...`;
+            uploadStatus.classList.add('text-sky-300');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetchJSON('/upload/data', {
+                    method: 'POST',
+                    body: formData,
+                    // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
+                });
+
+                if (response.message) {
+                    showToast(response.message, 'success');
+                    uploadStatus.textContent = `Fichier "${file.name}" importé avec succès.`;
+                    uploadStatus.classList.add('text-emerald-300');
+                    document.getElementById('btnCloseImportModal').click(); // Close modal on success
+                    triggerFullRefresh(); // Refresh data after upload
+                } else {
+                    throw new Error('Réponse inattendue du serveur.');
+                }
+            } catch (error) {
+                showToast(error.message, 'error');
+                uploadStatus.textContent = `Échec de l'importation : ${error.message}`;
+                uploadStatus.classList.add('text-rose-300');
+            }
         });
 
         document.getElementById('btnPlanBackup').addEventListener('click', () => {
