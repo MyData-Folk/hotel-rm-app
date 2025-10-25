@@ -328,6 +328,10 @@
 
             <div class="mt-6 space-y-4">
                 <div>
+                    <label for="uploadHotelId" class="text-xs uppercase tracking-[0.3em] text-slate-400">Identifiant Hôtel</label>
+                    <input id="uploadHotelId" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="ex: hotel-paris-centre" autocomplete="off" required />
+                </div>
+                <div>
                     <label for="fileInput" class="sr-only">Sélectionner un fichier</label>
                     <input type="file" id="fileInput" accept=".xlsx,.xls,.json" class="block w-full text-sm text-slate-500
                         file:mr-4 file:py-2 file:px-4
@@ -525,7 +529,10 @@
                 updateStatusBadge(health.status);
 
                 const points = state.latencySeries;
-                let currentLatency = health.latency_ms || 0;
+                let currentLatency = health.latency_ms;
+                if (typeof currentLatency !== 'number' || isNaN(currentLatency)) {
+                    currentLatency = 0; // Default to 0 if not a valid number
+                }
                 // Cap latency to prevent extreme Y-axis scaling
                 if (currentLatency > 1000) { // Cap at 1000ms (1 second)
                     currentLatency = 1000;
@@ -759,8 +766,15 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            const hotelId = document.getElementById('uploadHotelId').value.trim();
+            if (!hotelId) {
+                uploadStatus.textContent = 'Veuillez entrer l\'identifiant de l\'hôtel.';
+                uploadStatus.classList.add('text-amber-300');
+                return;
+            }
+
             try {
-                const response = await fetchJSON('/upload/data', {
+                const response = await fetchJSON(`/upload/data?hotel_id=${encodeURIComponent(hotelId)}`, {
                     method: 'POST',
                     body: formData,
                     // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
