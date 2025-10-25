@@ -6,7 +6,6 @@
     <title>HotelManager Pro V2 - Console Admin</title>
     <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
@@ -525,7 +524,7 @@
                     const source = result.source_info ? ` • ${result.source_info}` : '';
                     return {
                         tone: 'success',
-                        message: `Planning importé pour ${result.hotel_id || 'l'hôtel sélectionné'} : ${rooms} chambre${rooms > 1 ? 's' : ''}, ${dates} date${dates > 1 ? 's' : ''}${source}.`,
+                        message: `Planning importé pour ${result.hotel_id || "l'hôtel sélectionné"} : ${rooms} chambre${rooms > 1 ? 's' : ''}, ${dates} date${dates > 1 ? 's' : ''}${source}.`,
                     };
                 }
 
@@ -534,7 +533,7 @@
                     const order = result.has_display_order ? "Ordre d'affichage détecté" : "Pas d'ordre d'affichage";
                     return {
                         tone: 'success',
-                        message: `Configuration mise à jour pour ${result.hotel_id || 'l'hôtel sélectionné'} : ${partners} partenaire${partners > 1 ? 's' : ''}. ${order}.`,
+                        message: `Configuration mise à jour pour ${result.hotel_id || "l'hôtel sélectionné"} : ${partners} partenaire${partners > 1 ? 's' : ''}. ${order}.`,
                     };
                 }
 
