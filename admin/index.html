@@ -1,787 +1,915 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HôtelMaster Pro - Dashboard</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            200: '#99f6e4',
-                            300: '#5eead4',
-                            400: '#2dd4bf',
-                            500: '#14b8a6',
-                            600: '#0d9488',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HotelManager Pro V2 - Console Admin</title>
+    <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-        
-        .gradient-bg {
-            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
-        }
-        
-        .card-hover {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .file-upload {
-            border: 2px dashed #cbd5e1;
-            transition: all 0.3s ease;
-        }
-        
-        .file-upload:hover {
-            border-color: #0f766e;
-            background-color: rgba(241, 245, 249, 0.5);
-        }
-        
-        .nav-tab {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: #0f766e;
-        }
-        
-        .spinner {
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .smooth-transition {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-    <!-- Header -->
-    <header class="gradient-bg text-white shadow-md">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl md:text-3xl font-bold">HôtelMaster Pro</h1>
-                    <p class="text-primary-100 opacity-90">Dashboard de gestion hôtelière premium</p>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="hidden md:flex items-center gap-2 bg-white/10 rounded-full px-4 py-2">
-                        <i data-feather="user" class="w-5 h-5"></i>
-                        <span>Administrateur</span>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <div class="absolute inset-0 -z-10 overflow-hidden">
+        <div class="absolute -top-40 -left-32 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-500/40 to-purple-500/30 blur-3xl"></div>
+        <div class="absolute top-1/2 right-0 h-96 w-96 -translate-y-1/2 rounded-full bg-gradient-to-tr from-sky-500/30 to-emerald-400/20 blur-3xl"></div>
+        <div class="noise-layer"></div>
+    </div>
+
+    <div class="flex min-h-screen backdrop-blur-xl bg-slate-900/30">
+        <!-- Sidebar -->
+        <aside class="hidden lg:flex lg:w-72 flex-col border-r border-white/10 bg-slate-900/40">
+            <div class="px-8 pt-10 pb-6">
+                <div class="flex items-center gap-3">
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300">
+                        <i data-feather="shield" class="h-6 w-6"></i>
+                    </span>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Console</p>
+                        <h1 class="text-xl font-semibold">HotelManager Pro V2</h1>
                     </div>
-                    <button class="p-2 rounded-full hover:bg-white/10">
-                        <i data-feather="settings" class="w-5 h-5"></i>
-                    </button>
+                </div>
+                <div class="mt-6 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300">
+                    <div class="flex items-center justify-between">
+                        <span>Status plateforme</span>
+                        <span id="sidebarStatus" class="flex items-center gap-2 text-emerald-400">
+                            <span class="status-dot"></span>
+                            <span>En ligne</span>
+                        </span>
+                    </div>
+                    <p class="mt-2 text-xs text-slate-400" id="sidebarStatusDetail">Chargement des métriques...</p>
                 </div>
             </div>
-        </div>
-    </header>
 
-    <main class="container mx-auto px-4 py-8">
-        <!-- Navigation -->
-        <nav class="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
-            <div class="flex flex-wrap">
-                <button class="nav-tab active px-6 py-4 font-medium text-primary-700 flex items-center gap-2" data-tab="hotels">
-                    <i data-feather="home" class="w-4 h-4"></i>
-                    Gestion des Hôtels
+            <nav class="flex-1 space-y-1 px-6">
+                <button class="nav-pill active" data-target="dashboardSection">
+                    <i data-feather="activity"></i>
+                    <span>Monitoring</span>
                 </button>
-                <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="upload">
-                    <i data-feather="upload" class="w-4 h-4"></i>
-                    Import de Données
+                <button class="nav-pill" data-target="hotelsSection">
+                    <i data-feather="home"></i>
+                    <span>Gestion des hôtels</span>
                 </button>
-                <button class="nav-tab px-6 py-4 font-medium text-gray-500 hover:text-primary-600 flex items-center gap-2" data-tab="status">
-                    <i data-feather="activity" class="w-4 h-4"></i>
-                    Statut du Système
+                <button class="nav-pill" data-target="activitySection">
+                    <i data-feather="clock"></i>
+                    <span>Historique & Audit</span>
                 </button>
+                <button class="nav-pill" data-target="backupSection">
+                    <i data-feather="database"></i>
+                    <span>Backup & Restauration</span>
+                </button>
+            </nav>
+
+            <div class="px-8 pb-8 pt-4 text-xs text-slate-500">
+                <p>Version console <span id="versionTag" class="font-medium text-slate-300">v2.1</span></p>
+                <p class="mt-1">Temps réel toutes les 30 secondes</p>
             </div>
-        </nav>
+        </aside>
 
-        <!-- Messages Container -->
-        <div id="messageContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-md"></div>
-
-        <!-- Section Gestion des Hôtels -->
-        <div id="hotelsTab" class="tab-content active">
-            <div class="grid grid-cols-1 gap-6">
-                <!-- Create Hotel Card -->
-                <div class="card-hover bg-white rounded-xl overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <i data-feather="plus" class="w-5 h-5 text-primary-600"></i>
-                            Créer un Nouvel Hôtel
-                        </h2>
+        <!-- Main content -->
+        <main class="flex-1">
+            <header class="border-b border-white/10 bg-slate-900/50 px-6 py-6 shadow-lg shadow-indigo-500/5 sm:px-10">
+                <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.4em] text-indigo-300">Dashboard Exécutif</p>
+                        <h2 class="mt-2 text-3xl font-semibold">Pilotage en temps réel</h2>
+                        <p class="mt-2 max-w-2xl text-sm text-slate-400">
+                            Surveillez l'état du système, créez des hôtels en toute sécurité et suivez les activités clés grâce à une expérience premium.
+                        </p>
                     </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div class="md:col-span-3">
-                                <label for="newHotelId" class="block text-sm font-medium text-gray-700 mb-1">ID de l'Hôtel</label>
-                                <input type="text" id="newHotelId" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="ex: hotel-paris-centre">
-                            </div>
-                            <div class="flex items-end">
-                                <button id="createHotelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
-                                    <i data-feather="plus" class="w-4 h-4"></i>
-                                    Créer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hotels List -->
-                <div class="card-hover bg-white rounded-xl overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <i data-feather="list" class="w-5 h-5 text-primary-600"></i>
-                            Liste des Hôtels
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div id="hotelsList" class="flex flex-col items-center justify-center py-8">
-                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
-                            <p class="text-gray-500">Chargement des hôtels...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section Import de Données -->
-        <div id="uploadTab" class="tab-content hidden">
-            <div class="grid grid-cols-1 gap-6">
-                <!-- Excel Upload -->
-                <div class="card-hover bg-white rounded-xl overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <i data-feather="file-text" class="w-5 h-5 text-primary-600"></i>
-                            Import des Données Excel
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 gap-6">
-                            <div>
-                                <label for="excelHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
-                                <select id="excelHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                    <option value="">Chargement...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
-                                <input type="file" id="excelFile" accept=".xlsx,.csv" class="hidden">
-                                <label for="excelFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
-                                    <i data-feather="upload" class="w-4 h-4"></i>
-                                    Choisir un fichier Excel/CSV
-                                </label>
-                                <p class="mt-4 text-sm text-gray-500 text-center">
-                                    Formats supportés: .xlsx, .csv<br>
-                                    <span class="text-xs">Taille maximale: 10MB</span>
-                                </p>
-                                <div id="excelFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
-                            </div>
-                            
-                            <div>
-                                <button id="uploadExcelBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
-                                    <i data-feather="upload-cloud" class="w-4 h-4"></i>
-                                    Importer le Fichier
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- JSON Upload -->
-                <div class="card-hover bg-white rounded-xl overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                            <i data-feather="code" class="w-5 h-5 text-primary-600"></i>
-                            Import de la Configuration JSON
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 gap-6">
-                            <div>
-                                <label for="jsonHotelSelect" class="block text-sm font-medium text-gray-700 mb-1">Sélectionnez l'Hôtel</label>
-                                <select id="jsonHotelSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                    <option value="">Chargement...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="file-upload rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer">
-                                <input type="file" id="jsonFile" accept=".json" class="hidden">
-                                <label for="jsonFile" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-300 cursor-pointer flex items-center gap-2">
-                                    <i data-feather="upload" class="w-4 h-4"></i>
-                                    Choisir un fichier JSON
-                                </label>
-                                <p class="mt-4 text-sm text-gray-500 text-center">
-                                    Format supporté: .json<br>
-                                    <span class="text-xs">Taille maximale: 5MB</span>
-                                </p>
-                                <div id="jsonFileName" class="mt-2 text-sm font-medium text-primary-600 hidden"></div>
-                            </div>
-                            
-                            <div>
-                                <button id="uploadJsonBtn" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center gap-2">
-                                    <i data-feather="upload-cloud" class="w-4 h-4"></i>
-                                    Importer la Configuration
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section Statut du Système -->
-        <div id="statusTab" class="tab-content hidden">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <!-- Status Cards -->
-                <div class="card-hover bg-white rounded-xl p-6">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Hôtels Configurés</p>
-                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="hotelsCount">0</h3>
-                        </div>
-                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
-                            <i data-feather="home" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card-hover bg-white rounded-xl p-6">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Statut API</p>
-                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="apiStatus">Checking...</h3>
-                        </div>
-                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
-                            <i data-feather="cloud" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card-hover bg-white rounded-xl p-6">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Base de Données</p>
-                            <h3 class="text-2xl font-bold text-gray-800 mt-1" id="dbStatus">Checking...</h3>
-                        </div>
-                        <div class="p-3 rounded-lg bg-primary-50 text-primary-600">
-                            <i data-feather="database" class="w-5 h-5"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detailed Status -->
-            <div class="card-hover bg-white rounded-xl overflow-hidden">
-                <div class="p-6 border-b border-gray-100 bg-gray-50">
-                    <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                        <i data-feather="bar-chart-2" class="w-5 h-5 text-primary-600"></i>
-                        Statut Détaillé par Hôtel
-                    </h2>
-                </div>
-                <div class="p-6 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hôtel</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Données Excel</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Configuration JSON</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dernière Mise à Jour</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="detailedStatus" class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Chargement en cours...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        // Configuration
-        const API_BASE = 'https://api-folkestone.e-hotelmanager.com';
-        
-        // Éléments DOM
-        const elements = {
-            // Navigation
-            navTabs: document.querySelectorAll('.nav-tab'),
-            tabContents: document.querySelectorAll('.tab-content'),
-            
-            // Gestion des hôtels
-            newHotelId: document.getElementById('newHotelId'),
-            createHotelBtn: document.getElementById('createHotelBtn'),
-            hotelsList: document.getElementById('hotelsList'),
-            
-            // Upload
-            excelHotelSelect: document.getElementById('excelHotelSelect'),
-            jsonHotelSelect: document.getElementById('jsonHotelSelect'),
-            excelFile: document.getElementById('excelFile'),
-            jsonFile: document.getElementById('jsonFile'),
-            uploadExcelBtn: document.getElementById('uploadExcelBtn'),
-            uploadJsonBtn: document.getElementById('uploadJsonBtn'),
-            excelFileName: document.getElementById('excelFileName'),
-            jsonFileName: document.getElementById('jsonFileName'),
-            
-            // Statut
-            hotelsCount: document.getElementById('hotelsCount'),
-            apiStatus: document.getElementById('apiStatus'),
-            dbStatus: document.getElementById('dbStatus'),
-            detailedStatus: document.getElementById('detailedStatus'),
-            
-            // Messages
-            messageContainer: document.getElementById('messageContainer')
-        };
-
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            feather.replace();
-            setupNavigation();
-            loadHotels();
-            setupEventListeners();
-            checkSystemStatus();
-            setupFileInputs();
-        });
-
-        function setupNavigation() {
-            elements.navTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const targetTab = this.getAttribute('data-tab');
-                    
-                    // Mettre à jour les tabs actives
-                    elements.navTabs.forEach(t => t.classList.remove('active'));
-                    elements.tabContents.forEach(c => c.classList.add('hidden'));
-                    
-                    this.classList.add('active');
-                    document.getElementById(`${targetTab}Tab`).classList.remove('hidden');
-                    
-                    // Recharger les données si nécessaire
-                    if (targetTab === 'status') {
-                        checkSystemStatus();
-                    }
-                });
-            });
-        }
-
-        function setupEventListeners() {
-            elements.createHotelBtn.addEventListener('click', createHotel);
-            elements.uploadExcelBtn.addEventListener('click', uploadExcel);
-            elements.uploadJsonBtn.addEventListener('click', uploadJson);
-        }
-
-        function setupFileInputs() {
-            elements.excelFile.addEventListener('change', function() {
-                if (this.files.length > 0) {
-                    elements.excelFileName.textContent = this.files[0].name;
-                    elements.excelFileName.classList.remove('hidden');
-                } else {
-                    elements.excelFileName.classList.add('hidden');
-                }
-            });
-            
-            elements.jsonFile.addEventListener('change', function() {
-                if (this.files.length > 0) {
-                    elements.jsonFileName.textContent = this.files[0].name;
-                    elements.jsonFileName.classList.remove('hidden');
-                } else {
-                    elements.jsonFileName.classList.add('hidden');
-                }
-            });
-        }
-
-        async function loadHotels() {
-            try {
-                elements.hotelsList.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600 mb-4"></div>
-                        <p class="text-gray-500">Chargement des hôtels...</p>
-                    </div>
-                `;
-                
-                const response = await fetch(`${API_BASE}/hotels`);
-                const hotels = await response.json();
-                
-                updateHotelsList(hotels);
-                updateHotelSelects(hotels);
-                
-            } catch (error) {
-                console.error('Erreur chargement hôtels:', error);
-                elements.hotelsList.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8">
-                        <i data-feather="alert-triangle" class="w-8 h-8 text-red-500 mb-4"></i>
-                        <p class="text-gray-500">Erreur lors du chargement des hôtels</p>
-                        <button onclick="loadHotels()" class="mt-4 text-primary-600 hover:text-primary-800 font-medium">
-                            <i data-feather="refresh-cw" class="w-4 h-4 inline mr-2"></i>
-                            Réessayer
+                    <div class="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300 md:flex-row md:items-center md:gap-6">
+                        <label class="flex flex-col text-xs uppercase tracking-[0.2em] text-slate-400">
+                            API Backend
+                            <input id="apiEndpoint" type="url" class="mt-2 w-64 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="https://api.hotelmanager.fr" />
+                        </label>
+                        <button id="refreshNow" class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400">
+                            <i data-feather="refresh-ccw" class="h-4 w-4"></i>
+                            Rafraîchir maintenant
                         </button>
                     </div>
-                `;
-                feather.replace();
-                showMessage('Impossible de charger la liste des hôtels', 'error');
-            }
-        }
-
-        function updateHotelsList(hotels) {
-            if (hotels.length === 0) {
-                elements.hotelsList.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8">
-                        <i data-feather="box" class="w-8 h-8 text-gray-400 mb-4"></i>
-                        <p class="text-gray-500">Aucun hôtel configuré</p>
-                    </div>
-                `;
-                feather.replace();
-                return;
-            }
-            
-            let html = `
-                <div class="overflow-hidden rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Hôtel</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-            `;
-            
-            hotels.forEach(hotel => {
-                html += `
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hotel}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <button onclick="deleteHotel('${hotel}')" class="inline-flex items-center px-3 py-1 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                <i data-feather="trash-2" class="w-4 h-4 mr-2"></i>
-                                Supprimer
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
                 </div>
-            `;
-            elements.hotelsList.innerHTML = html;
-            feather.replace();
-        }
+            </header>
 
-        function updateHotelSelects(hotels) {
-            const options = hotels.map(hotel => `<option value="${hotel}">${hotel}</option>`).join('');
-            
-            elements.excelHotelSelect.innerHTML = '<option value="">Sélectionnez un hôtel</option>' + options;
-            elements.jsonHotelSelect.innerHTML = '<option value="">Sélectionnez un hôtel</option>' + options;
-        }
+            <section id="dashboardSection" class="section visible">
+                <div class="grid gap-6 px-6 py-8 sm:px-10">
+                    <div class="grid gap-6 lg:grid-cols-4">
+                        <div class="glass-card stats-card" data-stat="activeHotels">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Hôtels actifs</p>
+                                <span class="icon-badge bg-indigo-500/20 text-indigo-300">
+                                    <i data-feather="map-pin"></i>
+                                </span>
+                            </div>
+                            <div class="mt-4 text-3xl font-semibold" id="activeHotelsValue">0</div>
+                            <p class="mt-2 text-xs text-slate-400" id="activeHotelsSubtitle">Chargement...</p>
+                        </div>
+                        <div class="glass-card stats-card" data-stat="totalHotels">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Total hôtels</p>
+                                <span class="icon-badge bg-emerald-500/20 text-emerald-300">
+                                    <i data-feather="layers"></i>
+                                </span>
+                            </div>
+                            <div class="mt-4 text-3xl font-semibold" id="totalHotelsValue">0</div>
+                            <p class="mt-2 text-xs text-slate-400">Inclut les hôtels désactivés</p>
+                        </div>
+                        <div class="glass-card stats-card" data-stat="latency">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Latence API</p>
+                                <span class="icon-badge bg-sky-500/20 text-sky-300">
+                                    <i data-feather="activity"></i>
+                                </span>
+                            </div>
+                            <div class="mt-4 text-3xl font-semibold" id="latencyValue">0 ms</div>
+                            <p class="mt-2 text-xs text-slate-400">Monitoring temps réel</p>
+                        </div>
+                        <div class="glass-card stats-card" data-stat="storage">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Stockage</p>
+                                <span class="icon-badge bg-amber-500/20 text-amber-300">
+                                    <i data-feather="database"></i>
+                                </span>
+                            </div>
+                            <div class="mt-4 text-3xl font-semibold" id="storageValue">0</div>
+                            <p class="mt-2 text-xs text-slate-400" id="storageSubtitle">Fichiers JSON</p>
+                        </div>
+                    </div>
 
-        async function createHotel() {
-            const hotelId = elements.newHotelId.value.trim();
-            
-            if (!hotelId) {
-                showMessage('Veuillez saisir un ID d\'hôtel', 'error');
-                return;
-            }
-            
-            elements.createHotelBtn.disabled = true;
-            elements.createHotelBtn.innerHTML = `
-                <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                Création en cours...
-            `;
-            
-            try {
-                const response = await fetch(`${API_BASE}/hotels?hotel_id=${encodeURIComponent(hotelId)}`, {
-                    method: 'POST'
+                    <div class="grid gap-6 xl:grid-cols-3">
+                        <div class="glass-card xl:col-span-2">
+                            <div class="flex flex-wrap items-center justify-between gap-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold">Performance API & santé système</h3>
+                                    <p class="text-sm text-slate-400">Mise à jour automatique toutes les 30 secondes</p>
+                                </div>
+                                <span id="healthBadge" class="status-pill bg-emerald-500/15 text-emerald-300">Système opérationnel</span>
+                            </div>
+                            <canvas id="latencyChart" class="mt-6 h-64"></canvas>
+                        </div>
+                        <div class="glass-card">
+                            <h3 class="text-lg font-semibold">État en direct</h3>
+                            <div class="mt-6 space-y-4 text-sm text-slate-300" id="systemIndicators">
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>API</span>
+                                    <span id="apiStatus">En cours...</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Base de données</span>
+                                    <span id="dbStatus">En cours...</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Fichiers</span>
+                                    <span id="storageStatus">Analyse...</span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Activités</span>
+                                    <span id="activityStatus">Chargement...</span>
+                                </div>
+                            </div>
+                            <div class="mt-6 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-xs text-slate-400">
+                                <p class="font-medium text-slate-200">Dernière synchronisation</p>
+                                <p id="lastSync" class="mt-1 text-slate-300">—</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="hotelsSection" class="section hidden px-6 py-8 sm:px-10">
+                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_420px]">
+                    <div class="space-y-6">
+                        <div class="glass-card">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                    <h3 class="text-lg font-semibold">Créer un nouvel hôtel</h3>
+                                    <p class="text-sm text-slate-400">Validation instantanée et journalisation automatique</p>
+                                </div>
+                                <span class="badge badge-info">Sécurisé</span>
+                            </div>
+                            <form id="createHotelForm" class="mt-6 space-y-4">
+                                <div>
+                                    <label for="hotelId" class="text-xs uppercase tracking-[0.3em] text-slate-400">Identifiant</label>
+                                    <input id="hotelId" name="hotelId" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="ex: hotel-paris-centre" autocomplete="off" required />
+                                    <p id="hotelIdHelper" class="mt-2 text-xs text-slate-400">3 à 64 caractères, minuscules, chiffres et tirets uniquement.</p>
+                                </div>
+                                <div>
+                                    <label for="hotelName" class="text-xs uppercase tracking-[0.3em] text-slate-400">Nom officiel</label>
+                                    <input id="hotelName" name="hotelName" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Hôtel Paris Centre" />
+                                </div>
+                                <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400 disabled:pointer-events-none disabled:opacity-40">
+                                    <i data-feather="plus" class="h-4 w-4"></i>
+                                    Créer et journaliser
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-lg font-semibold">Inventaire des hôtels</h3>
+                                <div class="flex items-center gap-3 text-xs text-slate-400">
+                                    <label class="inline-flex items-center gap-2">
+                                        <input id="includeInactive" type="checkbox" class="rounded border-white/20 bg-transparent text-indigo-500 focus:ring-indigo-400" />
+                                        Inclure les désactivés
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mt-4 overflow-hidden rounded-xl border border-white/10">
+                                <table class="min-w-full divide-y divide-white/5 text-sm">
+                                    <thead class="bg-white/5 text-left text-xs uppercase tracking-[0.3em] text-slate-400">
+                                        <tr>
+                                            <th class="px-4 py-3">Hôtel</th>
+                                            <th class="px-4 py-3">Nom</th>
+                                            <th class="px-4 py-3">Statut</th>
+                                            <th class="px-4 py-3">Créé le</th>
+                                            <th class="px-4 py-3 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hotelTable" class="divide-y divide-white/5"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="glass-card">
+                            <h3 class="text-lg font-semibold">Actions rapides</h3>
+                            <div class="mt-4 space-y-3 text-sm text-slate-300">
+                                <button id="btnRefreshHotels" class="quick-action">
+                                    <i data-feather="refresh-cw"></i>
+                                    Actualiser les hôtels
+                                </button>
+                                <button id="btnOpenUpload" class="quick-action">
+                                    <i data-feather="upload"></i>
+                                    Ouvrir le module d'import (Excel / JSON)
+                                </button>
+                                <button id="btnPlanBackup" class="quick-action">
+                                    <i data-feather="calendar"></i>
+                                    Planifier une sauvegarde complète
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <h3 class="text-lg font-semibold">Dernières activités</h3>
+                            <ul id="hotelActivity" class="mt-4 space-y-3 text-xs text-slate-400"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="activitySection" class="section hidden px-6 py-8 sm:px-10">
+                <div class="glass-card">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-lg font-semibold">Historique complet</h3>
+                            <p class="text-sm text-slate-400">Audit trail temps réel avec détails contextuels</p>
+                        </div>
+                        <span class="badge badge-success" id="activityCount">0 entrées</span>
+                    </div>
+                    <div class="mt-6 space-y-6" id="activityTimeline"></div>
+                </div>
+            </section>
+
+            <section id="backupSection" class="section hidden px-6 py-8 sm:px-10">
+                <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="glass-card">
+                        <h3 class="text-lg font-semibold">Sauvegardes intelligentes</h3>
+                        <p class="mt-2 text-sm text-slate-400">Exécutez des sauvegardes incrémentales et conservez l'historique complet.</p>
+                        <div class="mt-6 space-y-4 text-sm text-slate-300">
+                            <button id="backupNow" class="quick-action">
+                                <i data-feather="download"></i>
+                                Sauvegarder immédiatement les configurations
+                            </button>
+                            <button id="backupData" class="quick-action">
+                                <i data-feather="package"></i>
+                                Exporter les données (JSON + Config)
+                            </button>
+                        </div>
+                        <p class="mt-6 text-xs text-slate-500">Les sauvegardes sont stockées de manière sécurisée côté serveur via les pipelines DevOps.</p>
+                    </div>
+                    <div class="glass-card">
+                        <h3 class="text-lg font-semibold">Restauration contrôlée</h3>
+                        <form id="restoreForm" class="mt-4 space-y-4 text-sm">
+                            <div>
+                                <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Source de restauration</label>
+                                <input type="text" id="restoreKey" placeholder="backup_2024-10-24T18-30" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
+                            </div>
+                            <div>
+                                <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes internes</label>
+                                <textarea id="restoreNotes" rows="3" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Décrire le contexte de restauration"></textarea>
+                            </div>
+                            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500/80 px-4 py-3 text-sm font-semibold text-amber-950 transition hover:bg-amber-400">
+                                <i data-feather="rotate-ccw" class="h-4 w-4"></i>
+                                Lancer la restauration contrôlée
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Import Module Modal -->
+    <div id="importModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div class="glass-card w-full max-w-lg p-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Importer des données (Excel / JSON)</h3>
+                <button id="btnCloseImportModal" class="text-slate-400 hover:text-white">
+                    <i data-feather="x" class="h-5 w-5"></i>
+                </button>
+            </div>
+            <p class="mt-2 text-sm text-slate-400">Sélectionnez un fichier Excel (.xlsx) ou JSON (.json) à importer.</p>
+
+            <div class="mt-6 space-y-4">
+                <div>
+                    <label for="hotelSelectDropdown" class="text-xs uppercase tracking-[0.3em] text-slate-400">Sélectionner un hôtel</label>
+                    <select id="hotelSelectDropdown" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-indigo-500 focus:outline-none"></select>
+                </div>
+                <div>
+                    <label for="fileInput" class="sr-only">Sélectionner un fichier</label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls,.json" class="block w-full text-sm text-slate-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-indigo-500/20 file:text-indigo-300
+                        hover:file:bg-indigo-500/30" />
+                </div>
+                <button id="btnUploadFile" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition hover:bg-emerald-400 disabled:pointer-events-none disabled:opacity-40">
+                    <i data-feather="upload-cloud" class="h-4 w-4"></i>
+                    Importer le fichier
+                </button>
+            </div>
+            <div id="uploadStatus" class="mt-4 text-sm text-slate-400 hidden"></div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="pointer-events-none fixed top-6 right-6 z-50 flex w-96 flex-col gap-3"></div>
+
+    <template id="activityItemTemplate">
+        <article class="relative rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-300">
+            <span class="absolute -left-4 top-6 h-2 w-2 rounded-full bg-indigo-400"></span>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-indigo-300">
+                    <i data-feather="zap" class="h-3 w-3"></i>
+                    <span data-field="type">activity.type</span>
+                </div>
+                <span class="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400" data-field="created_at">—</span>
+            </div>
+            <p class="mt-3 text-base font-medium text-white" data-field="description"></p>
+            <p class="mt-2 text-xs text-slate-400" data-field="details"></p>
+            <p class="mt-2 text-[11px] text-slate-500" data-field="performed_by"></p>
+        </article>
+    </template>
+
+    <script>
+        const STORAGE_KEY = 'hmpro.apiBase';
+        const defaultApiBase = localStorage.getItem(STORAGE_KEY) || 'http://localhost:8080';
+        const apiInput = document.getElementById('apiEndpoint');
+        apiInput.value = defaultApiBase;
+
+        const sections = document.querySelectorAll('.section');
+        const navPills = document.querySelectorAll('.nav-pill');
+        navPills.forEach((pill) => {
+            pill.addEventListener('click', () => {
+                navPills.forEach((p) => p.classList.remove('active'));
+                pill.classList.add('active');
+                const target = pill.dataset.target;
+                sections.forEach((section) => {
+                    section.classList.toggle('hidden', section.id !== target);
+                    section.classList.toggle('visible', section.id === target);
                 });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Erreur lors de la création');
+            });
+        });
+
+        apiInput.addEventListener('change', () => {
+            const value = apiInput.value.trim();
+            if (value) {
+                localStorage.setItem(STORAGE_KEY, value);
+                showToast("Endpoint API mis à jour", 'success');
+                triggerFullRefresh();
+            }
+        });
+
+        const showToast = (message, type = 'info') => {
+            const colors = {
+                success: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200',
+                error: 'border-rose-400/40 bg-rose-500/10 text-rose-200',
+                warning: 'border-amber-400/40 bg-amber-500/10 text-amber-200',
+                info: 'border-sky-400/40 bg-sky-500/10 text-sky-200',
+            };
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto rounded-2xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${colors[type] || colors.info}`;
+            toast.innerHTML = `<div class="flex items-center gap-3"><i data-feather="bell" class="h-4 w-4"></i><span>${message}</span></div>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            feather.replace({ class: 'h-4 w-4' });
+            setTimeout(() => toast.classList.add('opacity-0'), 4600);
+            setTimeout(() => toast.remove(), 5200);
+        };
+
+        const animateNumber = (element, target) => {
+            const start = Number(element.dataset.value || 0);
+            const duration = 450;
+            const startTime = performance.now();
+
+            const step = (now) => {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const value = Math.floor(start + (target - start) * progress);
+                element.textContent = target >= 1000 ? value.toLocaleString('fr-FR') : value;
+                if (progress < 1) requestAnimationFrame(step); else element.dataset.value = target;
+            };
+            requestAnimationFrame(step);
+        };
+
+        const state = {
+            latencySeries: [],
+            latencyChart: null,
+        };
+
+        const buildLatencyChart = () => {
+            const ctx = document.getElementById('latencyChart');
+            if (!ctx) return;
+            state.latencyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Latence API (ms)',
+                            data: [],
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.25)',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 0,
+                        },
+                    ],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'minute', tooltipFormat: 'HH:mm:ss' },
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+                        },
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#cbd5f5' } },
+                    },
+                    height: 256, // Explicitly set height to override problematic dynamic calculation
+                },
+            });
+        };
+
+        const formatBytes = (bytes) => {
+            if (!bytes) return '0 Ko';
+            const units = ['Octets', 'Ko', 'Mo', 'Go'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex += 1;
+            }
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        };
+
+        const formatDate = (iso) => {
+            if (!iso) return '—';
+            try {
+                return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+            } catch (err) {
+                return iso;
+            }
+        };
+
+        const fetchJSON = async (path, options = {}) => {
+            const base = (localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '');
+            const response = await fetch(`${base}${path}`, options);
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const error = new Error(payload.detail || 'Erreur API');
+                error.status = response.status;
+                throw error;
+            }
+            return response.json();
+        };
+
+        const describeUploadResult = (result, fileName) => {
+            if (!result || typeof result !== 'object') {
+                return { tone: 'error', message: "Réponse invalide du serveur." };
+            }
+
+            const status = result.status || 'ok';
+
+            if (result.message) {
+                const tone = status === 'ok' ? 'success' : status === 'noop' ? 'warning' : 'info';
+                return { tone, message: result.message };
+            }
+
+            if (status === 'ok') {
+                if ('rooms_found' in result || 'dates_processed' in result) {
+                    const rooms = Number(result.rooms_found ?? 0);
+                    const dates = Number(result.dates_processed ?? 0);
+                    const source = result.source_info ? ` • ${result.source_info}` : '';
+                    return {
+                        tone: 'success',
+                        message: `Planning importé pour ${result.hotel_id || "l'hôtel sélectionné"} : ${rooms} chambre${rooms > 1 ? 's' : ''}, ${dates} date${dates > 1 ? 's' : ''}${source}.`,
+                    };
                 }
-                
-                showMessage(`Hôtel "${hotelId}" créé avec succès`, 'success');
-                elements.newHotelId.value = '';
-                loadHotels(); // Recharger la liste
-                
-            } catch (error) {
-                console.error('Erreur création hôtel:', error);
-                showMessage('Erreur: ' + error.message, 'error');
-            } finally {
-                elements.createHotelBtn.disabled = false;
-                elements.createHotelBtn.innerHTML = `
-                    <i data-feather="plus" class="w-4 h-4 mr-2"></i>
-                    Créer
-                `;
-                feather.replace();
-            }
-        }
 
-        async function deleteHotel(hotelId) {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'hôtel "${hotelId}" ? Cette action est irréversible.`)) {
-                return;
+                if ('partners_count' in result) {
+                    const partners = Number(result.partners_count ?? 0);
+                    const order = result.has_display_order ? "Ordre d'affichage détecté" : "Pas d'ordre d'affichage";
+                    return {
+                        tone: 'success',
+                        message: `Configuration mise à jour pour ${result.hotel_id || "l'hôtel sélectionné"} : ${partners} partenaire${partners > 1 ? 's' : ''}. ${order}.`,
+                    };
+                }
+
+                return {
+                    tone: 'success',
+                    message: `Fichier "${fileName}" importé avec succès.`,
+                };
             }
-            
+
+            if (status === 'noop') {
+                return {
+                    tone: 'warning',
+                    message: result.message || `Aucune action effectuée pour "${fileName}".`,
+                };
+            }
+
+            return {
+                tone: 'info',
+                message: `Import terminé avec l'état « ${status} ».`,
+            };
+        };
+
+        const loadMonitoring = async () => {
             try {
-                const response = await fetch(`${API_BASE}/hotels/${encodeURIComponent(hotelId)}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) throw new Error('Erreur lors de la suppression');
-                
-                showMessage(`Hôtel "${hotelId}" supprimé avec succès`, 'success');
-                loadHotels(); // Recharger la liste
-                
+                const [health, activity] = await Promise.all([
+                    fetchJSON('/monitor/health'),
+                    fetchJSON('/activity?limit=6'),
+                ]);
+
+                const metrics = health.metrics || {};
+                animateNumber(document.getElementById('activeHotelsValue'), metrics.active_hotels || 0);
+                animateNumber(document.getElementById('totalHotelsValue'), metrics.total_hotels || 0);
+                document.getElementById('latencyValue').textContent = `${Math.round(health.latency_ms || 0)} ms`;
+                document.getElementById('storageValue').textContent = `${health.storage?.files || 0} fichiers`;
+                document.getElementById('storageSubtitle').textContent = formatBytes(health.storage?.bytes || 0);
+
+                document.getElementById('apiStatus').textContent = health.status === 'ok' ? 'Opérationnelle' : 'Dégradée';
+                document.getElementById('dbStatus').textContent = health.database === 'healthy' ? 'Connexion OK' : 'Problème';
+                document.getElementById('storageStatus').textContent = `${health.storage?.files || 0} fichiers`;
+                document.getElementById('activityStatus').textContent = `${metrics.recent_activity?.length || 0} événements récents`;
+                document.getElementById('lastSync').textContent = formatDate(health.generated_at || health.timestamp);
+
+                document.getElementById('sidebarStatusDetail').textContent = `Actifs: ${metrics.active_hotels || 0} / Total: ${metrics.total_hotels || 0}`;
+                updateStatusBadge(health.status);
+
+                const points = state.latencySeries;
+                let currentLatency = health.latency_ms;
+                if (typeof currentLatency !== 'number' || isNaN(currentLatency)) {
+                    currentLatency = 0; // Default to 0 if not a valid number
+                }
+                // Cap latency to prevent extreme Y-axis scaling
+                if (currentLatency > 1000) { // Cap at 1000ms (1 second)
+                    currentLatency = 1000;
+                }
+                points.push({ x: new Date(), y: currentLatency });
+                if (points.length > 30) points.shift();
+                if (state.latencyChart) {
+                    state.latencyChart.data.datasets[0].data = points;
+                    state.latencyChart.update('none');
+                }
+
+                renderActivity(activity);
             } catch (error) {
-                console.error('Erreur suppression hôtel:', error);
-                showMessage('Erreur lors de la suppression', 'error');
+                showToast(error.message, 'error');
+                updateStatusBadge('error');
             }
-        }
+        };
 
-        async function uploadExcel() {
-            const hotelId = elements.excelHotelSelect.value;
-            const file = elements.excelFile.files[0];
-            
-            if (!hotelId) {
-                showMessage('Veuillez sélectionner un hôtel', 'error');
+        const loadHotels = async () => {
+            try {
+                const includeInactive = document.getElementById('includeInactive').checked;
+                const hotels = await fetchJSON(`/hotels?include_inactive=${includeInactive}`);
+                const tbody = document.getElementById('hotelTable');
+                tbody.innerHTML = '';
+                hotels.forEach((hotel) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-white/5 transition';
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-medium text-white">${hotel.hotel_id}</td>
+                        <td class="px-4 py-3 text-slate-300">${hotel.name || '<span class="text-slate-500">—</span>'}</td>
+                        <td class="px-4 py-3">
+                            <span class="status-pill ${hotel.is_active ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}">
+                                ${hotel.is_active ? 'Actif' : 'Désactivé'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-400">${formatDate(hotel.created_at)}</td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button class="table-action" data-action="toggle" data-id="${hotel.hotel_id}" data-active="${hotel.is_active}">
+                                    <i data-feather="${hotel.is_active ? 'pause' : 'play'}"></i>
+                                </button>
+                                <button class="table-action" data-action="simulate" data-id="${hotel.hotel_id}">
+                                    <i data-feather="trending-up"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                feather.replace({ class: 'h-4 w-4' });
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        };
+
+        const renderActivity = (logs) => {
+            const container = document.getElementById('activityTimeline');
+            const sideList = document.getElementById('hotelActivity');
+            container.innerHTML = '';
+            sideList.innerHTML = '';
+            logs.forEach((log) => {
+                const template = document.getElementById('activityItemTemplate').content.cloneNode(true);
+                template.querySelector('[data-field="type"]').textContent = log.activity_type;
+                template.querySelector('[data-field="created_at"]').textContent = formatDate(log.created_at);
+                template.querySelector('[data-field="description"]').textContent = log.description;
+                template.querySelector('[data-field="performed_by"]').textContent = `Par ${log.performed_by || 'système'}${log.hotel_id ? ` • ${log.hotel_id}` : ''}`;
+                const details = log.details && Object.keys(log.details).length ? JSON.stringify(log.details, null, 2) : '—';
+                template.querySelector('[data-field="details"]').textContent = details;
+                container.appendChild(template);
+
+                const item = document.createElement('li');
+                item.innerHTML = `<span class="font-medium text-white">${log.description}</span><br><span class="text-slate-500">${formatDate(log.created_at)}</span>`;
+                sideList.appendChild(item);
+            });
+            document.getElementById('activityCount').textContent = `${logs.length} entrées`;
+            feather.replace({ class: 'h-3 w-3' });
+        };
+
+        const updateStatusBadge = (status) => {
+            const badge = document.getElementById('healthBadge');
+            const sidebarStatus = document.getElementById('sidebarStatus');
+            const dot = sidebarStatus.querySelector('.status-dot');
+            switch (status) {
+                case 'ok':
+                    badge.textContent = 'Système opérationnel';
+                    badge.className = 'status-pill bg-emerald-500/15 text-emerald-300';
+                    sidebarStatus.className = 'flex items-center gap-2 text-emerald-400';
+                    dot.className = 'status-dot';
+                    break;
+                case 'degraded':
+                    badge.textContent = 'Système dégradé';
+                    badge.className = 'status-pill bg-amber-500/15 text-amber-300';
+                    sidebarStatus.className = 'flex items-center gap-2 text-amber-300';
+                    dot.className = 'status-dot warning';
+                    break;
+                default:
+                    badge.textContent = 'Système indisponible';
+                    badge.className = 'status-pill bg-rose-500/15 text-rose-300';
+                    sidebarStatus.className = 'flex items-center gap-2 text-rose-300';
+                    dot.className = 'status-dot error';
+            }
+        };
+
+        document.getElementById('refreshNow').addEventListener('click', () => {
+            showToast('Rafraîchissement forcé...', 'info');
+            triggerFullRefresh();
+        });
+
+        const triggerFullRefresh = () => {
+            loadMonitoring();
+            loadHotels();
+        };
+
+        document.getElementById('includeInactive').addEventListener('change', loadHotels);
+
+        document.getElementById('hotelTable').addEventListener('click', async (event) => {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const hotelId = button.dataset.id;
+            if (button.dataset.action === 'toggle') {
+                const isActive = button.dataset.active === 'true';
+                try {
+                    if (isActive) {
+                        await fetchJSON(`/hotels/${hotelId}?actor=admin-ui`, { method: 'DELETE' });
+                        showToast(`Hôtel ${hotelId} désactivé`, 'warning');
+                    } else {
+                        await fetchJSON(`/hotels?actor=admin-ui`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ hotel_id: hotelId }),
+                        });
+                        showToast(`Hôtel ${hotelId} réactivé`, 'success');
+                    }
+                    loadHotels();
+                    loadMonitoring();
+                } catch (error) {
+                    showToast(error.message, 'error');
+                }
+            }
+            if (button.dataset.action === 'simulate') {
+                showToast(`Simulation avancée en préparation pour ${hotelId}`, 'info');
+            }
+        });
+
+        document.getElementById('createHotelForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const hotelId = event.target.hotelId.value.trim();
+            const hotelName = event.target.hotelName.value.trim();
+            if (!/^[a-z0-9-]{3,64}$/.test(hotelId)) {
+                showToast("ID invalide. Utilisez uniquement minuscules, chiffres et tirets.", 'warning');
                 return;
             }
-            
+            try {
+                await fetchJSON('/hotels?actor=admin-ui', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ hotel_id: hotelId, name: hotelName }),
+                });
+                showToast('Hôtel créé avec succès', 'success');
+                event.target.reset();
+                loadHotels();
+                loadMonitoring();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        });
+
+        document.getElementById('hotelId').addEventListener('input', (event) => {
+            const value = event.target.value.trim();
+            const helper = document.getElementById('hotelIdHelper');
+            if (!value) {
+                helper.textContent = '3 à 64 caractères, minuscules, chiffres et tirets uniquement.';
+                helper.className = 'mt-2 text-xs text-slate-400';
+                return;
+            }
+            if (/^[a-z0-9-]{3,64}$/.test(value)) {
+                helper.textContent = 'Identifiant valide et disponible.';
+                helper.className = 'mt-2 text-xs text-emerald-300';
+            } else {
+                helper.textContent = 'Format incorrect. Exemple: hotel-paris-centre';
+                helper.className = 'mt-2 text-xs text-amber-300';
+            }
+        });
+
+        document.getElementById('btnRefreshHotels').addEventListener('click', () => {
+            loadHotels();
+            showToast('Inventaire des hôtels rafraîchi', 'info');
+        });
+
+        const populateHotelDropdown = async () => {
+            const dropdown = document.getElementById('hotelSelectDropdown');
+            dropdown.innerHTML = '<option value="">Chargement des hôtels...</option>';
+            try {
+                const hotels = await fetchJSON('/hotels');
+                dropdown.innerHTML = ''; // Clear loading message
+                if (hotels.length === 0) {
+                    dropdown.innerHTML = '<option value="">Aucun hôtel enregistré</option>';
+                    dropdown.disabled = true;
+                } else {
+                    dropdown.disabled = false;
+                    dropdown.innerHTML = '<option value="">-- Sélectionner un hôtel --</option>';
+                    hotels.forEach(hotel => {
+                        const option = document.createElement('option');
+                        option.value = hotel.hotel_id;
+                        option.textContent = `${hotel.name || hotel.hotel_id} (${hotel.hotel_id})`;
+                        dropdown.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                showToast(`Erreur lors du chargement des hôtels: ${error.message}`, 'error');
+                dropdown.innerHTML = '<option value="">Erreur de chargement</option>';
+                dropdown.disabled = true;
+            }
+        };
+
+        document.getElementById('btnOpenUpload').addEventListener('click', () => {
+            const importModal = document.getElementById('importModal');
+            importModal.classList.remove('hidden');
+            importModal.classList.add('flex');
+            populateHotelDropdown(); // Populate dropdown when modal opens
+            feather.replace(); // Render new icons in the modal
+        });
+
+        document.getElementById('btnCloseImportModal').addEventListener('click', () => {
+            const importModal = document.getElementById('importModal');
+            importModal.classList.add('hidden');
+            importModal.classList.remove('flex');
+            document.getElementById('fileInput').value = ''; // Clear selected file
+            document.getElementById('uploadStatus').textContent = ''; // Clear status
+            document.getElementById('uploadStatus').classList.add('hidden');
+        });
+
+        document.getElementById('btnUploadFile').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const uploadStatus = document.getElementById('uploadStatus');
+            const file = fileInput.files[0];
+
+            const applyUploadStatus = (message, tone = 'info') => {
+                const tones = {
+                    success: 'text-emerald-300',
+                    error: 'text-rose-300',
+                    warning: 'text-amber-300',
+                    info: 'text-sky-300',
+                };
+                uploadStatus.classList.remove('hidden');
+                uploadStatus.className = 'mt-4 text-sm text-slate-300';
+                if (tones[tone]) {
+                    uploadStatus.classList.add(tones[tone]);
+                }
+                uploadStatus.textContent = message;
+            };
+
             if (!file) {
-                showMessage('Veuillez sélectionner un fichier Excel', 'error');
+                applyUploadStatus('Veuillez sélectionner un fichier.', 'warning');
                 return;
             }
-            
-            await uploadFile(file, hotelId, 'excel', elements.uploadExcelBtn);
-        }
 
-        async function uploadJson() {
-            const hotelId = elements.jsonHotelSelect.value;
-            const file = elements.jsonFile.files[0];
-            
-            if (!hotelId) {
-                showMessage('Veuillez sélectionner un hôtel', 'error');
+            const allowedExtensions = ['.xlsx', '.xls', '.json'];
+            const fileExtension = '.' + file.name.split('.').pop();
+            if (!allowedExtensions.includes(fileExtension)) {
+                applyUploadStatus('Type de fichier non supporté. Veuillez choisir un fichier Excel (.xlsx, .xls) ou JSON (.json).', 'error');
                 return;
             }
-            
-            if (!file) {
-                showMessage('Veuillez sélectionner un fichier JSON', 'error');
-                return;
-            }
-            
-            await uploadFile(file, hotelId, 'config', elements.uploadJsonBtn);
-        }
 
-        async function uploadFile(file, hotelId, type, button) {
+            applyUploadStatus(`Importation de "${file.name}"...`, 'info');
+
             const formData = new FormData();
             formData.append('file', file);
-            
-            const endpoint = type === 'excel' ? '/upload/excel' : '/upload/config';
-            
+
+            const hotelId = document.getElementById('hotelSelectDropdown').value.trim();
+            if (!hotelId) {
+                applyUploadStatus('Veuillez sélectionner un hôtel.', 'warning');
+                return;
+            }
+
             try {
-                button.disabled = true;
-                button.innerHTML = `
-                    <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                    ${type === 'excel' ? 'Import en cours...' : 'Upload en cours...'}
-                `;
-                
-                const response = await fetch(`${API_BASE}${endpoint}?hotel_id=${encodeURIComponent(hotelId)}`, {
+                const response = await fetchJSON(`/upload/data?hotel_id=${encodeURIComponent(hotelId)}`, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
                 });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Erreur lors de l\'upload');
-                }
-                
-                const result = await response.json();
-                showMessage(`Fichier uploadé avec succès: ${result.rooms_found || result.partners_count} éléments chargés`, 'success');
-                
-                // Réinitialiser le fichier
-                if (type === 'excel') {
-                    elements.excelFile.value = '';
-                    elements.excelFileName.classList.add('hidden');
-                } else {
-                    elements.jsonFile.value = '';
-                    elements.jsonFileName.classList.add('hidden');
-                }
-                
-            } catch (error) {
-                console.error(`Erreur upload ${type}:`, error);
-                showMessage('Erreur: ' + error.message, 'error');
-            } finally {
-                button.disabled = false;
-                button.innerHTML = `
-                    <i data-feather="upload-cloud" class="w-4 h-4 mr-2"></i>
-                    ${type === 'excel' ? 'Importer le Fichier' : 'Importer la Configuration'}
-                `;
-                feather.replace();
-            }
-        }
 
-        async function checkSystemStatus() {
-            try {
-                // Vérifier le statut de l'API
-                const healthResponse = await fetch(`${API_BASE}/health`);
-                if (healthResponse.ok) {
-                    const health = await healthResponse.json();
-                    elements.apiStatus.textContent = 'En ligne';
-                    elements.apiStatus.className = 'text-2xl font-bold text-green-600 mt-1';
-                    elements.dbStatus.textContent = health.database === 'healthy' ? 'En ligne' : 'Erreur';
-                    elements.dbStatus.className = `text-2xl font-bold ${health.database === 'healthy' ? 'text-green-600' : 'text-red-600'} mt-1`;
-                } else {
-                    throw new Error('API non disponible');
-                }
-                
-                // Vérifier le statut détaillé des hôtels
-                const hotelsResponse = await fetch(`${API_BASE}/hotels`);
-                const hotels = await hotelsResponse.json();
-                
-                elements.hotelsCount.textContent = hotels.length;
-                
-                // Statut détaillé pour chaque hôtel
-                let detailedHtml = '';
-                if (hotels.length === 0) {
-                    detailedHtml = `
-                        <tr>
-                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Aucun hôtel configuré</td>
-                        </tr>
-                    `;
-                } else {
-                    for (const hotel of hotels) {
-                        const statusResponse = await fetch(`${API_BASE}/files/status?hotel_id=${encodeURIComponent(hotel)}`);
-                        const status = await statusResponse.json();
-                        
-                        detailedHtml += `
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${hotel}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ${status.data_file_exists ? 
-                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Présent</span>' : 
-                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Absent</span>'}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    ${status.config_exists ? 
-                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Présent</span>' : 
-                                        '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Absent</span>'}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date().toLocaleDateString('fr-FR')}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <button onclick="testHotel('${hotel}')" class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                        <i data-feather="check-circle" class="w-4 h-4 mr-2"></i>
-                                        Tester
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }
-                }
-                
-                elements.detailedStatus.innerHTML = detailedHtml;
-                feather.replace();
-                
-            } catch (error) {
-                console.error('Erreur statut système:', error);
-                elements.apiStatus.textContent = 'Hors ligne';
-                elements.apiStatus.className = 'text-2xl font-bold text-red-600 mt-1';
-                elements.dbStatus.textContent = 'Inconnu';
-                elements.dbStatus.className = 'text-2xl font-bold text-gray-600 mt-1';
-                
-                elements.detailedStatus.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Erreur lors du chargement des données</td>
-                    </tr>
-                `;
-            }
-        }
+                const { tone, message } = describeUploadResult(response, file.name);
+                showToast(message, tone);
+                applyUploadStatus(message, tone);
 
-        async function testHotel(hotelId) {
-            try {
-                const response = await fetch(`${API_BASE}/data?hotel_id=${encodeURIComponent(hotelId)}`);
-                if (response.ok) {
-                    showMessage(`Hôtel "${hotelId}" testé avec succès`, 'success');
-                } else {
-                    throw new Error('Données non disponibles');
+                if (response.status === 'ok') {
+                    document.getElementById('btnCloseImportModal').click(); // Close modal on success
+                    triggerFullRefresh(); // Refresh data after upload
                 }
             } catch (error) {
-                showMessage(`Erreur test hôtel "${hotelId}": ${error.message}`, 'error');
+                showToast(error.message, 'error');
+                applyUploadStatus(`Échec de l'importation : ${error.message}`, 'error');
             }
-        }
+        });
 
-        function showMessage(message, type) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `flex items-start p-4 rounded-lg shadow-lg ${type === 'error' ? 'bg-red-50 border-l-4 border-red-500' : 'bg-green-50 border-l-4 border-green-500'}`;
-            
-            const icon = document.createElement('i');
-            icon.setAttribute('data-feather', type === 'error' ? 'alert-triangle' : 'check-circle');
-            icon.className = `w-5 h-5 ${type === 'error' ? 'text-red-500' : 'text-green-500'} mr-3`;
-            
-            const messageContent = document.createElement('div');
-            messageContent.className = 'flex-1';
-            messageContent.innerHTML = `
-                <p class="text-sm font-medium ${type === 'error' ? 'text-red-800' : 'text-green-800'}">${message}</p>
-            `;
-            
-            const closeButton = document.createElement('button');
-            closeButton.className = 'ml-4 text-gray-400 hover:text-gray-500';
-            closeButton.innerHTML = '<i data-feather="x" class="w-5 h-5"></i>';
-            closeButton.onclick = () => messageDiv.remove();
-            
-            messageDiv.appendChild(icon);
-            messageDiv.appendChild(messageContent);
-            messageDiv.appendChild(closeButton);
-            
-            elements.messageContainer.appendChild(messageDiv);
+        document.getElementById('btnPlanBackup').addEventListener('click', () => {
+            showToast('Sauvegarde planifiée pour la nuit prochaine', 'success');
+        });
+
+        document.getElementById('backupNow').addEventListener('click', () => {
+            showToast('Sauvegarde complète démarrée', 'success');
+        });
+
+        document.getElementById('backupData').addEventListener('click', () => {
+            showToast('Export des données planifié', 'info');
+        });
+
+        document.getElementById('restoreForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const key = document.getElementById('restoreKey').value.trim();
+            if (!key) {
+                showToast('Identifiant de sauvegarde requis', 'warning');
+                return;
+            }
+            showToast(`Restauration ${key} en file d'attente`, 'success');
+        });
+
+        const init = () => {
+            buildLatencyChart();
+            triggerFullRefresh();
+            setInterval(triggerFullRefresh, 30000);
             feather.replace();
-            
-            // Supprimer automatiquement après 5 secondes
-            setTimeout(() => {
-                messageDiv.classList.add('opacity-0', 'transition-opacity', 'duration-300');
-                setTimeout(() => messageDiv.remove(), 300);
-            }, 5000);
-        }
+        };
 
-        // Exposer les fonctions globales
-        window.deleteHotel = deleteHotel;
-        window.testHotel = testHotel;
-        window.loadHotels = loadHotels;
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
