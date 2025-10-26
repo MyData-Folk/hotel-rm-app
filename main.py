@@ -3,7 +3,6 @@ import io
 import json
 import re
 import logging
-import zipfile
 import urllib.parse
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
@@ -12,8 +11,7 @@ import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
-from pydantic import BaseModel, Field as PydanticField
-from sqlalchemy import Column, LargeBinary
+from pydantic import BaseModel
 from sqlmodel import SQLModel, Field, create_engine, Session, select, func
 
 # --- 1. CONFIGURATION ---
@@ -183,165 +181,6 @@ def get_system_metrics(session: Session) -> Dict[str, Any]:
         ],
     }
 
-
-async def process_excel_file(session: Session, hotel_id: str, file_content: bytes, filename: str):
-    if not filename.lower().endswith(('.xlsx', '.csv')):
-        raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
-
-    hotel = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
-    if not hotel:
-        raise HTTPException(status_code=404, detail="Hôtel introuvable. Veuillez le créer avant l'upload.")
-    if not hotel.is_active:
-        raise HTTPException(status_code=423, detail="Hôtel désactivé. Réactivez-le avant l'upload.")
-
-    try:
-        logger.info(f"Upload Excel/CSV pour {hotel_id}, taille: {len(file_content)} bytes")
-
-        if filename.lower().endswith('.xlsx'):
-            df = pd.read_excel(io.BytesIO(file_content), header=None)
-        else:
-            df = pd.read_csv(io.BytesIO(file_content), header=None, encoding='utf-8', sep=';')
-
-        parsed = parse_sheet_to_structure(df)
-        out_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
-
-        with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(parsed, f, indent=2, ensure_ascii=False)
-
-        logger.info(f"Données sauvegardées pour {hotel_id}: {len(parsed.get('rooms', {}))} chambres")
-
-        report_label = parsed.get('report_generated_at')
-        report_timestamp = None
-        if report_label:
-            try:
-                parsed_timestamp = pd.to_datetime(report_label, dayfirst=True, errors='coerce')
-                if not pd.isna(parsed_timestamp):
-                    report_timestamp = parsed_timestamp.to_pydatetime()
-            except Exception:
-                report_timestamp = None
-
-        extension = os.path.splitext(filename)[1].lower()
-        content_type_map = {
-            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            '.xls': 'application/vnd.ms-excel',
-            '.csv': 'text/csv',
-        }
-        upload_entry = UploadedFile(
-            hotel_id=hotel_id,
-            filename=filename,
-            content_type=content_type_map.get(extension, 'application/octet-stream'),
-            file_size=len(file_content),
-            report_generated_at=report_timestamp,
-            report_generated_label=report_label,
-            stored_path=out_path,
-            data=file_content,
-        )
-        session.add(upload_entry)
-        session.flush()
-
-        log_activity(
-            session,
-            activity_type="data.uploaded",
-            description=f"Données planning importées pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={
-                "rooms_found": len(parsed.get('rooms', {})),
-                "dates_processed": len(parsed.get('dates_processed', [])),
-                "upload_id": upload_entry.id,
-                "report_generated_at": report_timestamp.isoformat() if report_timestamp else report_label,
-            },
-        )
-        session.commit()
-
-        return {
-            'status': 'ok',
-            'hotel_id': hotel_id,
-            'rooms_found': len(parsed.get('rooms', {})),
-            'dates_processed': len(parsed.get('dates_processed', [])),
-            'source_info': report_label or 'Source inconnue',
-            'upload_id': upload_entry.id,
-            'report_generated_at': report_timestamp.isoformat() if report_timestamp else None,
-        }
-
-    except Exception as e:
-        logger.error(f"Erreur traitement fichier pour {hotel_id}: {str(e)}", exc_info=True)
-        log_activity(
-            session,
-            activity_type="data.upload_failed",
-            description=f"Echec import données pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={"error": str(e)},
-        )
-        session.commit()
-        raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
-
-
-async def process_json_config(session: Session, hotel_id: str, file_content: bytes):
-    try:
-        logger.info(f"Upload config pour {hotel_id}, taille: {len(file_content)} bytes")
-
-        # Validation du contenu JSON
-        try:
-            parsed = json.loads(file_content.decode('utf-8'))
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
-
-        # Validation de la structure
-        if not isinstance(parsed, dict):
-            raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
-
-        # Vérification optionnelle de l'ID d'hôtel
-        file_hotel_id = parsed.get('hotel_id', '').lower().strip()
-        if file_hotel_id and file_hotel_id != hotel_id:
-            logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
-
-        serialized = json.dumps(parsed, ensure_ascii=False, indent=2)
-
-        existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
-        if existing:
-            existing.config_json = serialized
-            existing.updated_at = datetime.utcnow()
-        else:
-            session.add(
-                HotelConfig(
-                    hotel_id=hotel_id,
-                    config_json=serialized,
-                    updated_at=datetime.utcnow(),
-                )
-            )
-        log_activity(
-            session,
-            activity_type="config.uploaded",
-            description=f"Configuration importée pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={"keys": list(parsed.keys())[:10]},
-        )
-        session.commit()
-
-        logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
-
-        return {
-            'status': 'ok',
-            'hotel_id': hotel_id,
-            'partners_count': len(parsed.get('partners', {})),
-            'has_display_order': 'displayOrder' in parsed
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
-        log_activity(
-            session,
-            activity_type="config.upload_failed",
-            description=f"Echec import configuration pour {hotel_id}",
-            hotel_id=hotel_id,
-            details={"error": str(e)},
-        )
-        session.commit()
-        raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
-
 # --- 4. MODÈLES DE DONNÉES ---
 class Hotel(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -367,19 +206,6 @@ class ActivityLog(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
 
 
-class UploadedFile(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    hotel_id: str = Field(index=True)
-    filename: str
-    content_type: Optional[str] = Field(default=None)
-    file_size: int = Field(default=0)
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow, index=True)
-    report_generated_at: Optional[datetime] = Field(default=None, index=True)
-    report_generated_label: Optional[str] = Field(default=None)
-    stored_path: Optional[str] = Field(default=None)
-    data: bytes = Field(sa_column=Column(LargeBinary), default=b"")
-
-
 class HotelCreate(BaseModel):
     hotel_id: str
     name: Optional[str] = None
@@ -401,17 +227,6 @@ class ActivityLogOut(BaseModel):
     performed_by: Optional[str]
     created_at: datetime
 
-
-class UploadedFileOut(BaseModel):
-    id: int
-    hotel_id: str
-    filename: str
-    content_type: Optional[str]
-    file_size: int
-    uploaded_at: datetime
-    report_generated_at: Optional[datetime]
-    report_generated_label: Optional[str]
-
 class SimulateIn(BaseModel):
     hotel_id: str
     room: str
@@ -422,15 +237,15 @@ class SimulateIn(BaseModel):
     apply_commission: bool = True
     apply_partner_discount: bool = True
     promo_discount: float = 0.0
-    performed_by: Optional[str] = PydanticField(default="system")
+    performed_by: Optional[str] = "system"
 
 
 class AvailabilityRequest(BaseModel):
     hotel_id: str
     start_date: str
     end_date: str
-    room_types: List[str] = PydanticField(default_factory=list)
-    performed_by: Optional[str] = PydanticField(default="system")
+    room_types: List[str] = []
+    performed_by: Optional[str] = "system"
 
 # --- 5. ÉVÉNEMENTS DE DÉMARRAGE ---
 @app.on_event('startup')
@@ -584,22 +399,9 @@ def health_check():
 def monitor_health():
     started = datetime.utcnow()
     db_status = "unknown"
-    db_file_count = 0
-    db_file_bytes = 0
     with Session(engine) as session:
         metrics = get_system_metrics(session)
         db_status = "healthy"
-        uploaded_stats = session.exec(
-            select(
-                func.count(UploadedFile.id),
-                func.coalesce(func.sum(func.length(UploadedFile.data)), 0),
-            )
-        ).one()
-        if isinstance(uploaded_stats, tuple):
-            db_file_count, db_file_bytes = uploaded_stats
-        else:
-            db_file_count = uploaded_stats[0]
-            db_file_bytes = uploaded_stats[1]
 
     data_files = [f for f in os.listdir(DATA_DIR) if f.endswith('_data.json')]
     storage_usage = 0
@@ -617,8 +419,6 @@ def monitor_health():
         "storage": {
             "files": len(data_files),
             "bytes": storage_usage,
-            "database_files": db_file_count or 0,
-            "database_bytes": int(db_file_bytes or 0),
         },
     }
 
@@ -751,183 +551,143 @@ def disable_hotel(hotel_id: str, performed_by: str = Query("system", alias="acto
     return {"status": "ok", "message": f"Hôtel '{hotel_id}' désactivé (soft delete)."}
 
 # --- Gestion des Fichiers ---
-@app.post('/upload/data', tags=["Uploads"])
-async def upload_data(hotel_id: str = Query(...), file: UploadFile = File(...)):
-    hotel_id = decode_hotel_id(hotel_id)
-    file_content = await file.read()
-
-    with Session(engine) as session:
-        if file.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
-            return await process_excel_file(session, hotel_id, file_content, file.filename)
-        elif file.filename.lower().endswith('.json'):
-            return await process_json_config(session, hotel_id, file_content)
-        else:
-            raise HTTPException(status_code=400, detail="Format de fichier non supporté. Utilisez .xlsx, .xls ou .json")
-
-
 @app.post('/upload/excel', tags=["Uploads"])
 async def upload_excel(hotel_id: str = Query(...), file: UploadFile = File(...)):
     hotel_id = decode_hotel_id(hotel_id)
+
+    if not file.filename.lower().endswith(('.xlsx', '.csv')):
+        raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
+
     with Session(engine) as session:
-        return await process_excel_file(session, hotel_id, await file.read(), file.filename)
+        hotel = session.exec(select(Hotel).where(Hotel.hotel_id == hotel_id)).first()
+        if not hotel:
+            raise HTTPException(status_code=404, detail="Hôtel introuvable. Veuillez le créer avant l'upload.")
+        if not hotel.is_active:
+            raise HTTPException(status_code=423, detail="Hôtel désactivé. Réactivez-le avant l'upload.")
+
+    try:
+        content = await file.read()
+        logger.info(f"Upload Excel/CSV pour {hotel_id}, taille: {len(content)} bytes")
+
+        if file.filename.lower().endswith('.xlsx'):
+            df = pd.read_excel(io.BytesIO(content), header=None)
+        else:
+            df = pd.read_csv(io.BytesIO(content), header=None, encoding='utf-8', sep=';')
+
+        parsed = parse_sheet_to_structure(df)
+        out_path = os.path.join(DATA_DIR, f'{hotel_id}_data.json')
+
+        with open(out_path, 'w', encoding='utf-8') as f:
+            json.dump(parsed, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"Données sauvegardées pour {hotel_id}: {len(parsed.get('rooms', {}))} chambres")
+
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="data.uploaded",
+                description=f"Données planning importées pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={
+                    "rooms_found": len(parsed.get('rooms', {})),
+                    "dates_processed": len(parsed.get('dates_processed', [])),
+                },
+            )
+            session.commit()
+
+        return {
+            'status': 'ok',
+            'hotel_id': hotel_id,
+            'rooms_found': len(parsed.get('rooms', {})),
+            'dates_processed': len(parsed.get('dates_processed', [])),
+            'source_info': parsed.get('report_generated_at', 'Source inconnue')
+        }
+
+    except Exception as e:
+        logger.error(f"Erreur traitement fichier pour {hotel_id}: {str(e)}", exc_info=True)
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="data.upload_failed",
+                description=f"Echec import données pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"error": str(e)},
+            )
+            session.commit()
+        raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
 
 
 @app.post('/upload/config', tags=["Uploads"])
 async def upload_config(hotel_id: str = Query(...), file: UploadFile = File(...)):
     hotel_id = decode_hotel_id(hotel_id)
-    with Session(engine) as session:
-        return await process_json_config(session, hotel_id, await file.read())
 
+    try:
+        content = await file.read()
+        logger.info(f"Upload config pour {hotel_id}, taille: {len(content)} bytes")
 
-@app.get('/uploads/recent', tags=["Uploads"], response_model=List[UploadedFileOut])
-def list_recent_uploads(hotel_id: Optional[str] = Query(default=None)):
-    with Session(engine) as session:
-        statement = select(UploadedFile)
-        if hotel_id:
-            statement = statement.where(UploadedFile.hotel_id == decode_hotel_id(hotel_id))
-        ordering_key = func.coalesce(UploadedFile.report_generated_at, UploadedFile.uploaded_at)
-        uploads = session.exec(
-            statement.order_by(ordering_key.desc(), UploadedFile.id.desc()).limit(10)
-        ).all()
+        # Validation du contenu JSON
+        try:
+            parsed = json.loads(content.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON invalide pour {hotel_id}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Fichier JSON invalide: {str(e)}")
 
-    return [
-        UploadedFileOut(
-            id=upload.id,
-            hotel_id=upload.hotel_id,
-            filename=upload.filename,
-            content_type=upload.content_type,
-            file_size=upload.file_size,
-            uploaded_at=upload.uploaded_at,
-            report_generated_at=upload.report_generated_at,
-            report_generated_label=upload.report_generated_label,
-        )
-        for upload in uploads
-    ]
+        # Validation de la structure
+        if not isinstance(parsed, dict):
+            raise HTTPException(status_code=400, detail="Le fichier JSON doit être un objet")
 
+        # Vérification optionnelle de l'ID d'hôtel
+        file_hotel_id = parsed.get('hotel_id', '').lower().strip()
+        if file_hotel_id and file_hotel_id != hotel_id:
+            logger.warning(f"Incohérence ID: fichier={file_hotel_id}, paramètre={hotel_id}")
 
-@app.get('/uploads/{upload_id}/download', tags=["Uploads"])
-def download_upload(upload_id: int):
-    with Session(engine) as session:
-        upload = session.get(UploadedFile, upload_id)
-        if not upload:
-            raise HTTPException(status_code=404, detail="Fichier importé introuvable")
+        serialized = json.dumps(parsed, ensure_ascii=False, indent=2)
 
-        file_bytes = bytes(upload.data or b"")
-        filename = upload.filename or f"import_{upload_id}.bin"
-        content_type = upload.content_type or 'application/octet-stream'
+        with Session(engine) as session:
+            existing = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel_id)).first()
+            if existing:
+                existing.config_json = serialized
+                existing.updated_at = datetime.utcnow()
+            else:
+                session.add(
+                    HotelConfig(
+                        hotel_id=hotel_id,
+                        config_json=serialized,
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+            log_activity(
+                session,
+                activity_type="config.uploaded",
+                description=f"Configuration importée pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"keys": list(parsed.keys())[:10]},
+            )
+            session.commit()
 
-        log_activity(
-            session,
-            activity_type="data.downloaded",
-            description=f"Téléchargement du fichier importé #{upload_id}",
-            hotel_id=upload.hotel_id,
-            details={
-                "filename": upload.filename,
-                "file_size": upload.file_size,
-            },
-        )
-        session.commit()
+        logger.info(f"Config sauvegardée pour {hotel_id}: {len(parsed.get('partners', {}))} partenaires")
 
-    output = io.BytesIO(file_bytes)
-    output.seek(0)
+        return {
+            'status': 'ok',
+            'hotel_id': hotel_id,
+            'partners_count': len(parsed.get('partners', {})),
+            'has_display_order': 'displayOrder' in parsed
+        }
 
-    return StreamingResponse(
-        output,
-        media_type=content_type,
-        headers={"Content-Disposition": f"attachment; filename=\"{filename}\""},
-    )
-
-
-@app.post('/backup/immediate', tags=["Backup"])
-def backup_immediate(performed_by: str = Query("system", alias="actor")):
-    generated_at = datetime.utcnow()
-    archive_name = f"backup_{generated_at.strftime('%Y%m%d_%H%M%S')}.zip"
-    buffer = io.BytesIO()
-
-    def sanitize(value: str) -> str:
-        return re.sub(r'[^A-Za-z0-9._-]', '_', value)
-
-    with Session(engine) as session:
-        hotels = session.exec(select(Hotel)).all()
-        uploads = session.exec(select(UploadedFile).order_by(UploadedFile.uploaded_at)).all()
-
-        data_files_written = 0
-        config_files_written = 0
-        excel_files_written = 0
-        total_bytes = 0
-
-        with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
-            for hotel in hotels:
-                data_path = os.path.join(DATA_DIR, f'{hotel.hotel_id}_data.json')
-                if os.path.exists(data_path):
-                    with open(data_path, 'r', encoding='utf-8') as data_file:
-                        content = data_file.read()
-                    archive.writestr(f"data/{hotel.hotel_id}.json", content)
-                    data_files_written += 1
-                    total_bytes += len(content.encode('utf-8'))
-
-                config = session.exec(select(HotelConfig).where(HotelConfig.hotel_id == hotel.hotel_id)).first()
-                if config:
-                    archive.writestr(f"config/{hotel.hotel_id}.json", config.config_json)
-                    config_files_written += 1
-                    total_bytes += len(config.config_json.encode('utf-8'))
-
-            for upload in uploads:
-                if not upload.data:
-                    continue
-                safe_filename = sanitize(upload.filename or f"import_{upload.id}.bin")
-                archive_name_for_file = f"excel/{sanitize(upload.hotel_id)}/{upload.uploaded_at.strftime('%Y%m%d_%H%M%S')}_{safe_filename}"
-                archive.writestr(archive_name_for_file, upload.data)
-                excel_files_written += 1
-                total_bytes += len(upload.data or b"")
-
-            metadata = {
-                "generated_at": generated_at.isoformat(),
-                "generated_by": performed_by,
-                "counts": {
-                    "hotels": len(hotels),
-                    "data_files": data_files_written,
-                    "config_files": config_files_written,
-                    "excel_files": excel_files_written,
-                },
-                "totals": {
-                    "bytes": total_bytes,
-                },
-                "recent_uploads": [
-                    {
-                        "id": upload.id,
-                        "hotel_id": upload.hotel_id,
-                        "filename": upload.filename,
-                        "uploaded_at": upload.uploaded_at.isoformat(),
-                        "report_generated_at": upload.report_generated_at.isoformat() if upload.report_generated_at else None,
-                    }
-                    for upload in sorted(uploads, key=lambda item: item.report_generated_at or item.uploaded_at or generated_at)[-10:]
-                ],
-            }
-            archive.writestr('metadata.json', json.dumps(metadata, indent=2, ensure_ascii=False))
-
-        log_activity(
-            session,
-            activity_type="backup.created",
-            description="Sauvegarde complète générée",
-            performed_by=performed_by,
-            details={
-                "filename": archive_name,
-                "data_files": data_files_written,
-                "config_files": config_files_written,
-                "excel_files": excel_files_written,
-                "bytes": total_bytes,
-            },
-        )
-        session.commit()
-
-    buffer.seek(0)
-
-    return StreamingResponse(
-        buffer,
-        media_type='application/zip',
-        headers={"Content-Disposition": f"attachment; filename=\"{archive_name}\""},
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erreur sauvegarde config pour {hotel_id}: {str(e)}", exc_info=True)
+        with Session(engine) as session:
+            log_activity(
+                session,
+                activity_type="config.upload_failed",
+                description=f"Echec import configuration pour {hotel_id}",
+                hotel_id=hotel_id,
+                details={"error": str(e)},
+            )
+            session.commit()
+        raise HTTPException(status_code=500, detail=f"Erreur de sauvegarde de la config: {str(e)}")
 
 # --- Récupération des Données ---
 @app.get('/data', tags=["Data"])
