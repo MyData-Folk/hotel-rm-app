@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HotelManager Pro V2 - Console Admin</title>
+    <title>HotelManager Pro V3.1 - Console Admin</title>
     <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,9 +11,6 @@
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
-    <style>
-        body { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
     <div class="absolute inset-0 -z-10 overflow-hidden">
@@ -32,7 +29,7 @@
                     </span>
                     <div>
                         <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Console</p>
-                        <h1 class="text-xl font-semibold">HotelManager Pro V2</h1>
+                        <h1 class="text-xl font-semibold">HotelManager Pro V3.1</h1>
                     </div>
                 </div>
                 <div class="mt-6 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300">
@@ -67,7 +64,7 @@
             </nav>
 
             <div class="px-8 pb-8 pt-4 text-xs text-slate-500">
-                <p>Version console <span id="versionTag" class="font-medium text-slate-300">v2.1</span></p>
+                <p>Version console <span id="versionTag" class="font-medium text-slate-300">v3.1</span></p>
                 <p class="mt-1">Temps réel toutes les 30 secondes</p>
             </div>
         </aside>
@@ -234,9 +231,8 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="space-y-6">
+                        <!-- Actions rapides -->
                         <div class="glass-card">
                             <h3 class="text-lg font-semibold">Actions rapides</h3>
                             <div class="mt-4 space-y-3 text-sm text-slate-300">
@@ -255,6 +251,34 @@
                             </div>
                         </div>
 
+                        <!-- 🔹 Nouveau module : Gestion des fichiers existants -->
+                        <div class="glass-card">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h3 class="text-lg font-semibold">Fichiers existants de l'hôtel sélectionné</h3>
+                                <button id="btnLoadFiles" class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400">
+                                    <i data-feather="folder"></i> Charger
+                                </button>
+                            </div>
+                            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                <div>
+                                    <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Sélectionner un hôtel</label>
+                                    <select id="selectedHotelFiles" class="mt-2 w-full bg-white/5 border border-white/10 rounded-md text-sm text-white p-2"></select>
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="btnRefreshFilesList" class="quick-action w-full">
+                                        <i data-feather="refresh-ccw"></i>
+                                        Rafraîchir la liste
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="fileList" class="mt-4 space-y-2 text-sm text-slate-300">
+                                <p class="text-slate-500">Aucun fichier à afficher.</p>
+                            </div>
+                            <p class="mt-3 text-xs text-slate-500">Astuce : cliquez sur ▶️ pour charger un JSON, ou sur ⤓/🗔 pour ouvrir un Excel.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
                         <div class="glass-card">
                             <h3 class="text-lg font-semibold">Dernières activités</h3>
                             <ul id="hotelActivity" class="mt-4 space-y-3 text-xs text-slate-400"></ul>
@@ -298,7 +322,7 @@
                         <form id="restoreForm" class="mt-4 space-y-4 text-sm">
                             <div>
                                 <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Source de restauration</label>
-                                <input type="text" id="restoreKey" placeholder="backup_2024-10-24T18-30" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
+                                <input type="text" id="restoreKey" placeholder="backup_2025-10-26T18-30" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
                             </div>
                             <div>
                                 <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes internes</label>
@@ -335,9 +359,9 @@
 
     <script>
         const STORAGE_KEY = 'hmpro.apiBase';
-        const defaultApiBase = localStorage.getItem(STORAGE_KEY) || 'http://localhost:8080';
+        const defaultApiBase = 'https://api.hotelmanager.fr';
         const apiInput = document.getElementById('apiEndpoint');
-        apiInput.value = defaultApiBase;
+        apiInput.value = localStorage.getItem(STORAGE_KEY) || defaultApiBase;
 
         const sections = document.querySelectorAll('.section');
         const navPills = document.querySelectorAll('.nav-pill');
@@ -514,7 +538,9 @@
                 const includeInactive = document.getElementById('includeInactive').checked;
                 const hotels = await fetchJSON(`/hotels?include_inactive=${includeInactive}`);
                 const tbody = document.getElementById('hotelTable');
+                const select = document.getElementById('selectedHotelFiles');
                 tbody.innerHTML = '';
+                select.innerHTML = '';
                 hotels.forEach((hotel) => {
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-white/5 transition';
@@ -539,6 +565,10 @@
                         </td>
                     `;
                     tbody.appendChild(tr);
+
+                    const opt = document.createElement('option');
+                    opt.value = hotel.hotel_id; opt.textContent = hotel.hotel_id;
+                    select.appendChild(opt);
                 });
                 feather.replace({ class: 'h-4 w-4' });
             } catch (error) {
@@ -681,7 +711,7 @@
         });
 
         document.getElementById('btnOpenUpload').addEventListener('click', () => {
-            showToast('Ouverture du module d\'import (via interface spécialisée)', 'info');
+            showToast('Ouverture du module d\\'import (via interface spécialisée)', 'info');
         });
 
         document.getElementById('btnPlanBackup').addEventListener('click', () => {
@@ -704,6 +734,65 @@
                 return;
             }
             showToast(`Restauration ${key} en file d'attente`, 'success');
+        });
+
+        // === Nouveau : Gestion des fichiers existants ===
+        async function loadFilesList() {
+            const hotelId = document.getElementById('selectedHotelFiles').value;
+            if (!hotelId) { showToast('Sélectionnez un hôtel', 'warning'); return; }
+            try {
+                const data = await fetchJSON(`/hotel/files?hotel_id=${encodeURIComponent(hotelId)}`);
+                const list = document.getElementById('fileList');
+                if (!data.files || !data.files.length) {
+                    list.innerHTML = '<p class="text-slate-500">Aucun fichier disponible.</p>';
+                    return;
+                }
+                list.innerHTML = '';
+                data.files.forEach(f => {
+                    const row = document.createElement('div');
+                    const ext = (f.filename.split('.').pop() || '').toLowerCase();
+                    const color = ext === 'json' ? 'text-amber-300' : 'text-sky-300';
+                    const size = (f.size/1024).toFixed(1) + ' Ko';
+                    const date = new Date(f.modified).toLocaleString('fr-FR');
+                    const openHref = `${(localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '')}/hotel/files/download?hotel_id=${encodeURIComponent(hotelId)}&filename=${encodeURIComponent(f.filename)}`;
+                    row.className = 'flex justify-between items-center bg-white/5 rounded-md px-3 py-2';
+                    row.innerHTML = `
+                        <div>
+                          <span class="${color}">${f.filename}</span>
+                          <div class="text-xs text-slate-500">${size} • ${date}</div>
+                        </div>
+                        <div class="flex gap-3">
+                          ${ext === 'json' ? `<button class="table-action" data-action="load-json" data-hotel="${hotelId}" data-file="${encodeURIComponent(f.filename)}" title="Charger JSON"><i data-feather="play-circle"></i></button>` : ''}
+                          ${ext === 'xlsx' ? `<a class="table-action" href="${openHref}" target="_blank" rel="noopener" title="Ouvrir Excel"><i data-feather="external-link"></i></a>` : ''}
+                          <a class="table-action" href="${openHref}" title="Télécharger"><i data-feather="download"></i></a>
+                        </div>`;
+                    list.appendChild(row);
+                });
+                feather.replace({ class: 'h-4 w-4' });
+            } catch (e) {
+                showToast(e.message, 'error');
+            }
+        }
+
+        document.getElementById('btnLoadFiles').addEventListener('click', loadFilesList);
+        document.getElementById('btnRefreshFilesList').addEventListener('click', loadFilesList);
+
+        document.getElementById('fileList').addEventListener('click', async (e) => {
+            const btn = e.target.closest('button.table-action');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const hotelId = btn.dataset.hotel;
+            const filename = decodeURIComponent(btn.dataset.file || '');
+            if (action === 'load-json') {
+                try {
+                    // On recharge la config/data du backend
+                    const data = await fetchJSON(`/data?hotel_id=${encodeURIComponent(hotelId)}`);
+                    console.log('JSON chargé:', data);
+                    showToast('JSON chargé depuis le backend', 'success');
+                } catch (err) {
+                    showToast('Impossible de charger le JSON via /data. Vérifier backend.', 'error');
+                }
+            }
         });
 
         const init = () => {
