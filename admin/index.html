@@ -1,808 +1,243 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HotelManager Pro V3.1 - Console Admin</title>
-    <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
-    <link rel="stylesheet" href="style.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HotelManager Pro V3.2 - Console Admin</title>
+  <link rel="icon" type="image/svg+xml" href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/icons/hotel.svg">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.2/dist/feather.min.js"></script>
 </head>
+
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <div class="absolute inset-0 -z-10 overflow-hidden">
-        <div class="absolute -top-40 -left-32 h-80 w-80 rounded-full bg-gradient-to-br from-indigo-500/40 to-purple-500/30 blur-3xl"></div>
-        <div class="absolute top-1/2 right-0 h-96 w-96 -translate-y-1/2 rounded-full bg-gradient-to-tr from-sky-500/30 to-emerald-400/20 blur-3xl"></div>
-        <div class="noise-layer"></div>
-    </div>
+  <div class="flex min-h-screen backdrop-blur-xl bg-slate-900/30">
 
-    <div class="flex min-h-screen backdrop-blur-xl bg-slate-900/30">
-        <!-- Sidebar -->
-        <aside class="hidden lg:flex lg:w-72 flex-col border-r border-white/10 bg-slate-900/40">
-            <div class="px-8 pt-10 pb-6">
-                <div class="flex items-center gap-3">
-                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300">
-                        <i data-feather="shield" class="h-6 w-6"></i>
-                    </span>
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Console</p>
-                        <h1 class="text-xl font-semibold">HotelManager Pro V3.1</h1>
-                    </div>
-                </div>
-                <div class="mt-6 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300">
-                    <div class="flex items-center justify-between">
-                        <span>Status plateforme</span>
-                        <span id="sidebarStatus" class="flex items-center gap-2 text-emerald-400">
-                            <span class="status-dot"></span>
-                            <span>En ligne</span>
-                        </span>
-                    </div>
-                    <p class="mt-2 text-xs text-slate-400" id="sidebarStatusDetail">Chargement des métriques...</p>
-                </div>
+    <!-- SIDEBAR -->
+    <aside class="hidden lg:flex lg:w-72 flex-col border-r border-white/10 bg-slate-900/40">
+      <div class="px-8 pt-10 pb-6">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300">
+            <i data-feather="shield" class="h-6 w-6"></i>
+          </span>
+          <div>
+            <p class="text-xs uppercase tracking-[0.35em] text-slate-400">Console</p>
+            <h1 class="text-xl font-semibold">HotelManager Pro V3.2</h1>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 space-y-1 px-6">
+        <button class="nav-pill active" data-target="dashboardSection"><i data-feather="activity"></i> Monitoring</button>
+        <button class="nav-pill" data-target="hotelsSection"><i data-feather="home"></i> Gestion des hôtels</button>
+        <button class="nav-pill" data-target="activitySection"><i data-feather="clock"></i> Historique</button>
+        <button class="nav-pill" data-target="backupSection"><i data-feather="database"></i> Backup</button>
+      </nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1">
+      <header class="border-b border-white/10 bg-slate-900/50 px-6 py-6 shadow-lg shadow-indigo-500/5 sm:px-10">
+        <div class="flex justify-between items-center">
+          <h2 class="text-2xl font-semibold">Console Administrateur</h2>
+          <div>
+            <label class="text-sm text-slate-400 mr-2">API :</label>
+            <input id="apiEndpoint" type="url" value="https://api.hotelmanager.fr"
+              class="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white w-72">
+          </div>
+        </div>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section id="dashboardSection" class="section px-6 py-8">
+        <div class="grid gap-6">
+          <div class="glass-card">
+            <h3 class="text-lg font-semibold mb-4">Performance API & santé système</h3>
+            <canvas id="latencyChart" class="h-72"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOTELS -->
+      <section id="hotelsSection" class="section hidden px-6 py-8">
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_420px]">
+          <div class="space-y-6">
+
+            <!-- INVENTAIRE -->
+            <div class="glass-card">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="text-lg font-semibold">Inventaire des hôtels</h3>
+                <button id="btnRefreshHotels" class="btn btn-primary text-sm"><i data-feather="refresh-cw"></i> Rafraîchir</button>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="text-slate-400 uppercase text-xs border-b border-white/10">
+                  <tr><th class="py-2 text-left">Hôtel</th><th class="text-left">Nom</th><th>Statut</th></tr>
+                </thead>
+                <tbody id="hotelTable"></tbody>
+              </table>
             </div>
 
-            <nav class="flex-1 space-y-1 px-6">
-                <button class="nav-pill active" data-target="dashboardSection">
-                    <i data-feather="activity"></i>
-                    <span>Monitoring</span>
-                </button>
-                <button class="nav-pill" data-target="hotelsSection">
-                    <i data-feather="home"></i>
-                    <span>Gestion des hôtels</span>
-                </button>
-                <button class="nav-pill" data-target="activitySection">
-                    <i data-feather="clock"></i>
-                    <span>Historique & Audit</span>
-                </button>
-                <button class="nav-pill" data-target="backupSection">
-                    <i data-feather="database"></i>
-                    <span>Backup & Restauration</span>
-                </button>
-            </nav>
-
-            <div class="px-8 pb-8 pt-4 text-xs text-slate-500">
-                <p>Version console <span id="versionTag" class="font-medium text-slate-300">v3.1</span></p>
-                <p class="mt-1">Temps réel toutes les 30 secondes</p>
+            <!-- ACTIONS -->
+            <div class="glass-card">
+              <h3 class="text-lg font-semibold mb-4">Actions rapides</h3>
+              <button id="btnOpenUpload" class="quick-action"><i data-feather="upload"></i> Importer Excel / JSON</button>
+              <input type="file" id="fileUploadInput" class="hidden" accept=".xlsx,.json" />
             </div>
-        </aside>
 
-        <!-- Main content -->
-        <main class="flex-1">
-            <header class="border-b border-white/10 bg-slate-900/50 px-6 py-6 shadow-lg shadow-indigo-500/5 sm:px-10">
-                <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <p class="text-xs uppercase tracking-[0.4em] text-indigo-300">Dashboard Exécutif</p>
-                        <h2 class="mt-2 text-3xl font-semibold">Pilotage en temps réel</h2>
-                        <p class="mt-2 max-w-2xl text-sm text-slate-400">
-                            Surveillez l'état du système, créez des hôtels en toute sécurité et suivez les activités clés grâce à une expérience premium.
-                        </p>
-                    </div>
-                    <div class="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-sm text-slate-300 md:flex-row md:items-center md:gap-6">
-                        <label class="flex flex-col text-xs uppercase tracking-[0.2em] text-slate-400">
-                            API Backend
-                            <input id="apiEndpoint" type="url" class="mt-2 w-64 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="https://api.hotelmanager.fr" />
-                        </label>
-                        <button id="refreshNow" class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400">
-                            <i data-feather="refresh-ccw" class="h-4 w-4"></i>
-                            Rafraîchir maintenant
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            <section id="dashboardSection" class="section visible">
-                <div class="grid gap-6 px-6 py-8 sm:px-10">
-                    <div class="grid gap-6 lg:grid-cols-4">
-                        <div class="glass-card stats-card" data-stat="activeHotels">
-                            <div class="flex items-center justify-between">
-                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Hôtels actifs</p>
-                                <span class="icon-badge bg-indigo-500/20 text-indigo-300">
-                                    <i data-feather="map-pin"></i>
-                                </span>
-                            </div>
-                            <div class="mt-4 text-3xl font-semibold" id="activeHotelsValue">0</div>
-                            <p class="mt-2 text-xs text-slate-400" id="activeHotelsSubtitle">Chargement...</p>
-                        </div>
-                        <div class="glass-card stats-card" data-stat="totalHotels">
-                            <div class="flex items-center justify-between">
-                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Total hôtels</p>
-                                <span class="icon-badge bg-emerald-500/20 text-emerald-300">
-                                    <i data-feather="layers"></i>
-                                </span>
-                            </div>
-                            <div class="mt-4 text-3xl font-semibold" id="totalHotelsValue">0</div>
-                            <p class="mt-2 text-xs text-slate-400">Inclut les hôtels désactivés</p>
-                        </div>
-                        <div class="glass-card stats-card" data-stat="latency">
-                            <div class="flex items-center justify-between">
-                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Latence API</p>
-                                <span class="icon-badge bg-sky-500/20 text-sky-300">
-                                    <i data-feather="activity"></i>
-                                </span>
-                            </div>
-                            <div class="mt-4 text-3xl font-semibold" id="latencyValue">0 ms</div>
-                            <p class="mt-2 text-xs text-slate-400">Monitoring temps réel</p>
-                        </div>
-                        <div class="glass-card stats-card" data-stat="storage">
-                            <div class="flex items-center justify-between">
-                                <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Stockage</p>
-                                <span class="icon-badge bg-amber-500/20 text-amber-300">
-                                    <i data-feather="database"></i>
-                                </span>
-                            </div>
-                            <div class="mt-4 text-3xl font-semibold" id="storageValue">0</div>
-                            <p class="mt-2 text-xs text-slate-400" id="storageSubtitle">Fichiers JSON</p>
-                        </div>
-                    </div>
-
-                    <div class="grid gap-6 xl:grid-cols-3">
-                        <div class="glass-card xl:col-span-2">
-                            <div class="flex flex-wrap items-center justify-between gap-4">
-                                <div>
-                                    <h3 class="text-lg font-semibold">Performance API & santé système</h3>
-                                    <p class="text-sm text-slate-400">Mise à jour automatique toutes les 30 secondes</p>
-                                </div>
-                                <span id="healthBadge" class="status-pill bg-emerald-500/15 text-emerald-300">Système opérationnel</span>
-                            </div>
-                            <canvas id="latencyChart" class="mt-6 h-64"></canvas>
-                        </div>
-                        <div class="glass-card">
-                            <h3 class="text-lg font-semibold">État en direct</h3>
-                            <div class="mt-6 space-y-4 text-sm text-slate-300" id="systemIndicators">
-                                <div class="flex items-center justify-between">
-                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>API</span>
-                                    <span id="apiStatus">En cours...</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Base de données</span>
-                                    <span id="dbStatus">En cours...</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Fichiers</span>
-                                    <span id="storageStatus">Analyse...</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="flex items-center gap-2"><span class="dot dot-success"></span>Activités</span>
-                                    <span id="activityStatus">Chargement...</span>
-                                </div>
-                            </div>
-                            <div class="mt-6 rounded-xl border border-white/10 bg-slate-900/60 p-4 text-xs text-slate-400">
-                                <p class="font-medium text-slate-200">Dernière synchronisation</p>
-                                <p id="lastSync" class="mt-1 text-slate-300">—</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="hotelsSection" class="section hidden px-6 py-8 sm:px-10">
-                <div class="grid gap-6 lg:grid-cols-[minmax(0,_1fr)_420px]">
-                    <div class="space-y-6">
-                        <div class="glass-card">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <h3 class="text-lg font-semibold">Créer un nouvel hôtel</h3>
-                                    <p class="text-sm text-slate-400">Validation instantanée et journalisation automatique</p>
-                                </div>
-                                <span class="badge badge-info">Sécurisé</span>
-                            </div>
-                            <form id="createHotelForm" class="mt-6 space-y-4">
-                                <div>
-                                    <label for="hotelId" class="text-xs uppercase tracking-[0.3em] text-slate-400">Identifiant</label>
-                                    <input id="hotelId" name="hotelId" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="ex: hotel-paris-centre" autocomplete="off" required />
-                                    <p id="hotelIdHelper" class="mt-2 text-xs text-slate-400">3 à 64 caractères, minuscules, chiffres et tirets uniquement.</p>
-                                </div>
-                                <div>
-                                    <label for="hotelName" class="text-xs uppercase tracking-[0.3em] text-slate-400">Nom officiel</label>
-                                    <input id="hotelName" name="hotelName" type="text" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Hôtel Paris Centre" />
-                                </div>
-                                <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:bg-indigo-400 disabled:pointer-events-none disabled:opacity-40">
-                                    <i data-feather="plus" class="h-4 w-4"></i>
-                                    Créer et journaliser
-                                </button>
-                            </form>
-                        </div>
-
-                        <div class="glass-card">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <h3 class="text-lg font-semibold">Inventaire des hôtels</h3>
-                                <div class="flex items-center gap-3 text-xs text-slate-400">
-                                    <label class="inline-flex items-center gap-2">
-                                        <input id="includeInactive" type="checkbox" class="rounded border-white/20 bg-transparent text-indigo-500 focus:ring-indigo-400" />
-                                        Inclure les désactivés
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="mt-4 overflow-hidden rounded-xl border border-white/10">
-                                <table class="min-w-full divide-y divide-white/5 text-sm">
-                                    <thead class="bg-white/5 text-left text-xs uppercase tracking-[0.3em] text-slate-400">
-                                        <tr>
-                                            <th class="px-4 py-3">Hôtel</th>
-                                            <th class="px-4 py-3">Nom</th>
-                                            <th class="px-4 py-3">Statut</th>
-                                            <th class="px-4 py-3">Créé le</th>
-                                            <th class="px-4 py-3 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="hotelTable" class="divide-y divide-white/5"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Actions rapides -->
-                        <div class="glass-card">
-                            <h3 class="text-lg font-semibold">Actions rapides</h3>
-                            <div class="mt-4 space-y-3 text-sm text-slate-300">
-                                <button id="btnRefreshHotels" class="quick-action">
-                                    <i data-feather="refresh-cw"></i>
-                                    Actualiser les hôtels
-                                </button>
-                                <button id="btnOpenUpload" class="quick-action">
-                                    <i data-feather="upload"></i>
-                                    Ouvrir le module d'import (Excel / JSON)
-                                </button>
-                                <button id="btnPlanBackup" class="quick-action">
-                                    <i data-feather="calendar"></i>
-                                    Planifier une sauvegarde complète
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 🔹 Nouveau module : Gestion des fichiers existants -->
-                        <div class="glass-card">
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <h3 class="text-lg font-semibold">Fichiers existants de l'hôtel sélectionné</h3>
-                                <button id="btnLoadFiles" class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-400">
-                                    <i data-feather="folder"></i> Charger
-                                </button>
-                            </div>
-                            <div class="mt-4 grid gap-3 md:grid-cols-2">
-                                <div>
-                                    <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Sélectionner un hôtel</label>
-                                    <select id="selectedHotelFiles" class="mt-2 w-full bg-white/5 border border-white/10 rounded-md text-sm text-white p-2"></select>
-                                </div>
-                                <div class="flex items-end">
-                                    <button id="btnRefreshFilesList" class="quick-action w-full">
-                                        <i data-feather="refresh-ccw"></i>
-                                        Rafraîchir la liste
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="fileList" class="mt-4 space-y-2 text-sm text-slate-300">
-                                <p class="text-slate-500">Aucun fichier à afficher.</p>
-                            </div>
-                            <p class="mt-3 text-xs text-slate-500">Astuce : cliquez sur ▶️ pour charger un JSON, ou sur ⤓/🗔 pour ouvrir un Excel.</p>
-                        </div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="glass-card">
-                            <h3 class="text-lg font-semibold">Dernières activités</h3>
-                            <ul id="hotelActivity" class="mt-4 space-y-3 text-xs text-slate-400"></ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="activitySection" class="section hidden px-6 py-8 sm:px-10">
-                <div class="glass-card">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                            <h3 class="text-lg font-semibold">Historique complet</h3>
-                            <p class="text-sm text-slate-400">Audit trail temps réel avec détails contextuels</p>
-                        </div>
-                        <span class="badge badge-success" id="activityCount">0 entrées</span>
-                    </div>
-                    <div class="mt-6 space-y-6" id="activityTimeline"></div>
-                </div>
-            </section>
-
-            <section id="backupSection" class="section hidden px-6 py-8 sm:px-10">
-                <div class="grid gap-6 lg:grid-cols-2">
-                    <div class="glass-card">
-                        <h3 class="text-lg font-semibold">Sauvegardes intelligentes</h3>
-                        <p class="mt-2 text-sm text-slate-400">Exécutez des sauvegardes incrémentales et conservez l'historique complet.</p>
-                        <div class="mt-6 space-y-4 text-sm text-slate-300">
-                            <button id="backupNow" class="quick-action">
-                                <i data-feather="download"></i>
-                                Sauvegarder immédiatement les configurations
-                            </button>
-                            <button id="backupData" class="quick-action">
-                                <i data-feather="package"></i>
-                                Exporter les données (JSON + Config)
-                            </button>
-                        </div>
-                        <p class="mt-6 text-xs text-slate-500">Les sauvegardes sont stockées de manière sécurisée côté serveur via les pipelines DevOps.</p>
-                    </div>
-                    <div class="glass-card">
-                        <h3 class="text-lg font-semibold">Restauration contrôlée</h3>
-                        <form id="restoreForm" class="mt-4 space-y-4 text-sm">
-                            <div>
-                                <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Source de restauration</label>
-                                <input type="text" id="restoreKey" placeholder="backup_2025-10-26T18-30" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" />
-                            </div>
-                            <div>
-                                <label class="text-xs uppercase tracking-[0.3em] text-slate-400">Notes internes</label>
-                                <textarea id="restoreNotes" rows="3" class="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none" placeholder="Décrire le contexte de restauration"></textarea>
-                            </div>
-                            <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500/80 px-4 py-3 text-sm font-semibold text-amber-950 transition hover:bg-amber-400">
-                                <i data-feather="rotate-ccw" class="h-4 w-4"></i>
-                                Lancer la restauration contrôlée
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <div id="toastContainer" class="pointer-events-none fixed top-6 right-6 z-50 flex w-96 flex-col gap-3"></div>
-
-    <template id="activityItemTemplate">
-        <article class="relative rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-300">
-            <span class="absolute -left-4 top-6 h-2 w-2 rounded-full bg-indigo-400"></span>
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-indigo-300">
-                    <i data-feather="zap" class="h-3 w-3"></i>
-                    <span data-field="type">activity.type</span>
-                </div>
-                <span class="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400" data-field="created_at">—</span>
+            <!-- MODULE FICHIERS EXISTANTS -->
+            <div class="glass-card">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold">Fichiers existants de l'hôtel</h3>
+                <button id="btnLoadFiles" class="btn btn-primary text-sm"><i data-feather="folder"></i> Charger</button>
+              </div>
+              <select id="selectedHotelFiles" class="mt-4 w-full bg-white/5 border border-white/10 rounded-md text-sm text-white p-2"></select>
+              <div id="fileList" class="mt-4 space-y-2 text-sm text-slate-300">
+                <p class="text-slate-500">Aucun fichier à afficher.</p>
+              </div>
             </div>
-            <p class="mt-3 text-base font-medium text-white" data-field="description"></p>
-            <p class="mt-2 text-xs text-slate-400" data-field="details"></p>
-            <p class="mt-2 text-[11px] text-slate-500" data-field="performed_by"></p>
-        </article>
-    </template>
 
-    <script>
-        const STORAGE_KEY = 'hmpro.apiBase';
-        const defaultApiBase = 'https://api.hotelmanager.fr';
-        const apiInput = document.getElementById('apiEndpoint');
-        apiInput.value = localStorage.getItem(STORAGE_KEY) || defaultApiBase;
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-        const sections = document.querySelectorAll('.section');
-        const navPills = document.querySelectorAll('.nav-pill');
-        navPills.forEach((pill) => {
-            pill.addEventListener('click', () => {
-                navPills.forEach((p) => p.classList.remove('active'));
-                pill.classList.add('active');
-                const target = pill.dataset.target;
-                sections.forEach((section) => {
-                    section.classList.toggle('hidden', section.id !== target);
-                    section.classList.toggle('visible', section.id === target);
-                });
-            });
+  <div id="toastContainer" class="fixed top-6 right-6 z-50 flex flex-col gap-3"></div>
+
+  <script>
+    const STORAGE_KEY = 'hmpro.apiBase';
+    const defaultApiBase = 'https://api.hotelmanager.fr';
+    const apiInput = document.getElementById('apiEndpoint');
+    apiInput.value = localStorage.getItem(STORAGE_KEY) || defaultApiBase;
+    apiInput.addEventListener('change', () => localStorage.setItem(STORAGE_KEY, apiInput.value));
+    const apiBase = () => (localStorage.getItem(STORAGE_KEY) || apiInput.value).replace(/\/$/, '');
+
+    const showToast = (msg, type = 'info') => {
+      const colors = { success: 'bg-emerald-600/20 text-emerald-200', error: 'bg-rose-600/20 text-rose-200', info: 'bg-sky-600/20 text-sky-200' };
+      const div = document.createElement('div');
+      div.className = `rounded-lg px-4 py-2 text-sm border border-white/10 shadow-lg ${colors[type]}`;
+      div.textContent = msg;
+      document.getElementById('toastContainer').appendChild(div);
+      setTimeout(() => div.remove(), 4000);
+    };
+
+    const fetchJSON = async (url, opt = {}) => {
+      const res = await fetch(apiBase() + url, opt);
+      if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+      return res.json();
+    };
+
+    // MONITORING GRAPH
+    const ctx = document.getElementById('latencyChart').getContext('2d');
+    const latencyChart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets: [{ label: 'Latence API (ms)', data: [], borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,0.25)', fill: true, tension: 0.3 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { type: 'time', time: { unit: 'minute' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, min: 0, suggestedMax: 3000, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { labels: { color: '#cbd5f5' } } }
+      }
+    });
+
+    async function refreshMonitoring() {
+      try {
+        const health = await fetchJSON('/health');
+        const latency = Number.isFinite(health.latency_ms) ? Math.max(0, health.latency_ms) : 0;
+        const dataset = latencyChart.data.datasets[0].data;
+        dataset.push({ x: new Date(), y: latency });
+        if (dataset.length > 20) dataset.shift();
+        latencyChart.update();
+      } catch (err) {
+        showToast('Erreur API: ' + err.message, 'error');
+      }
+    }
+
+    setInterval(refreshMonitoring, 30000);
+    refreshMonitoring();
+
+    // HOTELS
+    async function loadHotels() {
+      try {
+        const hotels = await fetchJSON('/hotels');
+        const tbody = document.getElementById('hotelTable');
+        const select = document.getElementById('selectedHotelFiles');
+        tbody.innerHTML = ''; select.innerHTML = '';
+        hotels.forEach(h => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td class="py-2">${h.hotel_id}</td><td>${h.name || '-'}</td><td>${h.is_active ? '✅' : '⛔'}</td>`;
+          tbody.appendChild(tr);
+          const opt = document.createElement('option'); opt.value = h.hotel_id; opt.textContent = h.hotel_id;
+          select.appendChild(opt);
         });
+      } catch (err) { showToast(err.message, 'error'); }
+    }
 
-        apiInput.addEventListener('change', () => {
-            const value = apiInput.value.trim();
-            if (value) {
-                localStorage.setItem(STORAGE_KEY, value);
-                showToast("Endpoint API mis à jour", 'success');
-                triggerFullRefresh();
-            }
+    loadHotels();
+
+    document.getElementById('btnRefreshHotels').addEventListener('click', loadHotels);
+
+    // MODULE UPLOAD
+    document.getElementById("btnOpenUpload").addEventListener("click", () => {
+      const input = document.getElementById("fileUploadInput");
+      input.value = "";
+      input.click();
+    });
+
+    document.getElementById("fileUploadInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const hotelId = prompt("Entrez l'identifiant de l'hôtel (ex: folkestone-opera) :");
+      if (!hotelId) return showToast("Aucun hôtel spécifié.", "warning");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      const isJSON = file.name.endsWith(".json");
+      const endpoint = isJSON ? `/upload/config?hotel_id=${encodeURIComponent(hotelId)}` : `/upload/excel?hotel_id=${encodeURIComponent(hotelId)}`;
+
+      try {
+        showToast(`Téléversement de ${file.name}...`, "info");
+        await fetch(apiBase() + endpoint, { method: "POST", body: formData });
+        showToast(`Fichier ${file.name} téléversé avec succès`, "success");
+      } catch (err) {
+        showToast(`Erreur téléversement : ${err.message}`, "error");
+      }
+    });
+
+    // MODULE FICHIERS EXISTANTS
+    document.getElementById('btnLoadFiles').addEventListener('click', async () => {
+      const hotelId = document.getElementById('selectedHotelFiles').value;
+      if (!hotelId) return showToast('Sélectionnez un hôtel', 'warning');
+      try {
+        const data = await fetchJSON(`/hotel/files?hotel_id=${hotelId}`);
+        const list = document.getElementById('fileList');
+        if (!data.files.length) { list.innerHTML = '<p class="text-slate-500">Aucun fichier disponible.</p>'; return; }
+        list.innerHTML = '';
+        data.files.forEach(f => {
+          const ext = f.filename.split('.').pop();
+          const color = ext === 'json' ? 'text-amber-300' : 'text-sky-300';
+          const size = (f.size/1024).toFixed(1) + ' Ko';
+          const date = new Date(f.modified).toLocaleString('fr-FR');
+          const openUrl = `${apiBase()}/hotel/files/download?hotel_id=${hotelId}&filename=${encodeURIComponent(f.filename)}`;
+          list.innerHTML += `
+            <div class="flex justify-between items-center bg-white/5 rounded-md px-3 py-2">
+              <div><span class="${color}">${f.filename}</span><br><span class="text-xs text-slate-500">${size} • ${date}</span></div>
+              <div class="flex gap-2">
+                ${ext === 'json' ? `<button class="text-emerald-400 hover:text-emerald-300" onclick="showToast('JSON chargé (console)', 'info')"><i data-feather='play-circle'></i></button>` : ''}
+                <a href="${openUrl}" target="_blank" class="text-indigo-400 hover:text-indigo-300"><i data-feather="external-link"></i></a>
+              </div>
+            </div>`;
         });
+        feather.replace();
+      } catch (err) { showToast(err.message, 'error'); }
+    });
 
-        const showToast = (message, type = 'info') => {
-            const colors = {
-                success: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200',
-                error: 'border-rose-400/40 bg-rose-500/10 text-rose-200',
-                warning: 'border-amber-400/40 bg-amber-500/10 text-amber-200',
-                info: 'border-sky-400/40 bg-sky-500/10 text-sky-200',
-            };
-            const toast = document.createElement('div');
-            toast.className = `pointer-events-auto rounded-2xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${colors[type] || colors.info}`;
-            toast.innerHTML = `<div class="flex items-center gap-3"><i data-feather="bell" class="h-4 w-4"></i><span>${message}</span></div>`;
-            document.getElementById('toastContainer').appendChild(toast);
-            feather.replace({ class: 'h-4 w-4' });
-            setTimeout(() => toast.classList.add('opacity-0'), 4600);
-            setTimeout(() => toast.remove(), 5200);
-        };
-
-        const animateNumber = (element, target) => {
-            const start = Number(element.dataset.value || 0);
-            const duration = 450;
-            const startTime = performance.now();
-
-            const step = (now) => {
-                const progress = Math.min((now - startTime) / duration, 1);
-                const value = Math.floor(start + (target - start) * progress);
-                element.textContent = target >= 1000 ? value.toLocaleString('fr-FR') : value;
-                if (progress < 1) requestAnimationFrame(step); else element.dataset.value = target;
-            };
-            requestAnimationFrame(step);
-        };
-
-        const state = {
-            latencySeries: [],
-            latencyChart: null,
-        };
-
-        const buildLatencyChart = () => {
-            const ctx = document.getElementById('latencyChart');
-            if (!ctx) return;
-            state.latencyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [
-                        {
-                            label: 'Latence API (ms)',
-                            data: [],
-                            borderColor: '#4f46e5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.25)',
-                            fill: true,
-                            tension: 0.35,
-                            pointRadius: 0,
-                        },
-                    ],
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'minute', tooltipFormat: 'HH:mm:ss' },
-                            ticks: { color: '#94a3b8' },
-                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
-                        },
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#94a3b8' },
-                            grid: { color: 'rgba(148, 163, 184, 0.08)' },
-                        },
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#cbd5f5' } },
-                    },
-                },
-            });
-        };
-
-        const formatBytes = (bytes) => {
-            if (!bytes) return '0 Ko';
-            const units = ['Octets', 'Ko', 'Mo', 'Go'];
-            let size = bytes;
-            let unitIndex = 0;
-            while (size >= 1024 && unitIndex < units.length - 1) {
-                size /= 1024;
-                unitIndex += 1;
-            }
-            return `${size.toFixed(1)} ${units[unitIndex]}`;
-        };
-
-        const formatDate = (iso) => {
-            if (!iso) return '—';
-            try {
-                return new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
-            } catch (err) {
-                return iso;
-            }
-        };
-
-        const fetchJSON = async (path, options = {}) => {
-            const base = (localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '');
-            const response = await fetch(`${base}${path}`, options);
-            if (!response.ok) {
-                const payload = await response.json().catch(() => ({}));
-                const error = new Error(payload.detail || 'Erreur API');
-                error.status = response.status;
-                throw error;
-            }
-            return response.json();
-        };
-
-        const loadMonitoring = async () => {
-            try {
-                const [health, activity] = await Promise.all([
-                    fetchJSON('/monitor/health'),
-                    fetchJSON('/activity?limit=6'),
-                ]);
-
-                const metrics = health.metrics || {};
-                animateNumber(document.getElementById('activeHotelsValue'), metrics.active_hotels || 0);
-                animateNumber(document.getElementById('totalHotelsValue'), metrics.total_hotels || 0);
-                document.getElementById('latencyValue').textContent = `${Math.round(health.latency_ms || 0)} ms`;
-                document.getElementById('storageValue').textContent = `${health.storage?.files || 0} fichiers`;
-                document.getElementById('storageSubtitle').textContent = formatBytes(health.storage?.bytes || 0);
-
-                document.getElementById('apiStatus').textContent = health.status === 'ok' ? 'Opérationnelle' : 'Dégradée';
-                document.getElementById('dbStatus').textContent = health.database === 'healthy' ? 'Connexion OK' : 'Problème';
-                document.getElementById('storageStatus').textContent = `${health.storage?.files || 0} fichiers`;
-                document.getElementById('activityStatus').textContent = `${metrics.recent_activity?.length || 0} événements récents`;
-                document.getElementById('lastSync').textContent = formatDate(health.generated_at || health.timestamp);
-
-                document.getElementById('sidebarStatusDetail').textContent = `Actifs: ${metrics.active_hotels || 0} / Total: ${metrics.total_hotels || 0}`;
-                updateStatusBadge(health.status);
-
-                const points = state.latencySeries;
-                points.push({ x: new Date(), y: health.latency_ms || 0 });
-                if (points.length > 30) points.shift();
-                if (state.latencyChart) {
-                    state.latencyChart.data.datasets[0].data = points;
-                    state.latencyChart.update('none');
-                }
-
-                renderActivity(activity);
-            } catch (error) {
-                showToast(error.message, 'error');
-                updateStatusBadge('error');
-            }
-        };
-
-        const loadHotels = async () => {
-            try {
-                const includeInactive = document.getElementById('includeInactive').checked;
-                const hotels = await fetchJSON(`/hotels?include_inactive=${includeInactive}`);
-                const tbody = document.getElementById('hotelTable');
-                const select = document.getElementById('selectedHotelFiles');
-                tbody.innerHTML = '';
-                select.innerHTML = '';
-                hotels.forEach((hotel) => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-white/5 transition';
-                    tr.innerHTML = `
-                        <td class="px-4 py-3 font-medium text-white">${hotel.hotel_id}</td>
-                        <td class="px-4 py-3 text-slate-300">${hotel.name || '<span class="text-slate-500">—</span>'}</td>
-                        <td class="px-4 py-3">
-                            <span class="status-pill ${hotel.is_active ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}">
-                                ${hotel.is_active ? 'Actif' : 'Désactivé'}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 text-slate-400">${formatDate(hotel.created_at)}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
-                                <button class="table-action" data-action="toggle" data-id="${hotel.hotel_id}" data-active="${hotel.is_active}">
-                                    <i data-feather="${hotel.is_active ? 'pause' : 'play'}"></i>
-                                </button>
-                                <button class="table-action" data-action="simulate" data-id="${hotel.hotel_id}">
-                                    <i data-feather="trending-up"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-
-                    const opt = document.createElement('option');
-                    opt.value = hotel.hotel_id; opt.textContent = hotel.hotel_id;
-                    select.appendChild(opt);
-                });
-                feather.replace({ class: 'h-4 w-4' });
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        };
-
-        const renderActivity = (logs) => {
-            const container = document.getElementById('activityTimeline');
-            const sideList = document.getElementById('hotelActivity');
-            container.innerHTML = '';
-            sideList.innerHTML = '';
-            logs.forEach((log) => {
-                const template = document.getElementById('activityItemTemplate').content.cloneNode(true);
-                template.querySelector('[data-field="type"]').textContent = log.activity_type;
-                template.querySelector('[data-field="created_at"]').textContent = formatDate(log.created_at);
-                template.querySelector('[data-field="description"]').textContent = log.description;
-                template.querySelector('[data-field="performed_by"]').textContent = `Par ${log.performed_by || 'système'}${log.hotel_id ? ` • ${log.hotel_id}` : ''}`;
-                const details = log.details && Object.keys(log.details).length ? JSON.stringify(log.details, null, 2) : '—';
-                template.querySelector('[data-field="details"]').textContent = details;
-                container.appendChild(template);
-
-                const item = document.createElement('li');
-                item.innerHTML = `<span class="font-medium text-white">${log.description}</span><br><span class="text-slate-500">${formatDate(log.created_at)}</span>`;
-                sideList.appendChild(item);
-            });
-            document.getElementById('activityCount').textContent = `${logs.length} entrées`;
-            feather.replace({ class: 'h-3 w-3' });
-        };
-
-        const updateStatusBadge = (status) => {
-            const badge = document.getElementById('healthBadge');
-            const sidebarStatus = document.getElementById('sidebarStatus');
-            const dot = sidebarStatus.querySelector('.status-dot');
-            switch (status) {
-                case 'ok':
-                    badge.textContent = 'Système opérationnel';
-                    badge.className = 'status-pill bg-emerald-500/15 text-emerald-300';
-                    sidebarStatus.className = 'flex items-center gap-2 text-emerald-400';
-                    dot.className = 'status-dot';
-                    break;
-                case 'degraded':
-                    badge.textContent = 'Système dégradé';
-                    badge.className = 'status-pill bg-amber-500/15 text-amber-300';
-                    sidebarStatus.className = 'flex items-center gap-2 text-amber-300';
-                    dot.className = 'status-dot warning';
-                    break;
-                default:
-                    badge.textContent = 'Système indisponible';
-                    badge.className = 'status-pill bg-rose-500/15 text-rose-300';
-                    sidebarStatus.className = 'flex items-center gap-2 text-rose-300';
-                    dot.className = 'status-dot error';
-            }
-        };
-
-        document.getElementById('refreshNow').addEventListener('click', () => {
-            showToast('Rafraîchissement forcé...', 'info');
-            triggerFullRefresh();
-        });
-
-        const triggerFullRefresh = () => {
-            loadMonitoring();
-            loadHotels();
-        };
-
-        document.getElementById('includeInactive').addEventListener('change', loadHotels);
-
-        document.getElementById('hotelTable').addEventListener('click', async (event) => {
-            const button = event.target.closest('button[data-action]');
-            if (!button) return;
-            const hotelId = button.dataset.id;
-            if (button.dataset.action === 'toggle') {
-                const isActive = button.dataset.active === 'true';
-                try {
-                    if (isActive) {
-                        await fetchJSON(`/hotels/${hotelId}?actor=admin-ui`, { method: 'DELETE' });
-                        showToast(`Hôtel ${hotelId} désactivé`, 'warning');
-                    } else {
-                        await fetchJSON(`/hotels?actor=admin-ui`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ hotel_id: hotelId }),
-                        });
-                        showToast(`Hôtel ${hotelId} réactivé`, 'success');
-                    }
-                    loadHotels();
-                    loadMonitoring();
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
-            }
-            if (button.dataset.action === 'simulate') {
-                showToast(`Simulation avancée en préparation pour ${hotelId}`, 'info');
-            }
-        });
-
-        document.getElementById('createHotelForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const hotelId = event.target.hotelId.value.trim();
-            const hotelName = event.target.hotelName.value.trim();
-            if (!/^[a-z0-9-]{3,64}$/.test(hotelId)) {
-                showToast("ID invalide. Utilisez uniquement minuscules, chiffres et tirets.", 'warning');
-                return;
-            }
-            try {
-                await fetchJSON('/hotels?actor=admin-ui', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ hotel_id: hotelId, name: hotelName }),
-                });
-                showToast('Hôtel créé avec succès', 'success');
-                event.target.reset();
-                loadHotels();
-                loadMonitoring();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        });
-
-        document.getElementById('hotelId').addEventListener('input', (event) => {
-            const value = event.target.value.trim();
-            const helper = document.getElementById('hotelIdHelper');
-            if (!value) {
-                helper.textContent = '3 à 64 caractères, minuscules, chiffres et tirets uniquement.';
-                helper.className = 'mt-2 text-xs text-slate-400';
-                return;
-            }
-            if (/^[a-z0-9-]{3,64}$/.test(value)) {
-                helper.textContent = 'Identifiant valide et disponible.';
-                helper.className = 'mt-2 text-xs text-emerald-300';
-            } else {
-                helper.textContent = 'Format incorrect. Exemple: hotel-paris-centre';
-                helper.className = 'mt-2 text-xs text-amber-300';
-            }
-        });
-
-        document.getElementById('btnRefreshHotels').addEventListener('click', () => {
-            loadHotels();
-            showToast('Inventaire des hôtels rafraîchi', 'info');
-        });
-
-        document.getElementById('btnOpenUpload').addEventListener('click', () => {
-           showToast("Ouverture du module d'import (via interface spécialisée)", "info");
-        });
-
-        document.getElementById('btnPlanBackup').addEventListener('click', () => {
-            showToast('Sauvegarde planifiée pour la nuit prochaine', 'success');
-        });
-
-        document.getElementById('backupNow').addEventListener('click', () => {
-            showToast('Sauvegarde complète démarrée', 'success');
-        });
-
-        document.getElementById('backupData').addEventListener('click', () => {
-            showToast('Export des données planifié', 'info');
-        });
-
-        document.getElementById('restoreForm').addEventListener('submit', (event) => {
-            event.preventDefault();
-            const key = document.getElementById('restoreKey').value.trim();
-            if (!key) {
-                showToast('Identifiant de sauvegarde requis', 'warning');
-                return;
-            }
-            showToast(`Restauration ${key} en file d'attente`, 'success');
-        });
-
-        // === Nouveau : Gestion des fichiers existants ===
-        async function loadFilesList() {
-            const hotelId = document.getElementById('selectedHotelFiles').value;
-            if (!hotelId) { showToast('Sélectionnez un hôtel', 'warning'); return; }
-            try {
-                const data = await fetchJSON(`/hotel/files?hotel_id=${encodeURIComponent(hotelId)}`);
-                const list = document.getElementById('fileList');
-                if (!data.files || !data.files.length) {
-                    list.innerHTML = '<p class="text-slate-500">Aucun fichier disponible.</p>';
-                    return;
-                }
-                list.innerHTML = '';
-                data.files.forEach(f => {
-                    const row = document.createElement('div');
-                    const ext = (f.filename.split('.').pop() || '').toLowerCase();
-                    const color = ext === 'json' ? 'text-amber-300' : 'text-sky-300';
-                    const size = (f.size/1024).toFixed(1) + ' Ko';
-                    const date = new Date(f.modified).toLocaleString('fr-FR');
-                    const openHref = `${(localStorage.getItem(STORAGE_KEY) || defaultApiBase).replace(/\/$/, '')}/hotel/files/download?hotel_id=${encodeURIComponent(hotelId)}&filename=${encodeURIComponent(f.filename)}`;
-                    row.className = 'flex justify-between items-center bg-white/5 rounded-md px-3 py-2';
-                    row.innerHTML = `
-                        <div>
-                          <span class="${color}">${f.filename}</span>
-                          <div class="text-xs text-slate-500">${size} • ${date}</div>
-                        </div>
-                        <div class="flex gap-3">
-                          ${ext === 'json' ? `<button class="table-action" data-action="load-json" data-hotel="${hotelId}" data-file="${encodeURIComponent(f.filename)}" title="Charger JSON"><i data-feather="play-circle"></i></button>` : ''}
-                          ${ext === 'xlsx' ? `<a class="table-action" href="${openHref}" target="_blank" rel="noopener" title="Ouvrir Excel"><i data-feather="external-link"></i></a>` : ''}
-                          <a class="table-action" href="${openHref}" title="Télécharger"><i data-feather="download"></i></a>
-                        </div>`;
-                    list.appendChild(row);
-                });
-                feather.replace({ class: 'h-4 w-4' });
-            } catch (e) {
-                showToast(e.message, 'error');
-            }
-        }
-
-        document.getElementById('btnLoadFiles').addEventListener('click', loadFilesList);
-        document.getElementById('btnRefreshFilesList').addEventListener('click', loadFilesList);
-
-        document.getElementById('fileList').addEventListener('click', async (e) => {
-            const btn = e.target.closest('button.table-action');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            const hotelId = btn.dataset.hotel;
-            const filename = decodeURIComponent(btn.dataset.file || '');
-            if (action === 'load-json') {
-                try {
-                    // On recharge la config/data du backend
-                    const data = await fetchJSON(`/data?hotel_id=${encodeURIComponent(hotelId)}`);
-                    console.log('JSON chargé:', data);
-                    showToast('JSON chargé depuis le backend', 'success');
-                } catch (err) {
-                    showToast('Impossible de charger le JSON via /data. Vérifier backend.', 'error');
-                }
-            }
-        });
-
-        const init = () => {
-            buildLatencyChart();
-            triggerFullRefresh();
-            setInterval(triggerFullRefresh, 30000);
-            feather.replace();
-        };
-
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+    feather.replace();
+  </script>
 </body>
 </html>
