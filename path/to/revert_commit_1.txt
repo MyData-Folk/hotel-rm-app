@@ -1,0 +1,3 @@
+Revert commit message 1
+
+<conflict markers if any>
