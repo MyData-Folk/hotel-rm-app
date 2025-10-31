@@ -184,7 +184,7 @@ def get_system_metrics(session: Session) -> Dict[str, Any]:
     }
 
 
-async def process_excel_file(session: Session, hotel_id: str, file_content: bytes, filename: str):
+def process_excel_file(session: Session, hotel_id: str, file_content: bytes, filename: str):
     if not filename.lower().endswith(('.xlsx', '.csv')):
         raise HTTPException(status_code=400, detail="Format non supporté. Utilisez .xlsx ou .csv")
 
@@ -282,7 +282,7 @@ async def process_excel_file(session: Session, hotel_id: str, file_content: byte
         raise HTTPException(status_code=500, detail=f"Erreur de traitement: {str(e)}")
 
 
-async def process_json_config(session: Session, hotel_id: str, file_content: bytes):
+def process_json_config(session: Session, hotel_id: str, file_content: bytes):
     try:
         logger.info(f"Upload config pour {hotel_id}, taille: {len(file_content)} bytes")
 
@@ -539,7 +539,7 @@ def parse_sheet_to_structure(df: pd.DataFrame) -> dict:
                     try:
                         if pd.notna(price_value):
                             price_str = str(price_value).replace(',', '.')
-                            price_clean = re.sub(r'[^\\d.]', '', price_str)
+                            price_clean = re.sub(r'[^\d.]', '', price_str)
                             hotel_data[current_room]['plans'][plan_name][dc['date']] = float(price_clean)
                         else:
                             hotel_data[current_room]['plans'][plan_name][dc['date']] = None
@@ -768,9 +768,9 @@ async def upload_data(hotel_id: str = Query(...), file: UploadFile = File(...)):
 
     with Session(engine) as session:
         if file.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
-            return await process_excel_file(session, hotel_id, file_content, file.filename)
+            return process_excel_file(session, hotel_id, file_content, file.filename)
         elif file.filename.lower().endswith('.json'):
-            return await process_json_config(session, hotel_id, file_content)
+            return process_json_config(session, hotel_id, file_content)
         else:
             raise HTTPException(status_code=400, detail="Format de fichier non supporté. Utilisez .xlsx, .xls ou .json")
 
